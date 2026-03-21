@@ -1,0 +1,43 @@
+"use client";
+
+import Link from "next/link";
+import { useSelectedLayoutSegment } from "next/navigation";
+
+const tabs = [
+  { label: "Overview", segment: null },
+  { label: "Conditions", segment: "conditions" },
+  { label: "Medications", segment: "medications" },
+  { label: "Allergies", segment: "allergies" },
+  { label: "Appointments", segment: "appointments" },
+  { label: "Documents", segment: "documents" },
+];
+
+export function PersonTabs({ baseUrl }: { baseUrl: string }) {
+  const segment = useSelectedLayoutSegment();
+
+  return (
+    <nav
+      className="flex gap-0 overflow-x-auto -mx-4 md:mx-0 border-b border-warmstone-100"
+      aria-label="Person tabs"
+    >
+      {tabs.map(({ label, segment: tabSegment }) => {
+        const href = tabSegment ? `${baseUrl}/${tabSegment}` : baseUrl;
+        const isActive = segment === tabSegment;
+        return (
+          <Link
+            key={label}
+            href={href}
+            className={[
+              "px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors flex-shrink-0 min-h-[44px] flex items-center",
+              isActive
+                ? "border-honey-400 text-warmstone-900"
+                : "border-transparent text-warmstone-600 hover:text-warmstone-900 hover:border-warmstone-200",
+            ].join(" ")}
+          >
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}

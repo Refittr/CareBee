@@ -1,65 +1,126 @@
-import Image from "next/image";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Bug, Users, CalendarCheck, QrCode } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
 
-export default function Home() {
+export const metadata: Metadata = {
+  title: "CareBee: Your family's health and care record",
+  description:
+    "Keep conditions, medications, appointments, and documents for your whole family in one secure place.",
+};
+
+export default async function LandingPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) redirect("/dashboard");
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-warmstone-white flex flex-col">
+      <header className="px-6 py-4 flex items-center justify-between border-b border-warmstone-100">
+        <div className="flex items-center gap-2">
+          <Bug size={24} className="text-honey-400" />
+          <span className="font-display text-xl text-warmstone-900">CareBee</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/login"
+            className="text-sm font-semibold text-warmstone-600 hover:text-warmstone-900 transition-colors min-h-[44px] flex items-center"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/signup"
+            className="bg-honey-400 text-warmstone-white font-bold text-sm rounded-md px-4 py-2 hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] min-h-[44px] flex items-center"
+          >
+            Get started free
+          </Link>
+        </div>
+      </header>
+
+      <main className="flex-1">
+        <section className="px-6 py-20 md:py-32 text-center max-w-3xl mx-auto">
+          <h1 className="font-display text-4xl md:text-6xl text-warmstone-900 leading-tight mb-6">
+            Your family&apos;s care, in one place
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-lg md:text-xl text-warmstone-600 mb-10 max-w-xl mx-auto leading-relaxed">
+            The NHS has a record for clinicians. CareBee is the record for families.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/signup"
+              className="bg-honey-400 text-warmstone-white font-bold rounded-md px-8 py-4 text-lg hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] min-h-[52px] flex items-center justify-center"
+            >
+              Get started free
+            </Link>
+            <a
+              href="#features"
+              className="bg-transparent text-warmstone-800 border border-warmstone-200 font-bold rounded-md px-8 py-4 text-lg hover:bg-warmstone-100 transition-colors min-h-[52px] flex items-center justify-center"
+            >
+              Learn more
+            </a>
+          </div>
+        </section>
+
+        <section id="features" className="px-6 py-16 bg-warmstone-50">
+          <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-warmstone-white border border-warmstone-100 rounded-lg shadow-sm p-6 flex flex-col gap-4">
+              <div className="w-12 h-12 rounded-lg bg-honey-50 flex items-center justify-center">
+                <Users size={24} className="text-honey-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-warmstone-900 text-lg mb-2">
+                  One record for everyone
+                </h3>
+                <p className="text-warmstone-600 text-sm leading-relaxed">
+                  Keep conditions, medications, appointments, and documents for your whole family
+                  in one secure place.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-warmstone-white border border-warmstone-100 rounded-lg shadow-sm p-6 flex flex-col gap-4">
+              <div className="w-12 h-12 rounded-lg bg-sage-50 flex items-center justify-center">
+                <CalendarCheck size={24} className="text-sage-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-warmstone-900 text-lg mb-2">
+                  Never miss a thing
+                </h3>
+                <p className="text-warmstone-600 text-sm leading-relaxed">
+                  Track appointments across every hospital and GP surgery. Know what was said,
+                  what was agreed, and what comes next.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-warmstone-white border border-warmstone-100 rounded-lg shadow-sm p-6 flex flex-col gap-4">
+              <div className="w-12 h-12 rounded-lg bg-info-light flex items-center justify-center">
+                <QrCode size={24} className="text-info" />
+              </div>
+              <div>
+                <h3 className="font-bold text-warmstone-900 text-lg mb-2">
+                  Emergency info, always ready
+                </h3>
+                <p className="text-warmstone-600 text-sm leading-relaxed">
+                  Generate a QR code with critical health details. A paramedic scans it and sees
+                  everything they need.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
+
+      <footer className="px-6 py-8 border-t border-warmstone-100 text-center text-sm text-warmstone-400">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Bug size={16} className="text-honey-400" />
+          <span className="font-display text-warmstone-600">CareBee</span>
+        </div>
+        <p>Your family&apos;s health and care record. Built for UK families.</p>
+      </footer>
     </div>
   );
 }
