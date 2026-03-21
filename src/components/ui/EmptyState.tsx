@@ -1,3 +1,6 @@
+"use client";
+
+import Link from "next/link";
 import { LucideIcon } from "lucide-react";
 import { Button } from "./Button";
 
@@ -6,6 +9,7 @@ interface EmptyStateProps {
   heading: string;
   description: string;
   ctaLabel?: string;
+  ctaHref?: string;
   onCta?: () => void;
   iconColor?: string;
 }
@@ -15,6 +19,7 @@ export function EmptyState({
   heading,
   description,
   ctaLabel,
+  ctaHref,
   onCta,
   iconColor = "text-warmstone-400",
 }: EmptyStateProps) {
@@ -25,7 +30,15 @@ export function EmptyState({
         <h3 className="text-lg font-bold text-warmstone-900">{heading}</h3>
         <p className="text-warmstone-600 text-sm max-w-xs">{description}</p>
       </div>
-      {ctaLabel && onCta && (
+      {ctaLabel && ctaHref && (
+        <Link
+          href={ctaHref}
+          className="mt-2 bg-honey-400 text-warmstone-white font-bold rounded-md px-4 py-2 text-sm hover:bg-honey-600 transition-colors min-h-[44px] flex items-center"
+        >
+          {ctaLabel}
+        </Link>
+      )}
+      {ctaLabel && onCta && !ctaHref && (
         <Button onClick={onCta} className="mt-2">
           {ctaLabel}
         </Button>

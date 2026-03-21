@@ -67,7 +67,7 @@ export default async function DashboardPage() {
           heading="No households yet"
           description="Create a household to start keeping track of your family's care."
           ctaLabel="Create your first household"
-          onCta={() => {}}
+          ctaHref="/household/new"
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
