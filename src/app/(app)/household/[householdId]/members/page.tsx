@@ -41,7 +41,7 @@ export default async function MembersPage({ params }: Props) {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-warmstone-900 hidden md:block">Family members</h1>
       </div>
-      <MembersClient members={members ?? []} currentUserId={user.id} householdId={householdId} householdName={household.name} />
+      <MembersClient members={(members ?? []) as unknown as Parameters<typeof MembersClient>[0]["members"]} currentUserId={user.id} householdId={householdId} householdName={household.name} />
     </div>
   );
 }

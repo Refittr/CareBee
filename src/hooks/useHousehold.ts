@@ -48,8 +48,8 @@ export function useHousehold(householdId: string): UseHouseholdReturn {
       if (err) {
         setError(err.message);
       } else {
-        setHousehold(data as HouseholdWithMembers);
-        const myMembership = (data as HouseholdWithMembers).household_members.find(
+        setHousehold(data as unknown as HouseholdWithMembers);
+        const myMembership = (data as unknown as HouseholdWithMembers).household_members.find(
           (m) => m.user_id === user.id
         );
         setUserRole(myMembership?.role ?? null);

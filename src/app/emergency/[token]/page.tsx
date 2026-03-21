@@ -37,7 +37,12 @@ export default async function EmergencyPage({ params }: Props) {
     );
   }
 
-  const person = share.people as {
+  const person = (share as unknown as { people: {
+    first_name: string; last_name: string; date_of_birth: string | null;
+    nhs_number: string | null; gp_surgery: string | null; gp_name: string | null;
+    next_of_kin_name: string | null; next_of_kin_phone: string | null; next_of_kin_relationship: string | null;
+    dnacpr_status: boolean; updated_at: string;
+  } }).people as {
     first_name: string; last_name: string; date_of_birth: string | null;
     nhs_number: string | null; gp_surgery: string | null; gp_name: string | null;
     next_of_kin_name: string | null; next_of_kin_phone: string | null; next_of_kin_relationship: string | null;

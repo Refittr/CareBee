@@ -145,7 +145,7 @@ export default async function HouseholdPage({ params }: Props) {
 
         <div className="flex flex-wrap gap-4">
           {members?.map((member) => {
-            const profile = member.profiles as { full_name: string; email: string; avatar_url: string | null } | null;
+            const profile = (member as unknown as { profiles: { full_name: string; email: string; avatar_url: string | null } | null }).profiles;
             const name = profile?.full_name ?? member.invited_email ?? "Unknown";
             return (
               <Link

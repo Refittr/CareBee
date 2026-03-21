@@ -51,7 +51,8 @@ export function AppointmentForm({ householdId, personId, appointment, onSaved, o
     if (hasError) return;
     setTitleError(null); setDateError(null); setError(null); setLoading(true);
 
-    const payload: Partial<Appointment> = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const payload: any = {
       person_id: personId,
       household_id: householdId,
       title: fields.title.trim(),
