@@ -72,7 +72,7 @@ export default async function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {householdStats.map(({ membership, stats }) => {
-            const household = membership.households as { id: string; name: string } | null;
+            const household = (membership as unknown as { households: { id: string; name: string } | null }).households;
             if (!household) return null;
             const roleInfo = roleLabels[membership.role] ?? { label: membership.role, variant: "neutral" as const };
             return (

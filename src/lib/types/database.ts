@@ -185,78 +185,86 @@ export interface Invitation {
 
 type Row = Record<string, unknown>;
 
+// Makes all properties that accept null also accept undefined (i.e., optional).
+// This reflects the database reality: nullable columns have NULL as default.
+type OptionalNullables<T> = {
+  [K in keyof T as null extends T[K] ? never : K]: T[K];
+} & {
+  [K in keyof T as null extends T[K] ? K : never]?: T[K];
+};
+
 export type Database = {
   public: {
     Tables: {
       profiles: {
         Row: Row & Profile;
-        Insert: Row & Partial<Profile> & Pick<Profile, "id" | "full_name" | "email">;
-        Update: Row & Partial<Profile>;
+        Insert: Row & OptionalNullables<Omit<Profile, "created_at" | "updated_at">>;
+        Update: Row & Partial<Omit<Profile, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
       households: {
         Row: Row & Household;
-        Insert: Row & Omit<Household, "id" | "created_at" | "updated_at">;
+        Insert: Row & OptionalNullables<Omit<Household, "id" | "created_at" | "updated_at">>;
         Update: Row & Partial<Omit<Household, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
       household_members: {
         Row: Row & HouseholdMember;
-        Insert: Row & Omit<HouseholdMember, "id" | "created_at">;
+        Insert: Row & OptionalNullables<Omit<HouseholdMember, "id" | "created_at">>;
         Update: Row & Partial<Omit<HouseholdMember, "id" | "created_at">>;
         Relationships: never[];
       };
       people: {
         Row: Row & Person;
-        Insert: Row & Omit<Person, "id" | "created_at" | "updated_at">;
+        Insert: Row & OptionalNullables<Omit<Person, "id" | "created_at" | "updated_at">>;
         Update: Row & Partial<Omit<Person, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
       conditions: {
         Row: Row & Condition;
-        Insert: Row & Omit<Condition, "id" | "created_at" | "updated_at">;
+        Insert: Row & OptionalNullables<Omit<Condition, "id" | "created_at" | "updated_at">>;
         Update: Row & Partial<Omit<Condition, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
       medications: {
         Row: Row & Medication;
-        Insert: Row & Omit<Medication, "id" | "created_at" | "updated_at">;
+        Insert: Row & OptionalNullables<Omit<Medication, "id" | "created_at" | "updated_at">>;
         Update: Row & Partial<Omit<Medication, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
       medication_changes: {
         Row: Row & MedicationChange;
-        Insert: Row & Omit<MedicationChange, "id" | "created_at">;
+        Insert: Row & OptionalNullables<Omit<MedicationChange, "id" | "created_at">>;
         Update: Row & Partial<Omit<MedicationChange, "id" | "created_at">>;
         Relationships: never[];
       };
       allergies: {
         Row: Row & Allergy;
-        Insert: Row & Omit<Allergy, "id" | "created_at" | "updated_at">;
+        Insert: Row & OptionalNullables<Omit<Allergy, "id" | "created_at" | "updated_at">>;
         Update: Row & Partial<Omit<Allergy, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
       appointments: {
         Row: Row & Appointment;
-        Insert: Row & Omit<Appointment, "id" | "created_at" | "updated_at">;
+        Insert: Row & OptionalNullables<Omit<Appointment, "id" | "created_at" | "updated_at">>;
         Update: Row & Partial<Omit<Appointment, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
       documents: {
         Row: Row & Document;
-        Insert: Row & Omit<Document, "id" | "created_at">;
+        Insert: Row & OptionalNullables<Omit<Document, "id" | "created_at">>;
         Update: Row & Partial<Omit<Document, "id" | "created_at">>;
         Relationships: never[];
       };
       emergency_shares: {
         Row: Row & EmergencyShare;
-        Insert: Row & Omit<EmergencyShare, "id" | "created_at">;
+        Insert: Row & OptionalNullables<Omit<EmergencyShare, "id" | "created_at">>;
         Update: Row & Partial<Omit<EmergencyShare, "id" | "created_at">>;
         Relationships: never[];
       };
       invitations: {
         Row: Row & Invitation;
-        Insert: Row & Omit<Invitation, "id" | "created_at">;
+        Insert: Row & OptionalNullables<Omit<Invitation, "id" | "created_at">>;
         Update: Row & Partial<Omit<Invitation, "id" | "created_at">>;
         Relationships: never[];
       };
