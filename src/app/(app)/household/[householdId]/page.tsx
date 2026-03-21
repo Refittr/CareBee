@@ -134,7 +134,7 @@ export default async function HouseholdPage({ params }: Props) {
 
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-warmstone-900">Family members</h2>
+          <h2 className="text-lg font-bold text-warmstone-900">Members</h2>
           <Link
             href={`/household/${householdId}/invite`}
             className="text-sm font-semibold text-honey-600 hover:text-honey-800 transition-colors flex items-center gap-1 min-h-[44px]"

@@ -3,20 +3,21 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
-import { Input, Textarea } from "@/components/ui/Input";
+import { Input, Textarea, Select } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
-import type { Medication } from "@/lib/types/database";
+import type { Medication, Condition } from "@/lib/types/database";
 
 interface MedicationFormProps {
   householdId: string;
   personId: string;
   medication?: Medication;
+  conditions: Pick<Condition, "id" | "name">[];
   onSaved: () => void;
   onCancel: () => void;
 }
 
-export function MedicationForm({ householdId, personId, medication, onSaved, onCancel }: MedicationFormProps) {
+export function MedicationForm({ householdId, personId, medication, conditions, onSaved, onCancel }: MedicationFormProps) {
   const supabase = createClient();
   const { addToast } = useAppToast();
   const [fields, setFields] = useState({
@@ -30,6 +31,7 @@ export function MedicationForm({ householdId, personId, medication, onSaved, onC
     start_date: medication?.start_date ?? "",
     notes: medication?.notes ?? "",
     is_active: medication?.is_active ?? true,
+    condition_id: medication?.condition_id ?? "",
   });
   const [nameError, setNameError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +59,7 @@ export function MedicationForm({ householdId, personId, medication, onSaved, onC
       start_date: fields.start_date || null,
       notes: fields.notes || null,
       is_active: fields.is_active,
+      condition_id: fields.condition_id || null,
     };
 
     const { error: err } = medication
@@ -75,6 +78,14 @@ export function MedicationForm({ householdId, personId, medication, onSaved, onC
         <Input label="Dosage" value={fields.dosage} onChange={(e) => set("dosage", e.target.value)} placeholder="e.g. 5mg" />
         <Input label="Frequency" value={fields.frequency} onChange={(e) => set("frequency", e.target.value)} placeholder="e.g. once daily" />
       </div>
+      {conditions.length > 0 && (
+        <Select label="Linked condition" value={fields.condition_id} onChange={(e) => set("condition_id", e.target.value)}>
+          <option value="">Not linked to a condition</option>
+          {conditions.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </Select>
+      )}
       <Textarea label="Purpose" value={fields.purpose} onChange={(e) => set("purpose", e.target.value)} placeholder="What is this medication for, in plain English?" rows={2} />
       <Input label="Prescribed by" value={fields.prescribed_by} onChange={(e) => set("prescribed_by", e.target.value)} placeholder="e.g. Dr Smith" />
       <Input label="Pharmacy" value={fields.pharmacy} onChange={(e) => set("pharmacy", e.target.value)} />

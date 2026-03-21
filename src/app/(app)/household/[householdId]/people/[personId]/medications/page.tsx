@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Plus, Pencil, Trash2, Pill, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Pill, RefreshCw, Tag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -14,7 +14,7 @@ import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { MedicationForm } from "@/components/forms/MedicationForm";
 import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateUK } from "@/lib/utils/dates";
-import type { Medication, MedicationChange } from "@/lib/types/database";
+import type { Medication, MedicationChange, Condition } from "@/lib/types/database";
 
 export default function MedicationsPage() {
   const params = useParams<{ householdId: string; personId: string }>();
@@ -24,6 +24,7 @@ export default function MedicationsPage() {
 
   const [medications, setMedications] = useState<Medication[]>([]);
   const [changes, setChanges] = useState<MedicationChange[]>([]);
+  const [conditions, setConditions] = useState<Pick<Condition, "id" | "name">[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -34,12 +35,13 @@ export default function MedicationsPage() {
 
   async function load() {
     setLoading(true);
-    const [{ data: meds, error: err }, { data: mc }] = await Promise.all([
+    const [{ data: meds, error: err }, { data: mc }, { data: conds }] = await Promise.all([
       supabase.from("medications").select("*").eq("person_id", personId).order("created_at", { ascending: false }),
       supabase.from("medication_changes").select("*").eq("person_id", personId).order("change_date", { ascending: false }),
+      supabase.from("conditions").select("id, name").eq("person_id", personId).eq("is_active", true).order("name"),
     ]);
     if (err) setError(err.message);
-    else { setMedications(meds ?? []); setChanges(mc ?? []); }
+    else { setMedications(meds ?? []); setChanges(mc ?? []); setConditions(conds ?? []); }
     setLoading(false);
   }
 
@@ -64,6 +66,11 @@ export default function MedicationsPage() {
     return changes.find((c) => c.medication_id === medId);
   }
 
+  function conditionName(conditionId: string | null) {
+    if (!conditionId) return null;
+    return conditions.find((c) => c.id === conditionId)?.name ?? null;
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -86,6 +93,7 @@ export default function MedicationsPage() {
           <div className="flex flex-col gap-3">
             {active.map((med) => {
               const change = latestChange(med.id);
+              const linked = conditionName(med.condition_id);
               return (
                 <Card key={med.id} className="p-5">
                   <div className="flex items-start justify-between gap-3">
@@ -97,6 +105,12 @@ export default function MedicationsPage() {
                       {(med.dosage || med.frequency) && (
                         <p className="text-sm text-warmstone-600">
                           {[med.dosage, med.frequency].filter(Boolean).join(", ")}
+                        </p>
+                      )}
+                      {linked && (
+                        <p className="text-sm text-warmstone-500 flex items-center gap-1 mt-0.5">
+                          <Tag size={12} />
+                          {linked}
                         </p>
                       )}
                       {med.purpose && <p className="text-sm text-warmstone-600">For: {med.purpose}</p>}
@@ -143,6 +157,12 @@ export default function MedicationsPage() {
                           {(med.dosage || med.frequency) && (
                             <p className="text-sm text-warmstone-400">{[med.dosage, med.frequency].filter(Boolean).join(", ")}</p>
                           )}
+                          {conditionName(med.condition_id) && (
+                            <p className="text-sm text-warmstone-400 flex items-center gap-1">
+                              <Tag size={12} />
+                              {conditionName(med.condition_id)}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-1">
                           <button onClick={() => setEditTarget(med)} className="p-2 text-warmstone-400 hover:text-warmstone-800 transition-colors rounded min-h-[44px] min-w-[44px] flex items-center justify-center"><Pencil size={14} /></button>
@@ -159,11 +179,11 @@ export default function MedicationsPage() {
       )}
 
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add a medication" maxWidth="lg">
-        <MedicationForm householdId={householdId} personId={personId} onSaved={() => { setAddOpen(false); load(); }} onCancel={() => setAddOpen(false)} />
+        <MedicationForm householdId={householdId} personId={personId} conditions={conditions} onSaved={() => { setAddOpen(false); load(); }} onCancel={() => setAddOpen(false)} />
       </Modal>
 
       <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Edit medication" maxWidth="lg">
-        {editTarget && <MedicationForm householdId={householdId} personId={personId} medication={editTarget} onSaved={() => { setEditTarget(null); load(); }} onCancel={() => setEditTarget(null)} />}
+        {editTarget && <MedicationForm householdId={householdId} personId={personId} medication={editTarget} conditions={conditions} onSaved={() => { setEditTarget(null); load(); }} onCancel={() => setEditTarget(null)} />}
       </Modal>
 
       <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Remove medication" description={`Are you sure you want to remove "${deleteTarget?.name}"? This cannot be undone.`} loading={deleting} />

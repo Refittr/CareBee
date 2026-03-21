@@ -119,7 +119,7 @@ export function MembersClient({ members, currentUserId, householdId, householdNa
         href={`/household/${householdId}/invite`}
         className="bg-honey-400 text-warmstone-white font-bold rounded-md px-6 py-3 text-base hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] inline-flex items-center gap-2 min-h-[44px]"
       >
-        <Plus size={18} /> Invite a family member
+        <Plus size={18} /> Invite someone
       </Link>
 
       <ConfirmModal

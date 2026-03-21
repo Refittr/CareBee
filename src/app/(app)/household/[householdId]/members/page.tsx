@@ -11,7 +11,7 @@ import type { Metadata } from "next";
 type Props = { params: Promise<{ householdId: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  return { title: "Family members | CareBee" };
+  return { title: "Members | CareBee" };
 }
 
 export default async function MembersPage({ params }: Props) {
@@ -32,14 +32,14 @@ export default async function MembersPage({ params }: Props) {
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-2xl">
-      <Header title="Family members" showBack backHref={`/household/${householdId}`} />
+      <Header title="Members" showBack backHref={`/household/${householdId}`} />
       <Breadcrumbs items={[
         { label: "Your households", href: "/dashboard" },
         { label: household.name, href: `/household/${householdId}` },
-        { label: "Family members" },
+        { label: "Members" },
       ]} />
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-warmstone-900 hidden md:block">Family members</h1>
+        <h1 className="text-2xl font-bold text-warmstone-900 hidden md:block">Members</h1>
       </div>
       <MembersClient members={(members ?? []) as unknown as Parameters<typeof MembersClient>[0]["members"]} currentUserId={user.id} householdId={householdId} householdName={household.name} />
     </div>

@@ -91,6 +91,7 @@ export interface Medication {
   repeat_prescription_date: string | null;
   start_date: string | null;
   end_date: string | null;
+  condition_id: string | null;
   is_active: boolean;
   notes: string | null;
   created_at: string;

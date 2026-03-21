@@ -18,7 +18,7 @@ const nunito = Nunito({
 
 export const metadata: Metadata = {
   title: "CareBee",
-  description: "Your family's health and care record",
+  description: "Your health and care record",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

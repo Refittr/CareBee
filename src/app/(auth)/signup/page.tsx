@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bug } from "lucide-react";
+import { BeeIcon } from "@/components/ui/BeeIcon";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -51,7 +51,7 @@ export default function SignupPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-3">
-            <Bug size={32} className="text-honey-400" />
+            <BeeIcon size={32} className="text-honey-400" />
           </div>
           <h1 className="font-display text-3xl text-warmstone-900">CareBee</h1>
           <p className="text-warmstone-600 text-sm mt-1">Create your account</p>

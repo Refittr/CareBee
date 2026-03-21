@@ -66,14 +66,14 @@ export default function InvitePage() {
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-lg">
-      <Header title="Invite a family member" showBack backHref={`/household/${householdId}/members`} />
+      <Header title="Invite someone" showBack backHref={`/household/${householdId}/members`} />
       <Breadcrumbs items={[
         { label: "Your households", href: "/dashboard" },
         { label: "Household", href: `/household/${householdId}` },
         { label: "Members", href: `/household/${householdId}/members` },
         { label: "Invite" },
       ]} />
-      <h1 className="text-2xl font-bold text-warmstone-900 mb-6 hidden md:block">Invite a family member</h1>
+      <h1 className="text-2xl font-bold text-warmstone-900 mb-6 hidden md:block">Invite someone</h1>
 
       {error && <div className="mb-4"><Alert type="error" description={error} /></div>}
 
@@ -86,7 +86,7 @@ export default function InvitePage() {
             onChange={(e) => setEmail(e.target.value)}
             required
             error={emailError ?? undefined}
-            placeholder="family@example.com"
+            placeholder="name@example.com"
           />
           <Select label="Role" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
             <option value="editor">Editor (can add and edit records)</option>
@@ -96,7 +96,7 @@ export default function InvitePage() {
         </form>
       ) : (
         <div className="flex flex-col gap-5">
-          <Alert type="success" title="Invite link created" description="Share this link with your family member. They will need to create an account or sign in to accept the invitation." />
+          <Alert type="success" title="Invite link created" description="Share this link with them. They will need to create an account or sign in to accept the invitation." />
 
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-warmstone-800">Invite link</label>

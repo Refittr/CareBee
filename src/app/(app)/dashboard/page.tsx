@@ -65,7 +65,7 @@ export default async function DashboardPage() {
         <EmptyState
           icon={Home}
           heading="No households yet"
-          description="Create a household to start keeping track of your family's care."
+          description="Create a household to start building your care records."
           ctaLabel="Create your first household"
           ctaHref="/household/new"
         />

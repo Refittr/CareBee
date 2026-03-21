@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Bug, Users, CalendarCheck, QrCode } from "lucide-react";
+import { Users, CalendarCheck, QrCode } from "lucide-react";
+import { BeeIcon } from "@/components/ui/BeeIcon";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "CareBee: Your family's health and care record",
+  title: "CareBee: Your health and care record",
   description:
-    "Keep conditions, medications, appointments, and documents for your whole family in one secure place.",
+    "Keep conditions, medications, appointments, and documents for yourself and everyone you care for, in one secure place.",
 };
 
 export default async function LandingPage() {
@@ -21,7 +22,7 @@ export default async function LandingPage() {
     <div className="min-h-screen bg-warmstone-white flex flex-col">
       <header className="px-6 py-4 flex items-center justify-between border-b border-warmstone-100">
         <div className="flex items-center gap-2">
-          <Bug size={24} className="text-honey-400" />
+          <BeeIcon size={24} className="text-honey-400" />
           <span className="font-display text-xl text-warmstone-900">CareBee</span>
         </div>
         <div className="flex items-center gap-3">
@@ -43,7 +44,7 @@ export default async function LandingPage() {
       <main className="flex-1">
         <section className="px-6 py-20 md:py-32 text-center max-w-3xl mx-auto">
           <h1 className="font-display text-4xl md:text-6xl text-warmstone-900 leading-tight mb-6">
-            Your family&apos;s care, in one place
+            Your care records, all in one place
           </h1>
           <p className="text-lg md:text-xl text-warmstone-600 mb-10 max-w-xl mx-auto leading-relaxed">
             The NHS has a record for clinicians. CareBee is the record for families.
@@ -75,8 +76,7 @@ export default async function LandingPage() {
                   One record for everyone
                 </h3>
                 <p className="text-warmstone-600 text-sm leading-relaxed">
-                  Keep conditions, medications, appointments, and documents for your whole family
-                  in one secure place.
+                  Keep conditions, medications, appointments, and documents for yourself and everyone you care for, in one secure place.
                 </p>
               </div>
             </div>
@@ -116,10 +116,10 @@ export default async function LandingPage() {
 
       <footer className="px-6 py-8 border-t border-warmstone-100 text-center text-sm text-warmstone-400">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <Bug size={16} className="text-honey-400" />
+          <BeeIcon size={16} className="text-honey-400" />
           <span className="font-display text-warmstone-600">CareBee</span>
         </div>
-        <p>Your family&apos;s health and care record. Built for UK families.</p>
+        <p>Your health and care record. Built for UK families and carers.</p>
       </footer>
     </div>
   );
