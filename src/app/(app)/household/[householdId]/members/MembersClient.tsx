@@ -29,7 +29,6 @@ interface PendingInvite {
   invite_token: string;
   expires_at: string;
   created_at: string;
-  profiles: { full_name: string } | null;
 }
 
 interface MembersClientProps {
@@ -263,8 +262,7 @@ export function MembersClient({
                         {invite.invited_email}
                       </p>
                       <p className="text-xs text-warmstone-400">
-                        Invited by {invite.profiles?.full_name ?? "someone"}, expires{" "}
-                        {timeUntil(invite.expires_at)}
+                        Expires {timeUntil(invite.expires_at)}
                       </p>
                     </div>
                   </div>

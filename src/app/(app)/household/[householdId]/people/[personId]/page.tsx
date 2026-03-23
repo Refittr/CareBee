@@ -3,6 +3,7 @@ import Link from "next/link";
 import { HeartPulse, Pill, ShieldCheck, Calendar, FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
+import { ScanDocumentButton } from "@/components/scan/ScanDocumentButton";
 import { formatDateUK, formatDateTime } from "@/lib/utils/dates";
 import type { Metadata } from "next";
 
@@ -39,6 +40,10 @@ export default async function PersonOverviewPage({ params }: Props) {
   const nextAppointment = appointments?.find((a) => a.status === "upcoming");
 
   return (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <ScanDocumentButton householdId={householdId} personId={personId} />
+      </div>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Link href={`${baseUrl}/conditions`}>
         <Card hoverable clickable className="p-5 h-full">
@@ -130,6 +135,7 @@ export default async function PersonOverviewPage({ params }: Props) {
           <p className="text-xs text-honey-600 font-semibold mt-3">View all documents</p>
         </Card>
       </Link>
+    </div>
     </div>
   );
 }

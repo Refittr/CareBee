@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Copy, Check, CheckCircle } from "lucide-react";
+import { Copy, Check, CheckCircle, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
-import type { MemberRole } from "@/lib/types/database";
 
 export default function InvitePage() {
   const params = useParams<{ householdId: string }>();
@@ -25,7 +24,8 @@ export default function InvitePage() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
   const [copied, setCopied] = useState(false);
   const [existingToken, setExistingToken] = useState<string | null>(null);
   const [existingLinkCopied, setExistingLinkCopied] = useState(false);
@@ -62,69 +62,32 @@ export default function InvitePage() {
 
     setLoading(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
+    const response = await fetch("/api/invitations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ householdId, email: email.trim(), role }),
+    });
 
-    // Check if already a member
-    const { data: existingMembers } = await supabase
-      .from("household_members")
-      .select("id, profiles(email)")
-      .eq("household_id", householdId) as unknown as { data: { id: string; profiles: { email: string } | null }[] | null };
-
-    if (existingMembers) {
-      const alreadyMember = existingMembers.some(
-        (m) => m.profiles?.email?.toLowerCase() === email.trim().toLowerCase()
-      );
-      if (alreadyMember) {
-        setError("This person is already a member of this household.");
-        setLoading(false);
-        return;
-      }
-    }
-
-    // Check for existing pending invite
-    const now = new Date().toISOString();
-    const { data: existingInvite } = await supabase
-      .from("invitations")
-      .select("invite_token")
-      .eq("household_id", householdId)
-      .eq("invited_email", email.trim().toLowerCase())
-      .is("accepted_at", null)
-      .gt("expires_at", now)
-      .maybeSingle();
-
-    if (existingInvite) {
-      setExistingToken(existingInvite.invite_token);
-      setLoading(false);
-      return;
-    }
-
-    // Insert new invitation with a generated token
-    const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data, error: insertError } = await supabase
-      .from("invitations")
-      .insert({
-        household_id: householdId,
-        invited_email: email.trim().toLowerCase(),
-        role: role as MemberRole,
-        invited_by: user.id,
-        invite_token: token,
-        expires_at: expiresAt,
-      })
-      .select("invite_token")
-      .single();
-
-    if (insertError || !data) {
-      setError(insertError?.message ?? "Something went wrong. Please try again.");
-      setLoading(false);
-      return;
-    }
-
-    const link = `${window.location.origin}/invite/accept?token=${data.invite_token}`;
-    setInviteLink(link);
+    const data = await response.json();
     setLoading(false);
+
+    if (!response.ok) {
+      setError(data.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+
+    if (data.existingToken) {
+      setExistingToken(data.existingToken);
+      return;
+    }
+
+    setInviteToken(data.inviteToken);
+    setEmailSent(data.emailSent === true);
   }
+
+  const inviteLink = inviteToken
+    ? `${window.location.origin}/invite/accept?token=${inviteToken}`
+    : null;
 
   async function handleCopy() {
     if (!inviteLink) return;
@@ -144,7 +107,8 @@ export default function InvitePage() {
   }
 
   function resetForm() {
-    setInviteLink(null);
+    setInviteToken(null);
+    setEmailSent(false);
     setEmail("");
     setRole("viewer");
     setError(null);
@@ -163,7 +127,7 @@ export default function InvitePage() {
         { label: "Invite" },
       ]} />
 
-      {!inviteLink ? (
+      {!inviteToken ? (
         <>
           <h1 className="text-2xl font-bold text-warmstone-900 mb-6 hidden md:block">Invite someone</h1>
 
@@ -219,9 +183,17 @@ export default function InvitePage() {
         <div className="bg-warmstone-white border border-warmstone-100 rounded-xl p-6 flex flex-col items-center gap-4">
           <CheckCircle size={32} className="text-sage-400" />
           <h2 className="font-bold text-warmstone-900 text-xl mt-3 mb-1 text-center">Invitation created</h2>
-          <p className="text-sm text-warmstone-600 text-center mb-1">
-            Share this link with your family member. They will need to create an account or sign in to accept. The link expires in 7 days.
-          </p>
+
+          {emailSent ? (
+            <div className="flex items-center gap-2 text-sm text-sage-700 bg-sage-50 border border-sage-100 rounded-lg px-4 py-2.5 w-full">
+              <Mail size={15} className="shrink-0" />
+              <span>An email has been sent to <strong>{email}</strong></span>
+            </div>
+          ) : (
+            <p className="text-sm text-warmstone-600 text-center mb-1">
+              Share this link with the person you invited. It expires in 7 days.
+            </p>
+          )}
 
           <div className="w-full">
             <div className="bg-warmstone-50 border border-warmstone-200 rounded-md px-3 py-2.5 text-sm font-mono text-warmstone-800 break-all w-full">

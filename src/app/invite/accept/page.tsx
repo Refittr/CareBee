@@ -40,7 +40,7 @@ async function handleAccept(inviteToken: string) {
     redirect("/dashboard");
   }
 
-  await supabase.from("household_members").insert({
+  await svc.from("household_members").insert({
     household_id: invite.household_id,
     user_id: user.id,
     role: invite.role,

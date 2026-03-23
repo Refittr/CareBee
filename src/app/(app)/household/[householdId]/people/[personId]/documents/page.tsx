@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Plus, FileText, Trash2, FileUp } from "lucide-react";
+import { Plus, FileText, Trash2, FileUp, ScanLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
+import { ScanModal } from "@/components/scan/ScanModal";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Modal, ConfirmModal } from "@/components/ui/Modal";
@@ -27,6 +28,7 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -68,11 +70,16 @@ export default function DocumentsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="font-bold text-warmstone-900">Documents</h2>
-        <Button size="sm" onClick={() => setUploadOpen(true)}>
-          <Plus size={16} /> Upload a document
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => setScanOpen(true)}>
+            <ScanLine size={16} /> Scan with AI
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setUploadOpen(true)}>
+            <Plus size={16} /> Upload
+          </Button>
+        </div>
       </div>
 
       {documents.length === 0 ? (
@@ -120,6 +127,12 @@ export default function DocumentsPage() {
         <DocumentUpload householdId={householdId} personId={personId} onUploaded={() => { setUploadOpen(false); load(); }} onCancel={() => setUploadOpen(false)} />
       </Modal>
       <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Remove document" description={`Are you sure you want to remove "${deleteTarget?.file_name}"? This cannot be undone.`} loading={deleting} />
+      <ScanModal
+        open={scanOpen}
+        onClose={() => { setScanOpen(false); load(); }}
+        householdId={householdId}
+        personId={personId}
+      />
     </div>
   );
 }

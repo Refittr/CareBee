@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { MembersClient } from "./MembersClient";
@@ -21,7 +21,7 @@ type MemberWithProfile = {
   profiles: { full_name: string; email: string; avatar_url: string | null } | null;
 };
 
-type PendingInviteWithProfile = {
+type PendingInviteRow = {
   id: string;
   household_id: string;
   invited_email: string;
@@ -29,7 +29,6 @@ type PendingInviteWithProfile = {
   invite_token: string;
   expires_at: string;
   created_at: string;
-  profiles: { full_name: string } | null;
 };
 
 export default async function MembersPage({ params }: Props) {
@@ -61,16 +60,18 @@ export default async function MembersPage({ params }: Props) {
 
   const members = (rawMembers ?? []) as unknown as MemberWithProfile[];
 
-  let pendingInvites: PendingInviteWithProfile[] = [];
+  let pendingInvites: PendingInviteRow[] = [];
   if (canEdit) {
+    const svc = await createServiceClient();
     const now = new Date().toISOString();
-    const { data: rawInvites } = await supabase
+    const { data: rawInvites } = await svc
       .from("invitations")
-      .select("*, profiles!invited_by(full_name)")
+      .select("id, household_id, invited_email, role, invite_token, expires_at, created_at")
       .eq("household_id", householdId)
       .is("accepted_at", null)
-      .gt("expires_at", now);
-    pendingInvites = (rawInvites ?? []) as unknown as PendingInviteWithProfile[];
+      .gt("expires_at", now)
+      .order("created_at", { ascending: false });
+    pendingInvites = (rawInvites ?? []) as PendingInviteRow[];
   }
 
   return (
