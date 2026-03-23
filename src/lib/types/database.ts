@@ -1,4 +1,5 @@
 export type MemberRole = "owner" | "editor" | "viewer" | "emergency_only";
+export type AccountType = "standard" | "tester" | "admin";
 export type AppointmentStatus = "upcoming" | "completed" | "cancelled" | "missed";
 export type DocumentType =
   | "discharge_summary"
@@ -18,8 +19,19 @@ export interface Profile {
   full_name: string;
   email: string;
   avatar_url: string | null;
+  account_type: AccountType;
   created_at: string;
   updated_at: string;
+}
+
+export interface AdminActivityLog {
+  id: string;
+  user_id: string | null;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface Household {
@@ -288,6 +300,12 @@ export type Database = {
         Row: Row & TestResult;
         Insert: Row & OptionalNullables<Omit<TestResult, "id" | "created_at" | "updated_at">>;
         Update: Row & Partial<Omit<TestResult, "id" | "created_at" | "updated_at">>;
+        Relationships: never[];
+      };
+      admin_activity_log: {
+        Row: Row & AdminActivityLog;
+        Insert: Row & OptionalNullables<Omit<AdminActivityLog, "id" | "created_at">>;
+        Update: Row & Partial<Omit<AdminActivityLog, "id" | "created_at">>;
         Relationships: never[];
       };
     };

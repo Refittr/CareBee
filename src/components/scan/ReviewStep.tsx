@@ -15,8 +15,13 @@ import {
   Lightbulb,
   ChevronDown,
   ChevronUp,
+  Scan,
+  Landmark,
+  FileText,
+  Info,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { logActivity } from "@/lib/logActivity";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ReviewCard } from "./ReviewCard";
@@ -84,12 +89,18 @@ function patchData<T>(
 
 const DOC_TYPE_MAP: Record<string, DocumentType> = {
   discharge_summary: "discharge_summary",
+  clinical_letter: "discharge_summary",
   prescription: "prescription",
   appointment_letter: "appointment_letter",
   test_result: "test_result",
+  imaging_report: "test_result",
   benefit_letter: "benefit_letter",
+  care_document: "care_plan",
+  send_document: "care_plan",
+  legal_document: "poa_document",
   referral_letter: "other",
   other: "other",
+  unrecognised: "other",
 };
 
 function EditField({
@@ -153,6 +164,25 @@ function Section({
   );
 }
 
+// ---- Test result flag colour ----
+
+function flagClass(flag: string | null, isAbnormal: boolean | null): string {
+  if (flag === "critical") return "text-error";
+  if (flag === "high" || flag === "low" || isAbnormal === true) return "text-error";
+  if (flag === "normal" || isAbnormal === false) return "text-sage-400";
+  return "text-warmstone-800";
+}
+
+// ---- Informational card (non-saveable) ----
+
+function InfoCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="bg-warmstone-white border border-warmstone-100 rounded-lg p-4">
+      {children}
+    </div>
+  );
+}
+
 // ---- Main component ----
 
 interface ReviewStepProps {
@@ -198,6 +228,9 @@ export function ReviewStep({
 
   const [saving, setSaving] = useState(false);
 
+  const isUnrecognised = scanResult.document_type === "unrecognised";
+  const isLowConfidence = scanResult.confidence === "low";
+
   // Duplicate detection
   useEffect(() => {
     async function checkDuplicates() {
@@ -226,7 +259,6 @@ export function ReviewStep({
       const allergyNames = new Set(
         (existingAllergies ?? []).map((a) => a.name.toLowerCase())
       );
-      // Key: "test_name|date"
       const testKeys = new Set(
         (existingTests ?? []).map((t) => `${t.test_name.toLowerCase()}|${t.result_date ?? ""}`)
       );
@@ -393,9 +425,25 @@ export function ReviewStep({
       uploaded_by: user?.id ?? null,
     });
 
+    logActivity("document_uploaded", "document", undefined, {
+      person_id: personId,
+      household_id: householdId,
+      document_type: scanResult.document_type,
+    });
+
     setSaving(false);
     onSaved(savedCount);
   }
+
+  const hasExtractedItems =
+    medications.length > 0 ||
+    conditions.length > 0 ||
+    allergies.length > 0 ||
+    appointments.length > 0 ||
+    testResults.length > 0;
+
+  const benefit = scanResult.benefit;
+  const imagingReport = scanResult.imaging_report;
 
   return (
     <div className="flex flex-col h-full">
@@ -413,6 +461,49 @@ export function ReviewStep({
             <p className="text-sm text-warmstone-800 leading-relaxed">
               {scanResult.summary}
             </p>
+          </div>
+        )}
+
+        {/* Low confidence warning */}
+        {isLowConfidence && !isUnrecognised && (
+          <div className="flex items-start gap-3 bg-warning-light border border-warning/20 rounded-xl px-4 py-3">
+            <AlertTriangle size={16} className="text-warning shrink-0 mt-0.5" />
+            <p className="text-sm text-warmstone-700 leading-relaxed">
+              Some of this data may not be accurate. Please check it carefully before confirming.
+            </p>
+          </div>
+        )}
+
+        {/* Unrecognised document */}
+        {isUnrecognised && (
+          <div className="flex items-start gap-3 bg-warmstone-50 border border-warmstone-200 rounded-xl px-4 py-4">
+            <Info size={16} className="text-warmstone-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-warmstone-700 mb-1">
+                We could not automatically extract structured data from this document
+              </p>
+              <p className="text-sm text-warmstone-600">
+                You can still save it to your document vault using the button below.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Source / author */}
+        {(scanResult.source || scanResult.author) && (
+          <div className="flex gap-4 text-sm text-warmstone-600">
+            {scanResult.source && (
+              <span>
+                <span className="font-semibold text-warmstone-700">From:</span>{" "}
+                {scanResult.source}
+              </span>
+            )}
+            {scanResult.author && (
+              <span>
+                <span className="font-semibold text-warmstone-700">By:</span>{" "}
+                {scanResult.author}
+              </span>
+            )}
           </div>
         )}
 
@@ -667,6 +758,127 @@ export function ReviewStep({
           ))}
         </Section>
 
+        {/* Test Results */}
+        <Section
+          icon={<FlaskConical size={16} />}
+          iconClass="text-sage-400"
+          title="Test Results"
+          count={testResults.length}
+        >
+          {testResults.map((item, i) => (
+            <ReviewCard
+              key={i}
+              checked={item.checked}
+              onToggle={() => setTestResults(toggle(testResults, i))}
+              confidence={item.data.confidence}
+              editing={item.editing}
+              onEditToggle={() =>
+                setTestResults(setEditing(testResults, i, !item.editing))
+              }
+              isDuplicate={item.isDuplicate}
+              duplicateMessage="A result with the same test name and date is already in the record."
+              editContent={
+                <div className="grid grid-cols-1 gap-3">
+                  <EditField
+                    label="Test name"
+                    value={item.data.test_name}
+                    onChange={(v) =>
+                      setTestResults(patchData(testResults, i, { test_name: v }))
+                    }
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <EditField
+                      label="Result value"
+                      value={item.data.result_value ?? ""}
+                      onChange={(v) =>
+                        setTestResults(
+                          patchData(testResults, i, { result_value: v || null })
+                        )
+                      }
+                    />
+                    <EditField
+                      label="Date (YYYY-MM-DD)"
+                      value={item.data.result_date ?? ""}
+                      onChange={(v) =>
+                        setTestResults(
+                          patchData(testResults, i, { result_date: v || null })
+                        )
+                      }
+                    />
+                  </div>
+                  <EditField
+                    label="Normal range"
+                    value={item.data.normal_range ?? ""}
+                    onChange={(v) =>
+                      setTestResults(
+                        patchData(testResults, i, { normal_range: v || null })
+                      )
+                    }
+                  />
+                  <EditField
+                    label="Ordered by"
+                    value={item.data.ordered_by ?? ""}
+                    onChange={(v) =>
+                      setTestResults(
+                        patchData(testResults, i, { ordered_by: v || null })
+                      )
+                    }
+                  />
+                  <EditField
+                    label="Notes"
+                    value={item.data.notes ?? ""}
+                    onChange={(v) =>
+                      setTestResults(
+                        patchData(testResults, i, { notes: v || null })
+                      )
+                    }
+                  />
+                </div>
+              }
+            >
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-bold text-warmstone-900">{item.data.test_name}</p>
+                  {(item.data.flag === "critical" || item.data.flag === "high" || item.data.flag === "low" || item.data.is_abnormal === true) && (
+                    <Badge variant="error">
+                      <AlertTriangle size={11} className="mr-1" />
+                      {item.data.flag === "critical" ? "Critical" : "Outside normal range"}
+                    </Badge>
+                  )}
+                  {(item.data.flag === "normal" || item.data.is_abnormal === false) && (
+                    <span className="inline-flex items-center gap-1 bg-sage-50 text-sage-400 rounded-sm px-2.5 py-0.5 text-xs font-semibold">
+                      Within normal range
+                    </span>
+                  )}
+                </div>
+                {item.data.result_value && (
+                  <p
+                    className={`text-2xl font-bold ${flagClass(item.data.flag ?? null, item.data.is_abnormal ?? null)}`}
+                  >
+                    {item.data.result_value}
+                  </p>
+                )}
+                {item.data.result_date && (
+                  <p className="text-sm text-warmstone-600">{item.data.result_date}</p>
+                )}
+                {item.data.normal_range && (
+                  <p className="text-sm text-warmstone-600">
+                    Normal range: {item.data.normal_range}
+                  </p>
+                )}
+                {item.data.ordered_by && (
+                  <p className="text-xs text-warmstone-400">
+                    Ordered by {item.data.ordered_by}
+                  </p>
+                )}
+                {item.data.notes && (
+                  <p className="text-sm text-warmstone-600 mt-1">{item.data.notes}</p>
+                )}
+              </div>
+            </ReviewCard>
+          ))}
+        </Section>
+
         {/* Appointments */}
         <Section
           icon={<Calendar size={16} />}
@@ -771,134 +983,84 @@ export function ReviewStep({
           ))}
         </Section>
 
-        {/* Test Results */}
-        <Section
-          icon={<FlaskConical size={16} />}
-          iconClass="text-sage-400"
-          title="Test Results"
-          count={testResults.length}
-        >
-          {testResults.map((item, i) => (
-            <ReviewCard
-              key={i}
-              checked={item.checked}
-              onToggle={() => setTestResults(toggle(testResults, i))}
-              confidence={item.data.confidence}
-              editing={item.editing}
-              onEditToggle={() =>
-                setTestResults(setEditing(testResults, i, !item.editing))
-              }
-              isDuplicate={item.isDuplicate}
-              duplicateMessage="A result with the same test name and date is already in the record."
-              editContent={
-                <div className="grid grid-cols-1 gap-3">
-                  <EditField
-                    label="Test name"
-                    value={item.data.test_name}
-                    onChange={(v) =>
-                      setTestResults(patchData(testResults, i, { test_name: v }))
-                    }
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <EditField
-                      label="Result value"
-                      value={item.data.result_value ?? ""}
-                      onChange={(v) =>
-                        setTestResults(
-                          patchData(testResults, i, { result_value: v || null })
-                        )
-                      }
-                    />
-                    <EditField
-                      label="Date (YYYY-MM-DD)"
-                      value={item.data.result_date ?? ""}
-                      onChange={(v) =>
-                        setTestResults(
-                          patchData(testResults, i, { result_date: v || null })
-                        )
-                      }
-                    />
-                  </div>
-                  <EditField
-                    label="Normal range"
-                    value={item.data.normal_range ?? ""}
-                    onChange={(v) =>
-                      setTestResults(
-                        patchData(testResults, i, { normal_range: v || null })
-                      )
-                    }
-                  />
-                  <EditField
-                    label="Ordered by"
-                    value={item.data.ordered_by ?? ""}
-                    onChange={(v) =>
-                      setTestResults(
-                        patchData(testResults, i, { ordered_by: v || null })
-                      )
-                    }
-                  />
-                  <EditField
-                    label="Notes"
-                    value={item.data.notes ?? ""}
-                    onChange={(v) =>
-                      setTestResults(
-                        patchData(testResults, i, { notes: v || null })
-                      )
-                    }
-                  />
-                </div>
-              }
-            >
+        {/* Benefit letter (informational) */}
+        {benefit && (
+          <Section
+            icon={<Landmark size={16} />}
+            iconClass="text-honey-500"
+            title="Benefit"
+            count={1}
+          >
+            <InfoCard>
               <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-bold text-warmstone-900">{item.data.test_name}</p>
-                  {item.data.is_abnormal === true && (
-                    <Badge variant="error">
-                      <AlertTriangle size={11} className="mr-1" />
-                      Outside normal range
-                    </Badge>
-                  )}
-                  {item.data.is_abnormal === false && (
-                    <span className="inline-flex items-center gap-1 bg-sage-50 text-sage-400 rounded-sm px-2.5 py-0.5 text-xs font-semibold">
-                      Within normal range
-                    </span>
-                  )}
-                </div>
-                {item.data.result_value && (
-                  <p
-                    className={`text-2xl font-bold ${
-                      item.data.is_abnormal === true
-                        ? "text-error"
-                        : item.data.is_abnormal === false
-                        ? "text-sage-400"
-                        : "text-warmstone-800"
-                    }`}
-                  >
-                    {item.data.result_value}
+                <p className="font-bold text-warmstone-900">{benefit.benefit_type}</p>
+                {benefit.decision && (
+                  <p className="text-sm font-semibold capitalize text-warmstone-700">
+                    Decision: {benefit.decision}
                   </p>
                 )}
-                {item.data.result_date && (
-                  <p className="text-sm text-warmstone-600">{item.data.result_date}</p>
+                {benefit.rate && (
+                  <p className="text-sm text-warmstone-600">{benefit.rate}</p>
                 )}
-                {item.data.normal_range && (
+                {benefit.weekly_amount && (
                   <p className="text-sm text-warmstone-600">
-                    Normal range: {item.data.normal_range}
+                    Amount: {benefit.weekly_amount} per week
                   </p>
                 )}
-                {item.data.ordered_by && (
+                {benefit.start_date && (
+                  <p className="text-xs text-warmstone-400">From: {benefit.start_date}</p>
+                )}
+                {benefit.review_date && (
                   <p className="text-xs text-warmstone-400">
-                    Ordered by {item.data.ordered_by}
+                    Review due: {benefit.review_date}
                   </p>
                 )}
-                {item.data.notes && (
-                  <p className="text-sm text-warmstone-600 mt-1">{item.data.notes}</p>
+                {benefit.reference_number && (
+                  <p className="text-xs text-warmstone-400">
+                    Ref: {benefit.reference_number}
+                  </p>
                 )}
               </div>
-            </ReviewCard>
-          ))}
-        </Section>
+              <p className="text-xs text-warmstone-400 mt-3">
+                The original document will be saved to the document vault.
+              </p>
+            </InfoCard>
+          </Section>
+        )}
 
-        {/* Follow-up actions (informational, no checkbox) */}
+        {/* Imaging report (informational) */}
+        {imagingReport && (
+          <Section
+            icon={<Scan size={16} />}
+            iconClass="text-warmstone-500"
+            title="Imaging Report"
+            count={1}
+          >
+            <InfoCard>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-bold text-warmstone-900">{imagingReport.scan_type}</p>
+                  {imagingReport.body_area && (
+                    <span className="text-sm text-warmstone-500">{imagingReport.body_area}</span>
+                  )}
+                </div>
+                {imagingReport.findings && (
+                  <p className="text-sm text-warmstone-700 mt-1">{imagingReport.findings}</p>
+                )}
+                {imagingReport.conclusion && (
+                  <p className="text-sm font-semibold text-warmstone-900 mt-1">
+                    Conclusion: {imagingReport.conclusion}
+                  </p>
+                )}
+              </div>
+              <p className="text-xs text-warmstone-400 mt-3">
+                The original document will be saved to the document vault.
+              </p>
+            </InfoCard>
+          </Section>
+        )}
+
+        {/* Follow-up actions (informational) */}
         {(scanResult.follow_up_actions ?? []).length > 0 && (
           <Section
             icon={<ListChecks size={16} />}
@@ -907,15 +1069,12 @@ export function ReviewStep({
             count={scanResult.follow_up_actions!.length}
           >
             {scanResult.follow_up_actions!.map((action, i) => (
-              <div
-                key={i}
-                className="bg-warmstone-white border border-warmstone-100 rounded-lg p-4"
-              >
+              <InfoCard key={i}>
                 <p className="text-sm text-warmstone-800">{action.description}</p>
                 {action.date && (
                   <p className="text-xs text-warmstone-400 mt-1">{action.date}</p>
                 )}
-              </div>
+              </InfoCard>
             ))}
           </Section>
         )}
@@ -929,10 +1088,7 @@ export function ReviewStep({
             count={scanResult.referrals!.length}
           >
             {scanResult.referrals!.map((ref, i) => (
-              <div
-                key={i}
-                className="bg-warmstone-white border border-warmstone-100 rounded-lg p-4"
-              >
+              <InfoCard key={i}>
                 <p className="font-semibold text-warmstone-900 text-sm">
                   {ref.referred_to}
                 </p>
@@ -949,7 +1105,7 @@ export function ReviewStep({
                     Expected wait: {ref.expected_wait}
                   </p>
                 )}
-              </div>
+              </InfoCard>
             ))}
           </Section>
         )}
@@ -964,10 +1120,7 @@ export function ReviewStep({
             defaultOpen={false}
           >
             {scanResult.professional_contacts!.map((contact, i) => (
-              <div
-                key={i}
-                className="bg-warmstone-white border border-warmstone-100 rounded-lg p-4"
-              >
+              <InfoCard key={i}>
                 <p className="font-semibold text-warmstone-900 text-sm">
                   {contact.name}
                 </p>
@@ -979,12 +1132,26 @@ export function ReviewStep({
                 {contact.location && (
                   <p className="text-xs text-warmstone-400">{contact.location}</p>
                 )}
-              </div>
+              </InfoCard>
             ))}
           </Section>
         )}
 
-        {/* Spacer so footer doesn't cover content */}
+        {/* Nothing extracted note */}
+        {!hasExtractedItems && !benefit && !imagingReport && !isUnrecognised && (
+          <div className="flex items-start gap-3 bg-warmstone-50 border border-warmstone-200 rounded-xl px-4 py-4">
+            <FileText size={16} className="text-warmstone-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-warmstone-700 mb-1">
+                No structured data found
+              </p>
+              <p className="text-sm text-warmstone-600">
+                The document will still be saved to your document vault so you can refer back to it.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="h-4" />
       </div>
 
@@ -992,8 +1159,14 @@ export function ReviewStep({
       <div className="shrink-0 border-t border-warmstone-100 px-4 py-4 bg-warmstone-white">
         <div className="flex items-center justify-between mb-3 max-w-2xl mx-auto">
           <p className="text-sm text-warmstone-600">
-            <span className="font-bold text-warmstone-900">{selectedCount}</span>{" "}
-            {selectedCount === 1 ? "item" : "items"} selected
+            {isUnrecognised ? (
+              <span className="text-warmstone-500">Document will be saved to vault</span>
+            ) : (
+              <>
+                <span className="font-bold text-warmstone-900">{selectedCount}</span>{" "}
+                {selectedCount === 1 ? "item" : "items"} selected
+              </>
+            )}
           </p>
         </div>
         <div className="flex gap-3 max-w-2xl mx-auto">
@@ -1002,7 +1175,7 @@ export function ReviewStep({
           </Button>
           <Button fullWidth onClick={handleSave} loading={saving}>
             <CheckCircle size={16} />
-            Save selected items
+            {isUnrecognised ? "Save to vault" : "Save selected items"}
           </Button>
         </div>
       </div>

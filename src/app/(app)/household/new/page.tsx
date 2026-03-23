@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
+import { logActivity } from "@/lib/logActivity";
 
 export default function NewHouseholdPage() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function NewHouseholdPage() {
       setError(err?.message ?? "Something went wrong. Please try again.");
       setLoading(false);
     } else {
+      logActivity("household_created", "household", data);
       addToast("Household created.", "success");
       router.push(`/household/${data}`);
     }

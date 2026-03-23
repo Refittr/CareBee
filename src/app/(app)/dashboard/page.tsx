@@ -50,7 +50,7 @@ export default async function DashboardPage() {
       <Header title="Your households" />
       <Breadcrumbs items={[{ label: "Your households" }]} />
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 mt-4 md:mt-0">
         <h1 className="text-2xl font-bold text-warmstone-900 hidden md:block">Your households</h1>
         <Link
           href="/household/new"

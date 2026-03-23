@@ -1,11 +1,17 @@
 export type ScanDocumentType =
-  | "discharge_summary"
+  | "clinical_letter"
   | "prescription"
-  | "appointment_letter"
   | "test_result"
+  | "imaging_report"
   | "benefit_letter"
+  | "care_document"
+  | "send_document"
+  | "legal_document"
+  | "appointment_letter"
+  | "discharge_summary"
   | "referral_letter"
-  | "other";
+  | "other"
+  | "unrecognised";
 
 export type ScanConfidence = "high" | "medium" | "low";
 
@@ -75,15 +81,39 @@ export interface ScannedTestResult {
   result_date: string | null;
   normal_range: string | null;
   is_abnormal: boolean | null;
+  flag: "normal" | "high" | "low" | "critical" | null;
   ordered_by: string | null;
   notes: string | null;
   confidence: ScanConfidence;
 }
 
+export interface ScannedBenefit {
+  benefit_type: string;
+  decision: string | null;
+  rate: string | null;
+  weekly_amount: string | null;
+  start_date: string | null;
+  review_date: string | null;
+  reference_number: string | null;
+  confidence: ScanConfidence;
+}
+
+export interface ScannedImagingReport {
+  scan_type: string;
+  body_area: string | null;
+  findings: string | null;
+  conclusion: string | null;
+  confidence: ScanConfidence;
+}
+
 export interface ScanResult {
   document_type: ScanDocumentType;
+  document_subtype: string | null;
   document_date: string | null;
   summary: string;
+  confidence: ScanConfidence;
+  source: string | null;
+  author: string | null;
   medications?: ScannedMedication[];
   conditions?: ScannedCondition[];
   allergies?: ScannedAllergy[];
@@ -92,4 +122,7 @@ export interface ScanResult {
   referrals?: ScannedReferral[];
   professional_contacts?: ScannedContact[];
   follow_up_actions?: ScannedFollowUp[];
+  benefit?: ScannedBenefit;
+  imaging_report?: ScannedImagingReport;
+  raw_text?: string;
 }

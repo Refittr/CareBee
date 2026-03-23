@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
+import { logActivity } from "@/lib/logActivity";
 
 export default function NewPersonPage() {
   const router = useRouter();
@@ -66,6 +67,7 @@ export default function NewPersonPage() {
       setSubmitError(err?.message ?? "Something went wrong. Please try again.");
       setLoading(false);
     } else {
+      logActivity("person_added", "person", data.id, { household_id: householdId });
       addToast(`Added ${fields.first_name} to your household.`, "success");
       router.push(`/household/${householdId}/people/${data.id}`);
     }
