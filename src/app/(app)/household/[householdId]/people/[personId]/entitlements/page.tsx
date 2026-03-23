@@ -38,11 +38,18 @@ const STATUS_LABELS: Record<string, string> = {
   under_review: "Under review",
 };
 
-const CARE_NEEDS_QUESTIONS = [
+type QuestionSelect = { key: string; label: string; type: "select"; options: readonly string[]; hint?: string };
+type QuestionText = { key: string; label: string; type: "text"; placeholder?: string; hint?: string };
+type Question = QuestionSelect | QuestionText;
+
+const CARE_NEEDS_QUESTIONS: Question[] = [
   { key: "lives_alone", label: "Does this person live alone?", type: "select", options: ["yes", "no"] },
   { key: "housing_tenure", label: "Do they rent or own their home?", type: "select", options: ["own", "rent", "council_tenant", "housing_association"] },
+  { key: "local_authority", label: "Which local authority or council area do they live in?", type: "text", placeholder: "e.g. Leeds City Council, London Borough of Southwark", hint: "Used to check local council tax reduction schemes and care eligibility." },
   { key: "other_income", label: "Do they receive any income apart from state pension?", type: "select", options: ["yes", "no"] },
+  { key: "approximate_income", label: "Approximate total weekly income (including any pension or benefits)?", type: "select", options: ["under_167", "167_to_250", "250_to_350", "over_350", "unknown"], hint: "Rough estimate is fine. Used to assess means-tested benefits." },
   { key: "savings_above_10k", label: "Do they have savings above £10,000?", type: "select", options: ["yes", "no"] },
+  { key: "qualifying_benefits", label: "Are any disability or income benefits currently in payment?", type: "text", placeholder: "e.g. PIP daily living component, Universal Credit, Housing Benefit", hint: "List any benefits they are already receiving. Leave blank if none." },
   { key: "help_during_day", label: "Do they need help during the day?", type: "select", options: ["never", "sometimes", "often", "always"] },
   { key: "help_during_night", label: "Do they need help during the night?", type: "select", options: ["never", "sometimes", "often", "always"] },
   { key: "mobility_outdoors", label: "Can they walk outdoors without help?", type: "select", options: ["yes", "with_difficulty", "only_short_distances", "no"] },
@@ -50,7 +57,7 @@ const CARE_NEEDS_QUESTIONS = [
   { key: "wash_and_dress", label: "Can they wash and dress themselves?", type: "select", options: ["yes", "with_some_help", "no"] },
   { key: "supervision_needed", label: "Do they need supervision due to cognitive issues or risk of falling?", type: "select", options: ["never", "sometimes", "often", "always"] },
   { key: "terminally_ill", label: "Are they terminally ill?", type: "select", options: ["yes", "no"] },
-] as const;
+];
 
 const OPTION_LABELS: Record<string, string> = {
   yes: "Yes", no: "No",
@@ -58,6 +65,11 @@ const OPTION_LABELS: Record<string, string> = {
   never: "Never", sometimes: "Sometimes", often: "Often", always: "Always",
   with_difficulty: "With difficulty", only_short_distances: "Only short distances",
   with_some_help: "With some help",
+  under_167: "Under £167/week (under ~£8,700/year)",
+  "167_to_250": "£167 to £250/week (~£8,700 to £13,000/year)",
+  "250_to_350": "£250 to £350/week (~£13,000 to £18,200/year)",
+  over_350: "Over £350/week (over ~£18,200/year)",
+  unknown: "Not sure",
 };
 
 
@@ -362,19 +374,31 @@ export default function EntitlementsPage() {
             )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {CARE_NEEDS_QUESTIONS.map((q) => (
-              <Select
-                key={q.key}
-                label={q.label}
-                value={questionnaireDraft[q.key] ?? ""}
-                onChange={(e) => setQuestionnaireDraft((d) => ({ ...d, [q.key]: e.target.value }))}
-              >
-                <option value="">Select...</option>
-                {q.options.map((o) => (
-                  <option key={o} value={o}>{OPTION_LABELS[o] ?? o}</option>
-                ))}
-              </Select>
-            ))}
+            {CARE_NEEDS_QUESTIONS.map((q) =>
+              q.type === "text" ? (
+                <Input
+                  key={q.key}
+                  label={q.label}
+                  hint={q.hint}
+                  placeholder={q.placeholder}
+                  value={questionnaireDraft[q.key] ?? ""}
+                  onChange={(e) => setQuestionnaireDraft((d) => ({ ...d, [q.key]: e.target.value }))}
+                />
+              ) : (
+                <Select
+                  key={q.key}
+                  label={q.label}
+                  hint={q.hint}
+                  value={questionnaireDraft[q.key] ?? ""}
+                  onChange={(e) => setQuestionnaireDraft((d) => ({ ...d, [q.key]: e.target.value }))}
+                >
+                  <option value="">Select...</option>
+                  {q.options.map((o) => (
+                    <option key={o} value={o}>{OPTION_LABELS[o] ?? o}</option>
+                  ))}
+                </Select>
+              )
+            )}
           </div>
           <Button loading={savingNeeds} onClick={saveQuestionnaire}>
             Save and check eligibility

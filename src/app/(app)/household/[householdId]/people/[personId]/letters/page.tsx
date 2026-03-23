@@ -84,6 +84,45 @@ function templateLabel(id: string): string {
   return id;
 }
 
+// ---- Template-specific extra fields ----------------------------------------
+// These are fields that collect context the AI cannot get from the care record.
+
+const TEMPLATE_EXTRA_FIELDS: Record<string, { key: string; label: string; placeholder: string; hint?: string }[]> = {
+  employer_letter: [
+    {
+      key: "carer_name",
+      label: "Your name (the carer)",
+      placeholder: "e.g. Jane Smith",
+      hint: "This letter is written by you, the carer, not the person you care for.",
+    },
+    {
+      key: "employer_name",
+      label: "Employer or manager name",
+      placeholder: "e.g. Sarah Jones / Acme Ltd HR team",
+    },
+    {
+      key: "caring_hours",
+      label: "How many hours per week do you care?",
+      placeholder: "e.g. around 20 hours per week",
+    },
+  ],
+  carers_allowance: [
+    {
+      key: "carer_name",
+      label: "Your name (the carer applying)",
+      placeholder: "e.g. Jane Smith",
+      hint: "Carer's Allowance is claimed by the carer, not the person being cared for.",
+    },
+  ],
+  carers_assessment_request: [
+    {
+      key: "carer_name",
+      label: "Your name (the carer requesting assessment)",
+      placeholder: "e.g. Jane Smith",
+    },
+  ],
+};
+
 // ---- Main component --------------------------------------------------------
 
 function LettersPageInner() {
@@ -103,6 +142,7 @@ function LettersPageInner() {
   const [customTitle, setCustomTitle] = useState("");
   const [entitlementContext, setEntitlementContext] = useState<string | null>(null);
   const [entitlementLabel, setEntitlementLabel] = useState<string | null>(null);
+  const [extraFieldValues, setExtraFieldValues] = useState<Record<string, string>>({});
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -158,6 +198,7 @@ function LettersPageInner() {
     setGenerated(null);
     setError(null);
     setCustomTitle("");
+    setExtraFieldValues({});
     if (id !== preselectedTemplate) setEntitlementContext(null);
   }
 
@@ -165,6 +206,13 @@ function LettersPageInner() {
     const tid = selectedTemplate !== "custom" ? selectedTemplate : undefined;
     const cp = customPrompt.trim() || undefined;
     if (!tid && !cp) return;
+
+    // Build extra context from template-specific fields
+    const extraFields = tid ? (TEMPLATE_EXTRA_FIELDS[tid] ?? []) : [];
+    const extraLines = extraFields
+      .map((f) => extraFieldValues[f.key]?.trim() ? `${f.label}: ${extraFieldValues[f.key].trim()}` : null)
+      .filter(Boolean);
+    const extraContext = extraLines.length > 0 ? `ADDITIONAL DETAILS FROM THE CARER:\n${extraLines.join("\n")}` : undefined;
 
     setGenerating(true);
     setGenerated(null);
@@ -179,7 +227,7 @@ function LettersPageInner() {
           household_id: householdId,
           template_id: tid,
           custom_prompt: cp,
-          entitlement_context: entitlementContext ?? undefined,
+          entitlement_context: [entitlementContext, extraContext].filter(Boolean).join("\n\n") || undefined,
         }),
       });
       const data = await res.json();
@@ -299,6 +347,25 @@ function LettersPageInner() {
                 className="text-warmstone-400 hover:text-warmstone-800 min-h-[36px] min-w-[36px] flex items-center justify-center">
                 <X size={15} />
               </button>
+            </div>
+          )}
+
+          {/* Template-specific extra fields */}
+          {selectedTemplate && (TEMPLATE_EXTRA_FIELDS[selectedTemplate] ?? []).length > 0 && (
+            <div className="flex flex-col gap-3 bg-sage-50 border border-sage-100 rounded-lg p-4">
+              <p className="text-xs font-bold text-sage-700 uppercase tracking-wide">Your details</p>
+              {(TEMPLATE_EXTRA_FIELDS[selectedTemplate] ?? []).map((field) => (
+                <Input
+                  key={field.key}
+                  label={field.label}
+                  placeholder={field.placeholder}
+                  hint={field.hint}
+                  value={extraFieldValues[field.key] ?? ""}
+                  onChange={(e) =>
+                    setExtraFieldValues((prev) => ({ ...prev, [field.key]: e.target.value }))
+                  }
+                />
+              ))}
             </div>
           )}
 
