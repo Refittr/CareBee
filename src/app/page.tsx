@@ -355,12 +355,12 @@ export default async function LandingPage() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <Logo size="sm" />
           <div className="flex items-center gap-6 text-sm text-warmstone-400">
-            <a href="#" className="hover:text-warmstone-600 transition-colors">
+            <Link href="/privacy" className="hover:text-warmstone-600 transition-colors">
               Privacy Policy
-            </a>
-            <a href="#" className="hover:text-warmstone-600 transition-colors">
+            </Link>
+            <Link href="/terms" className="hover:text-warmstone-600 transition-colors">
               Terms of Service
-            </a>
+            </Link>
             <a href="#" className="hover:text-warmstone-600 transition-colors">
               Contact
             </a>

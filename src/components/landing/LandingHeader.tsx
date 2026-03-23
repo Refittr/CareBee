@@ -27,12 +27,20 @@ export function LandingHeader() {
         <Link href="/" aria-label="CareBee home">
           <Logo size="md" />
         </Link>
-        <Link
-          href="/signup"
-          className="bg-honey-400 text-warmstone-white font-bold text-sm rounded-md px-4 py-2 hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] min-h-[44px] flex items-center"
-        >
-          Get started free
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/login"
+            className="text-sm font-semibold text-warmstone-600 hover:text-warmstone-900 transition-colors min-h-[44px] flex items-center"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/signup"
+            className="bg-honey-400 text-warmstone-white font-bold text-sm rounded-md px-4 py-2 hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] min-h-[44px] flex items-center"
+          >
+            Get started free
+          </Link>
+        </div>
       </div>
     </header>
   );

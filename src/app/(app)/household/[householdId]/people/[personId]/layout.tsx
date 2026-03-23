@@ -36,13 +36,15 @@ export default async function PersonLayout({ children, params }: Props) {
         showBack
         backHref={`/household/${householdId}`}
       />
-      <Breadcrumbs
-        items={[
-          { label: "Your households", href: "/dashboard" },
-          { label: household.name, href: `/household/${householdId}` },
-          { label: `${person.first_name} ${person.last_name}` },
-        ]}
-      />
+      <div className="px-8 pt-6">
+        <Breadcrumbs
+          items={[
+            { label: "Your households", href: "/dashboard" },
+            { label: household.name, href: `/household/${householdId}` },
+            { label: `${person.first_name} ${person.last_name}` },
+          ]}
+        />
+      </div>
 
       <div className="px-4 md:px-8 pt-4 pb-0">
         <div className="flex items-start justify-between gap-4 mb-4">
