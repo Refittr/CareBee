@@ -2,32 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
-const SYSTEM_PROMPT = `You are a document scanner for CareBee, a UK family health and care record app. Your job is to examine a photographed or uploaded document and extract all useful structured data from it.
+const SYSTEM_PROMPT = `You are a health document scanner for CareBee, a UK family care record app. Examine the image and extract all structured health and care data from it.
 
-You must identify what type of document this is and extract the relevant data. Documents can be any of the following categories:
-
-CLINICAL: discharge summaries, clinic letters, GP letters, referral letters, A&E summaries
-PRESCRIPTIONS: repeat prescriptions, medication lists, pharmacy labels, medication review letters
-TEST RESULTS: blood tests (FBC, HbA1c, LFT, U&E, TFT, lipids, glucose, INR, PSA, vitamin D, iron studies, any other panel), blood oxygen/SpO2/sats readings, blood pressure readings, blood glucose readings, peak flow, spirometry, ECG reports, urine tests, stool tests, pregnancy tests, COVID tests, weight/BMI, temperature, heart rate, sleep studies, hearing tests, vision tests, allergy tests, genetic tests
-IMAGING: X-ray reports, CT reports, MRI reports, ultrasound reports, DEXA scans, mammograms
-BENEFITS: Attendance Allowance, PIP, Carer's Allowance, council tax reduction, Blue Badge, NHS exemptions, Pension Credit, DWP assessments
-CARE: care needs assessments, care plans, OT reports, physiotherapy reports, speech therapy reports, dietitian letters, mental health care plans, CAMHS documents
-SEND: EHCPs, annual reviews, developmental assessments, paediatrician letters, school nurse reports, health visitor reports, immunisation records
-LEGAL: Power of Attorney, DNACPR, advance decisions, Court of Protection orders, deputyship orders
-APPOINTMENTS: appointment letters, waiting list letters, cancellations, NHS 111 summaries, ambulance reports
+The image may be any of the following: an NHS letter, discharge summary, prescription, appointment letter, benefit letter, blood test results, a photo of a medical device screen (blood pressure monitor, pulse oximeter, glucose meter, peak flow meter, thermometer, scales), a handwritten note, a screenshot, or any other health or care related document.
 
 Never use em dashes or en dashes in any extracted text. Use commas, full stops, colons, or rewrite instead.
+Do not classify test results as conditions. A blood pressure reading is a test result, not a condition.
+Format all dates as YYYY-MM-DD.
 
-Return a JSON object with this structure:
+Return ONLY a JSON object. No other text. Use this exact structure:
 
 {
-  "document_type": "clinical_letter" | "prescription" | "test_result" | "imaging_report" | "benefit_letter" | "care_document" | "send_document" | "legal_document" | "appointment_letter" | "discharge_summary" | "referral_letter" | "other" | "unrecognised",
-  "document_subtype": "more specific type, e.g. discharge_summary, blood_test, spo2_reading, attendance_allowance, ehcp, or null",
-  "summary": "A plain English one-sentence summary of what this document is",
-  "confidence": "high" | "medium" | "low",
+  "document_type": "clinical_letter" | "prescription" | "test_result" | "imaging_report" | "benefit_letter" | "care_document" | "legal_document" | "appointment_letter" | "discharge_summary" | "referral_letter" | "other" | "unrecognised",
+  "document_subtype": "specific subtype e.g. blood_pressure, spo2, blood_glucose, peak_flow, blood_test, discharge_summary, pip_letter, or null",
   "document_date": "YYYY-MM-DD or null",
-  "source": "Who issued it (hospital name, GP surgery, DWP, local authority, etc.) if visible, or null",
-  "author": "The named person who wrote or signed it if visible, or null",
+  "summary": "One plain English sentence describing what this document is",
+  "confidence": "high" | "medium" | "low",
+  "source": "Issuing organisation if visible, or null",
+  "author": "Name of person who wrote or signed it if visible, or null",
   "medications": [
     {
       "name": "string",
@@ -73,32 +65,32 @@ Return a JSON object with this structure:
   ],
   "test_results": [
     {
-      "test_name": "string (e.g. SpO2, HbA1c, Blood Pressure, Full Blood Count, eGFR, Peak Flow, Blood Glucose)",
-      "result_value": "string with units (e.g. 97%, 48 mmol/mol, 142/88 mmHg, 6.2 mmol/L, 420 L/min)",
+      "test_name": "Name of the test or measurement, e.g. Blood Pressure, SpO2, HbA1c, eGFR, Peak Flow, Blood Glucose, Heart Rate, Weight, Temperature",
+      "result_value": "The value with its units, e.g. 132/84 mmHg, 97%, 48 mmol/mol, 420 L/min, 7.2 mmol/L",
       "result_date": "YYYY-MM-DD or null",
-      "normal_range": "string or null",
+      "normal_range": "Normal range if shown, or null",
       "is_abnormal": true | false | null,
       "flag": "normal" | "high" | "low" | "critical" | null,
       "ordered_by": "string or null",
-      "notes": "string or null (plain English interpretation)",
+      "notes": "Plain English note e.g. slightly above normal range, or null",
       "confidence": "high" | "medium" | "low"
     }
   ],
   "benefit": {
-    "benefit_type": "e.g. Attendance Allowance, PIP, Carer's Allowance",
+    "benefit_type": "e.g. Attendance Allowance, PIP, Carer's Allowance, Blue Badge",
     "decision": "awarded" | "rejected" | "under review" | "renewal due" | null,
-    "rate": "higher rate, lower rate, standard rate, enhanced, etc. or null",
-    "weekly_amount": "amount as string or null",
+    "rate": "e.g. higher rate, standard rate, enhanced, or null",
+    "weekly_amount": "Weekly amount as a string, or null",
     "start_date": "YYYY-MM-DD or null",
     "review_date": "YYYY-MM-DD or null",
     "reference_number": "string or null",
     "confidence": "high" | "medium" | "low"
   },
   "imaging_report": {
-    "scan_type": "X-ray, CT, MRI, ultrasound, DEXA, mammogram",
-    "body_area": "e.g. chest, left knee, abdomen or null",
-    "findings": "plain English summary of findings or null",
-    "conclusion": "radiologist conclusion if stated or null",
+    "scan_type": "X-ray, CT, MRI, ultrasound, DEXA, or mammogram",
+    "body_area": "e.g. chest, left knee, abdomen, or null",
+    "findings": "Plain English summary of findings, or null",
+    "conclusion": "Radiologist conclusion if stated, or null",
     "confidence": "high" | "medium" | "low"
   },
   "referrals": [
@@ -127,17 +119,14 @@ Return a JSON object with this structure:
   ]
 }
 
-IMPORTANT RULES:
-- Always try to extract something useful. Most photographed documents contain health or care data even if they are not perfectly clear or in an unexpected format.
-- If the document is a handwritten note, a photo of a device screen (like a pulse oximeter or blood pressure monitor), a screenshot from an app, or any informal format, still try to extract the data. Do not reject it because it is not a formal letter.
-- If you genuinely cannot identify any health, care, benefits, legal, or appointment data in the image, return: {"document_type": "unrecognised", "document_subtype": null, "summary": "description of what you can see", "confidence": "low", "document_date": null, "source": null, "author": null}
-- Never say "no health data found" if there is ANY health-related information visible, even a single reading.
-- A photo of a pulse oximeter screen showing 97% is health data. A photo of a blood pressure monitor showing 132/84 is health data. A photo of a blood glucose meter showing 7.2 is health data. A handwritten note saying "Dr said reduce ramipril to 2.5mg" is health data.
-- Use plain English in all summaries and descriptions.
-- For test results, always include the reference range and flag (high/low/normal) if shown on the document.
-- Do not classify test results as conditions. Blood pressure 142/88 is a test result, not a condition.
-- Do not invent data that is not visible. If a field is not visible, set it to null.
-- Only include top-level keys that have data. Omit empty arrays and null objects (except document_type, summary, confidence, and document_date which must always be present).`;
+Rules:
+- document_type, document_date, summary, and confidence must always be present.
+- Omit any other top-level key whose array is empty or whose object has no data.
+- A photo of a blood pressure monitor showing numbers is a test_result with test_name "Blood Pressure". Extract the reading into result_value.
+- A photo of a pulse oximeter is a test_result with test_name "SpO2". A glucose meter is a test_result with test_name "Blood Glucose". A peak flow meter is test_name "Peak Flow".
+- Handwritten notes, device screens, screenshots, and informal formats are all valid. Always try to extract data.
+- Only return document_type "unrecognised" if the image contains absolutely no health, care, medication, appointment, benefit, or legal information at all.
+- Do not invent data. If a field is not clearly visible, set it to null.`;
 
 const USER_PROMPT =
   "Extract all structured health and care data from this document. Return only valid JSON matching the schema described in your instructions. Do not include any text outside the JSON object.";
@@ -317,13 +306,16 @@ export async function POST(request: NextRequest) {
   try {
     const result = JSON.parse(jsonText);
     // Log the AI scan
-    await svc.from("admin_activity_log").insert({
+    const { error: logError } = await svc.from("admin_activity_log").insert({
       user_id: user.id,
       action: "ai_scan_performed",
       entity_type: "document",
       entity_id: null,
       metadata: { person_id, household_id, document_type: result.document_type ?? "unknown" },
     });
+    if (logError) {
+      console.error("[scan-document] activity log insert failed:", logError.message);
+    }
     return NextResponse.json(result);
   } catch {
     console.error(

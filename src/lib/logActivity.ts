@@ -5,14 +5,17 @@ export async function logActivity(
   metadata?: Record<string, unknown>
 ): Promise<void> {
   try {
-    // keepalive ensures the request completes even if the page navigates away
-    await fetch("/api/log-activity", {
+    const res = await fetch("/api/log-activity", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, entity_type, entity_id, metadata }),
       keepalive: true,
     });
-  } catch {
-    // Non-critical, never throw
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error("[logActivity] failed:", res.status, text);
+    }
+  } catch (err) {
+    console.error("[logActivity] fetch error:", err);
   }
 }

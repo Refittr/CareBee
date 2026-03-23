@@ -425,7 +425,7 @@ export function ReviewStep({
       uploaded_by: user?.id ?? null,
     });
 
-    logActivity("document_uploaded", "document", undefined, {
+    await logActivity("document_uploaded", "document", undefined, {
       person_id: personId,
       household_id: householdId,
       document_type: scanResult.document_type,
