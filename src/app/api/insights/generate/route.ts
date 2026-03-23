@@ -11,6 +11,8 @@ You are NOT giving medical advice. You are surfacing information that the family
 PERSON'S RECORD:
 {PERSON_DATA}
 
+{ALREADY_HANDLED}
+
 Based on this record, generate insights in the following categories:
 
 1. NICE GUIDELINE CHECKS ("missing_check")
@@ -57,12 +59,23 @@ Flag anything else useful:
 - Carer assessment reminder if there is evidence of significant caring responsibilities
 - Annual health check for people with learning disabilities
 
-CRITICAL: Before returning your response, review your list of insights and merge any that are about the same underlying issue. Two insights are about the same issue if addressing one would address the other. For example: a missing kidney function check and a note that Metformin requires kidney monitoring are the same issue (the fix for both is to get a kidney function test). A low Metformin dose query and a Metformin dosage concern are the same issue. Merge them into a single, comprehensive insight that covers all the relevant angles. Your final list should have NO overlapping insights. If in doubt, merge them.
+DEDUPLICATION RULES - follow these exactly:
+- Before finalising your list, group all insights by the real-world issue they are about. Two insights are about the same issue if they would both be resolved by the same action.
+- Examples of the same issue that must be merged: (a) "glaucoma not in conditions list" and "ophthalmology appointments suggest glaucoma" are the same issue; (b) "dihydrocodeine has no end date" and "dihydrocodeine ongoing use after condition ended" and "dihydrocodeine not linked to condition" are the same issue; (c) "duplicate appointments" and "duplicate appointment entries need tidying" are the same issue.
+- Merge all insights about the same real-world issue into ONE insight that covers all angles.
+- If two insights about the same medication exist, merge them into one.
+- If two insights about the same condition exist, merge them into one.
+- If two insights about the same screening programme exist, merge them into one.
+- After merging, your final list must contain zero overlapping insights. Each insight must be about a distinct issue.
+- Maximum 12 insights. If you have more than 12 after merging, keep only the most actionable ones.
+
+Assign each insight a topic_key: a short snake_case identifier of the underlying issue (e.g. "glaucoma_condition", "dihydrocodeine_review", "cervical_screening", "duplicate_appointments"). This is used to prevent the same issue appearing twice.
 
 Respond with a JSON array of insights:
 
 [
   {
+    "topic_key": "hba1c_overdue",
     "insight_type": "nice_guideline",
     "category": "missing_check",
     "title": "HbA1c blood test may be overdue",
@@ -85,8 +98,6 @@ RULES:
 - Keep titles short and clear (under 15 words).
 - Keep descriptions practical and actionable.
 - Set priority to "urgent" only for genuinely time-sensitive things. Most insights should be "important" or "info".
-- Do not duplicate insights. If two conditions both require blood pressure monitoring, combine into one insight.
-- Maximum 15 insights per run. Focus on the most important ones.
 - Never use em dashes or en dashes. Use commas, full stops, or colons instead.
 - Return ONLY a valid JSON array. No other text.`;
 
@@ -168,6 +179,7 @@ export async function POST(request: NextRequest) {
     { data: allergies },
     { data: testResults },
     { data: appointments },
+    { data: handledInsights },
   ] = await Promise.all([
     svc.from("people").select("*").eq("id", person_id).single(),
     svc.from("conditions").select("*").eq("person_id", person_id).eq("is_active", true),
@@ -179,6 +191,11 @@ export async function POST(request: NextRequest) {
     svc.from("appointments").select("*").eq("person_id", person_id)
       .or(`appointment_date.gte.${sixMonthsAgo.toISOString().split("T")[0]},status.eq.upcoming`)
       .order("appointment_date", { ascending: false }),
+    // Load dismissed and resolved insights so we don't regenerate them
+    svc.from("health_insights")
+      .select("title, status")
+      .eq("person_id", person_id)
+      .in("status", ["dismissed", "resolved"]),
   ]);
 
   if (!person) return NextResponse.json({ error: "Person not found" }, { status: 404 });
@@ -196,6 +213,12 @@ export async function POST(request: NextRequest) {
     notes: person.notes,
   };
 
+  // Build already-handled context for the AI
+  const handledTitles = (handledInsights ?? []).map((i) => `- ${i.title} (${i.status})`);
+  const alreadyHandledSection = handledTitles.length > 0
+    ? `INSIGHTS ALREADY HANDLED BY THE FAMILY (do not regenerate these):\n${handledTitles.join("\n")}`
+    : "";
+
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "Configuration error" }, { status: 500 });
   }
@@ -209,7 +232,9 @@ export async function POST(request: NextRequest) {
       max_tokens: 4096,
       messages: [{
         role: "user",
-        content: SYSTEM_PROMPT.replace("{PERSON_DATA}", JSON.stringify(personData, null, 2)),
+        content: SYSTEM_PROMPT
+          .replace("{PERSON_DATA}", JSON.stringify(personData, null, 2))
+          .replace("{ALREADY_HANDLED}", alreadyHandledSection),
       }],
     });
     const block = message.content[0];
@@ -220,17 +245,17 @@ export async function POST(request: NextRequest) {
   }
 
   let newInsightData: Array<{
+    topic_key?: string;
     insight_type: string;
     category: string;
     title: string;
     description: string;
     priority: string;
     source_data: Record<string, unknown>;
-    dedup_key?: string;
   }>;
 
   try {
-    let json = responseText.trim()
+    const json = responseText.trim()
       .replace(/^```json\s*/i, "")
       .replace(/^```\s*/i, "")
       .replace(/\s*```$/i, "");
@@ -241,39 +266,35 @@ export async function POST(request: NextRequest) {
     newInsightData = [];
   }
 
-  // Code-level dedupe: if the AI returned multiple insights with the same dedup_key, keep only the first
-  const seenDedupKeys = new Set<string>();
+  // Deduplicate within the returned set by topic_key
+  const seenTopicKeys = new Set<string>();
   newInsightData = newInsightData.filter((i) => {
-    const key = i.dedup_key?.trim().toLowerCase();
+    const key = i.topic_key?.trim().toLowerCase();
     if (!key) return true;
-    if (seenDedupKeys.has(key)) return false;
-    seenDedupKeys.add(key);
+    if (seenTopicKeys.has(key)) return false;
+    seenTopicKeys.add(key);
     return true;
   });
 
-  // Load existing active insights to avoid duplicates
-  const { data: existingInsights } = await svc
-    .from("health_insights")
-    .select("*")
+  // Replace strategy: delete all existing ACTIVE insights and insert the fresh set.
+  // Dismissed and resolved insights are preserved (user explicitly actioned them).
+  await svc.from("health_insights")
+    .delete()
     .eq("person_id", person_id)
     .eq("status", "active");
 
-  const existingTitles = new Set((existingInsights ?? []).map((i) => i.title.toLowerCase()));
-
-  const toInsert = newInsightData
-    .filter((i) => !existingTitles.has(i.title.toLowerCase()))
-    .map((i) => ({
-      person_id,
-      household_id,
-      insight_type: i.insight_type as InsightType,
-      category: i.category as InsightCategory,
-      title: i.title,
-      description: i.description,
-      priority: (i.priority ?? "info") as InsightPriority,
-      status: "active" as InsightStatus,
-      source_data: i.source_data ?? {},
-      last_checked_at: new Date().toISOString(),
-    }));
+  const toInsert = newInsightData.map((i) => ({
+    person_id,
+    household_id,
+    insight_type: i.insight_type as InsightType,
+    category: i.category as InsightCategory,
+    title: i.title,
+    description: i.description,
+    priority: (i.priority ?? "info") as InsightPriority,
+    status: "active" as InsightStatus,
+    source_data: { ...i.source_data, topic_key: i.topic_key ?? null },
+    last_checked_at: new Date().toISOString(),
+  }));
 
   if (toInsert.length > 0) {
     await svc.from("health_insights").insert(toInsert);
@@ -283,7 +304,7 @@ export async function POST(request: NextRequest) {
   await svc.from("insight_checks").insert({
     person_id,
     checked_at: new Date().toISOString(),
-    insights_found: (existingInsights?.length ?? 0) + toInsert.length,
+    insights_found: toInsert.length,
     new_insights: toInsert.length,
   });
 
