@@ -116,9 +116,12 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
       (data.conditions?.length ?? 0) > 0 ||
       (data.allergies?.length ?? 0) > 0 ||
       (data.appointments?.length ?? 0) > 0 ||
+      (data.test_results?.length ?? 0) > 0 ||
       (data.referrals?.length ?? 0) > 0 ||
       (data.follow_up_actions?.length ?? 0) > 0 ||
-      (data.professional_contacts?.length ?? 0) > 0;
+      (data.professional_contacts?.length ?? 0) > 0 ||
+      !!data.benefit ||
+      !!data.imaging_report;
 
     if (!hasData) {
       setStep("empty");
