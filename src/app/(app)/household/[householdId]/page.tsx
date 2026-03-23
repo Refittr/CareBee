@@ -32,7 +32,7 @@ export default async function HouseholdPage({ params }: Props) {
     .single();
   if (!household) notFound();
 
-  const [{ data: people }, { data: members }, { data: conditions }, { data: medications }, { data: allergies }] =
+  const [{ data: people }, { data: members }, { data: conditions }, { data: medications }, { data: allergies }, { data: interactions }] =
     await Promise.all([
       supabase.from("people").select("*").eq("household_id", householdId),
       supabase
@@ -42,13 +42,20 @@ export default async function HouseholdPage({ params }: Props) {
       supabase.from("conditions").select("person_id, is_active").eq("household_id", householdId).eq("is_active", true),
       supabase.from("medications").select("person_id, is_active").eq("household_id", householdId).eq("is_active", true),
       supabase.from("allergies").select("person_id").eq("household_id", householdId),
+      supabase.from("drug_interactions").select("person_id, severity").eq("household_id", householdId).eq("status", "active"),
     ]);
 
   function getPersonStats(personId: string) {
+    const personInteractions = interactions?.filter((i) => i.person_id === personId) ?? [];
+    const hasSevereInteraction = personInteractions.some((i) => i.severity === "severe");
+    const hasModerateInteraction = personInteractions.some((i) => i.severity === "moderate");
     return {
       conditionCount: conditions?.filter((c) => c.person_id === personId).length ?? 0,
       medicationCount: medications?.filter((m) => m.person_id === personId).length ?? 0,
       hasAllergies: (allergies?.filter((a) => a.person_id === personId).length ?? 0) > 0,
+      interactionCount: personInteractions.length,
+      hasSevereInteraction,
+      hasModerateInteraction,
     };
   }
 
@@ -78,7 +85,7 @@ export default async function HouseholdPage({ params }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {people.map((person: Person) => {
               const age = calculateAge(person.date_of_birth);
-              const { conditionCount, medicationCount, hasAllergies } = getPersonStats(person.id);
+              const { conditionCount, medicationCount, hasAllergies, interactionCount, hasSevereInteraction, hasModerateInteraction } = getPersonStats(person.id);
               return (
                 <Link
                   key={person.id}
@@ -105,6 +112,12 @@ export default async function HouseholdPage({ params }: Props) {
                         <span>{conditionCount} condition{conditionCount !== 1 ? "s" : ""}</span>
                         <span>{medicationCount} medication{medicationCount !== 1 ? "s" : ""}</span>
                       </div>
+                      {interactionCount > 0 && (
+                        <div className={`flex items-center gap-1 mt-2 text-xs font-semibold ${hasSevereInteraction ? "text-error" : "text-honey-700"}`}>
+                          <AlertTriangle size={12} />
+                          {interactionCount} drug interaction{interactionCount !== 1 ? "s" : ""} flagged
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Link>
