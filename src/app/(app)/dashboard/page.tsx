@@ -4,6 +4,7 @@ import { Plus, Home, Users, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { SignOutButton } from "@/components/ui/SignOutButton";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { Metadata } from "next";
@@ -47,7 +48,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-4xl">
-      <Header title="Your households" />
+      <Header title="Your households" actions={<SignOutButton />} />
       <Breadcrumbs items={[{ label: "Your households" }]} />
 
       <div className="flex items-center justify-between mb-6 mt-4 md:mt-0">
