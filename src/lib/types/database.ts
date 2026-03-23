@@ -184,6 +184,73 @@ export interface TestResult {
   updated_at: string;
 }
 
+export type InsightType = "nice_guideline" | "test_trend" | "medication_review" | "care_gap" | "general";
+export type InsightCategory = "missing_check" | "overdue_review" | "test_trend" | "interaction_risk" | "care_suggestion" | "benefit_hint";
+export type InsightPriority = "urgent" | "important" | "info";
+export type InsightStatus = "active" | "dismissed" | "resolved";
+export type InteractionSeverity = "severe" | "moderate" | "mild";
+export type InteractionStatus = "active" | "acknowledged" | "resolved";
+export type ContactType = "gp" | "hospital" | "consultant" | "pharmacy" | "social_worker" | "care_agency" | "therapist" | "school" | "benefits" | "solicitor" | "other";
+
+export interface HealthInsight {
+  id: string;
+  person_id: string;
+  household_id: string;
+  insight_type: InsightType;
+  category: InsightCategory;
+  title: string;
+  description: string;
+  priority: InsightPriority;
+  status: InsightStatus;
+  source_data: Record<string, unknown>;
+  created_at: string;
+  dismissed_at: string | null;
+  resolved_at: string | null;
+  last_checked_at: string;
+}
+
+export interface InsightCheck {
+  id: string;
+  person_id: string;
+  checked_at: string;
+  insights_found: number;
+  new_insights: number;
+}
+
+export interface DrugInteraction {
+  id: string;
+  person_id: string;
+  household_id: string;
+  medication_a: string;
+  medication_b: string;
+  severity: InteractionSeverity;
+  description: string;
+  recommendation: string;
+  mechanism: string | null;
+  status: InteractionStatus;
+  created_at: string;
+  acknowledged_at: string | null;
+  acknowledged_by: string | null;
+}
+
+export interface Contact {
+  id: string;
+  person_id: string;
+  household_id: string;
+  contact_type: ContactType;
+  name: string;
+  role: string | null;
+  organisation: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  notes: string | null;
+  is_primary: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface EmergencyShare {
   id: string;
   person_id: string;
@@ -306,6 +373,30 @@ export type Database = {
         Row: Row & AdminActivityLog;
         Insert: Row & OptionalNullables<Omit<AdminActivityLog, "id" | "created_at">>;
         Update: Row & Partial<Omit<AdminActivityLog, "id" | "created_at">>;
+        Relationships: never[];
+      };
+      health_insights: {
+        Row: Row & HealthInsight;
+        Insert: Row & OptionalNullables<Omit<HealthInsight, "id" | "created_at">> & { last_checked_at?: string };
+        Update: Row & Partial<Omit<HealthInsight, "id" | "created_at">>;
+        Relationships: never[];
+      };
+      insight_checks: {
+        Row: Row & InsightCheck;
+        Insert: Row & OptionalNullables<Omit<InsightCheck, "id">>;
+        Update: Row & Partial<Omit<InsightCheck, "id">>;
+        Relationships: never[];
+      };
+      drug_interactions: {
+        Row: Row & DrugInteraction;
+        Insert: Row & OptionalNullables<Omit<DrugInteraction, "id" | "created_at">>;
+        Update: Row & Partial<Omit<DrugInteraction, "id" | "created_at">>;
+        Relationships: never[];
+      };
+      contacts: {
+        Row: Row & Contact;
+        Insert: Row & OptionalNullables<Omit<Contact, "id" | "created_at" | "updated_at">> & { display_order?: number };
+        Update: Row & Partial<Omit<Contact, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
     };

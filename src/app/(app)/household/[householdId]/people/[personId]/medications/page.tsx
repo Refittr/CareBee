@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Plus, Pencil, Trash2, Pill, RefreshCw, Tag } from "lucide-react";
+import {
+  Plus, Pencil, Trash2, Pill, RefreshCw, Tag, AlertTriangle, CheckCircle, ChevronDown, ChevronUp,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -14,7 +16,7 @@ import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { MedicationForm } from "@/components/forms/MedicationForm";
 import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateUK } from "@/lib/utils/dates";
-import type { Medication, MedicationChange, Condition } from "@/lib/types/database";
+import type { Medication, MedicationChange, Condition, DrugInteraction } from "@/lib/types/database";
 
 export default function MedicationsPage() {
   const params = useParams<{ householdId: string; personId: string }>();
@@ -25,6 +27,9 @@ export default function MedicationsPage() {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [changes, setChanges] = useState<MedicationChange[]>([]);
   const [conditions, setConditions] = useState<Pick<Condition, "id" | "name">[]>([]);
+  const [interactions, setInteractions] = useState<DrugInteraction[]>([]);
+  const [checkingInteractions, setCheckingInteractions] = useState(false);
+  const [lastInteractionCheck, setLastInteractionCheck] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -32,28 +37,75 @@ export default function MedicationsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Medication | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [pastOpen, setPastOpen] = useState(false);
+  const [interactionsOpen, setInteractionsOpen] = useState(true);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: meds, error: err }, { data: mc }, { data: conds }] = await Promise.all([
+    const [{ data: meds, error: err }, { data: mc }, { data: conds }, { data: iacts }] = await Promise.all([
       supabase.from("medications").select("*").eq("person_id", personId).order("created_at", { ascending: false }),
       supabase.from("medication_changes").select("*").eq("person_id", personId).order("change_date", { ascending: false }),
       supabase.from("conditions").select("id, name").eq("person_id", personId).eq("is_active", true).order("name"),
+      supabase.from("drug_interactions").select("*").eq("person_id", personId).order("created_at", { ascending: false }),
     ]);
     if (err) setError(err.message);
-    else { setMedications(meds ?? []); setChanges(mc ?? []); setConditions(conds ?? []); }
+    else {
+      setMedications(meds ?? []);
+      setChanges(mc ?? []);
+      setConditions(conds ?? []);
+      setInteractions(iacts ?? []);
+      if ((iacts ?? []).length > 0) {
+        setLastInteractionCheck((iacts ?? [])[0]?.created_at ?? null);
+      }
+    }
     setLoading(false);
+  }, [personId, supabase]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function triggerInteractionCheck() {
+    setCheckingInteractions(true);
+    try {
+      const res = await fetch("/api/medications/check-interactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ person_id: personId, household_id: householdId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setInteractions(data.interactions ?? []);
+      }
+    } catch {
+      // Silently fail, interaction check is non-blocking
+    } finally {
+      setCheckingInteractions(false);
+    }
   }
 
-  useEffect(() => { load(); }, [personId]);
+  async function afterMedSave() {
+    await load();
+    triggerInteractionCheck();
+  }
 
   async function handleDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
     const { error: err } = await supabase.from("medications").delete().eq("id", deleteTarget.id);
     if (err) addToast("Something went wrong. Please try again.", "error");
-    else { addToast("Medication removed.", "success"); setDeleteTarget(null); load(); }
+    else {
+      addToast("Medication removed.", "success");
+      setDeleteTarget(null);
+      await load();
+      triggerInteractionCheck();
+    }
     setDeleting(false);
+  }
+
+  async function acknowledgeInteraction(id: string) {
+    await supabase.from("drug_interactions").update({
+      status: "acknowledged",
+      acknowledged_at: new Date().toISOString(),
+    }).eq("id", id);
+    setInteractions((prev) => prev.map((i) => i.id === id ? { ...i, status: "acknowledged" } : i));
   }
 
   if (loading) return <SkeletonLoader variant="card" count={3} />;
@@ -61,6 +113,15 @@ export default function MedicationsPage() {
 
   const active = medications.filter((m) => m.is_active);
   const past = medications.filter((m) => !m.is_active);
+
+  const activeInteractions = interactions.filter((i) => i.status === "active");
+  const severeInteractions = activeInteractions.filter((i) => i.severity === "severe");
+  const moderateInteractions = activeInteractions.filter((i) => i.severity === "moderate");
+
+  // Which medication names are involved in active interactions
+  const interactionMedNames = new Set(
+    activeInteractions.flatMap((i) => [i.medication_a.toLowerCase(), i.medication_b.toLowerCase()])
+  );
 
   function latestChange(medId: string) {
     return changes.find((c) => c.medication_id === medId);
@@ -71,8 +132,45 @@ export default function MedicationsPage() {
     return conditions.find((c) => c.id === conditionId)?.name ?? null;
   }
 
+  function interactionIcon(medName: string) {
+    const lower = medName.toLowerCase();
+    if (!interactionMedNames.has(lower)) return null;
+    const medsInteractions = activeInteractions.filter(
+      (i) => i.medication_a.toLowerCase() === lower || i.medication_b.toLowerCase() === lower
+    );
+    const hasSevere = medsInteractions.some((i) => i.severity === "severe");
+    const hasModerate = medsInteractions.some((i) => i.severity === "moderate");
+    const color = hasSevere ? "text-error" : hasModerate ? "text-honey-600" : "text-warmstone-400";
+    return (
+      <span title="Drug interaction flagged">
+        <AlertTriangle size={14} className={color} />
+      </span>
+    );
+  }
+
+  const severityConfig = {
+    severe: { badge: "bg-red-100 text-error", label: "Severe" },
+    moderate: { badge: "bg-honey-50 text-honey-800", label: "Moderate" },
+    mild: { badge: "bg-warmstone-100 text-warmstone-600", label: "Mild" },
+  };
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Interaction banners */}
+      {severeInteractions.length > 0 && (
+        <Alert
+          type="error"
+          title={`${severeInteractions.length} drug interaction${severeInteractions.length === 1 ? "" : "s"} may need attention`}
+          description="Review the interactions below or discuss with your GP."
+        />
+      )}
+      {severeInteractions.length === 0 && moderateInteractions.length > 0 && (
+        <Alert
+          type="warning"
+          title={`${moderateInteractions.length} potential drug interaction${moderateInteractions.length === 1 ? "" : "s"} worth knowing about`}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-warmstone-900">Medications</h2>
         <Button size="sm" onClick={() => setAddOpen(true)}>
@@ -101,6 +199,7 @@ export default function MedicationsPage() {
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <h3 className="font-bold text-warmstone-900">{med.name}</h3>
                         <Badge variant="active">Active</Badge>
+                        {interactionIcon(med.name)}
                       </div>
                       {(med.dosage || med.frequency) && (
                         <p className="text-sm text-warmstone-600">
@@ -178,12 +277,80 @@ export default function MedicationsPage() {
         </>
       )}
 
+      {/* Interactions section */}
+      {interactions.length > 0 && (
+        <div className="mt-2">
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => setInteractionsOpen((o) => !o)}
+              className="flex items-center gap-2 font-bold text-warmstone-900 min-h-[44px]"
+            >
+              <AlertTriangle size={16} className={severeInteractions.length > 0 ? "text-error" : "text-honey-600"} />
+              Drug Interactions ({activeInteractions.length} active)
+              {interactionsOpen ? <ChevronUp size={16} className="text-warmstone-400" /> : <ChevronDown size={16} className="text-warmstone-400" />}
+            </button>
+            <div className="flex items-center gap-2">
+              {lastInteractionCheck && (
+                <p className="text-xs text-warmstone-400">
+                  Checked {formatDateUK(lastInteractionCheck)}
+                </p>
+              )}
+              <button
+                onClick={triggerInteractionCheck}
+                disabled={checkingInteractions}
+                className="text-xs text-warmstone-500 hover:text-warmstone-800 min-h-[36px] px-2 flex items-center gap-1"
+              >
+                <RefreshCw size={12} className={checkingInteractions ? "animate-spin" : ""} />
+                Recheck
+              </button>
+            </div>
+          </div>
+
+          {interactionsOpen && (
+            <div className="flex flex-col gap-3">
+              {interactions.map((interaction) => {
+                const cfg = severityConfig[interaction.severity] ?? severityConfig.mild;
+                const isAcknowledged = interaction.status === "acknowledged";
+                return (
+                  <Card key={interaction.id} className={`p-4 ${isAcknowledged ? "opacity-50" : ""}`}>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cfg.badge}`}>
+                          {cfg.label}
+                        </span>
+                        <span className="font-semibold text-warmstone-900 text-sm">
+                          {interaction.medication_a} + {interaction.medication_b}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-warmstone-700 mb-1">{interaction.description}</p>
+                    {interaction.mechanism && (
+                      <p className="text-xs text-warmstone-400 mb-2">{interaction.mechanism}</p>
+                    )}
+                    <p className="text-sm font-semibold text-warmstone-800 mb-3">{interaction.recommendation}</p>
+                    {!isAcknowledged && (
+                      <button
+                        onClick={() => acknowledgeInteraction(interaction.id)}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-sage-700 bg-sage-50 hover:bg-sage-100 px-3 py-1.5 rounded-md transition-colors min-h-[36px]"
+                      >
+                        <CheckCircle size={14} />
+                        Discussed with GP
+                      </button>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add a medication" maxWidth="lg">
-        <MedicationForm householdId={householdId} personId={personId} conditions={conditions} onSaved={() => { setAddOpen(false); load(); }} onCancel={() => setAddOpen(false)} />
+        <MedicationForm householdId={householdId} personId={personId} conditions={conditions} onSaved={() => { setAddOpen(false); afterMedSave(); }} onCancel={() => setAddOpen(false)} />
       </Modal>
 
       <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Edit medication" maxWidth="lg">
-        {editTarget && <MedicationForm householdId={householdId} personId={personId} medication={editTarget} conditions={conditions} onSaved={() => { setEditTarget(null); load(); }} onCancel={() => setEditTarget(null)} />}
+        {editTarget && <MedicationForm householdId={householdId} personId={personId} medication={editTarget} conditions={conditions} onSaved={() => { setEditTarget(null); afterMedSave(); }} onCancel={() => setEditTarget(null)} />}
       </Modal>
 
       <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Remove medication" description={`Are you sure you want to remove "${deleteTarget?.name}"? This cannot be undone.`} loading={deleting} />

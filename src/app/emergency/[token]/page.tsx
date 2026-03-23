@@ -52,10 +52,12 @@ export default async function EmergencyPage({ params }: Props) {
 
   const personId = share.person_id;
 
-  const [{ data: conditions }, { data: medications }, { data: allergies }] = await Promise.all([
+  const [{ data: conditions }, { data: medications }, { data: allergies }, { data: interactions }, { data: contacts }] = await Promise.all([
     supabase.from("conditions").select("name").eq("person_id", personId).eq("is_active", true),
     supabase.from("medications").select("name, dosage, frequency").eq("person_id", personId).eq("is_active", true),
     supabase.from("allergies").select("name, severity, reaction").eq("person_id", personId),
+    supabase.from("drug_interactions").select("medication_a, medication_b, severity, description").eq("person_id", personId).eq("status", "active").in("severity", ["severe", "moderate"]),
+    supabase.from("contacts").select("name, role, organisation, phone, is_primary, contact_type").eq("person_id", personId).eq("is_primary", true),
   ]);
 
   const age = calculateAge(person.date_of_birth);
@@ -175,6 +177,45 @@ export default async function EmergencyPage({ params }: Props) {
               <h2 className="font-bold text-warmstone-900 text-lg mb-2">GP</h2>
               {person.gp_surgery && <p className="text-warmstone-800">{person.gp_surgery}</p>}
               {person.gp_name && <p className="text-warmstone-600 text-sm">{person.gp_name}</p>}
+            </section>
+          )}
+
+          {interactions && interactions.length > 0 && (
+            <section className="bg-warmstone-white border border-warmstone-100 rounded-lg p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle size={20} className="text-honey-600" />
+                <h2 className="font-bold text-warmstone-900 text-lg">Known Drug Interactions</h2>
+              </div>
+              <ul className="flex flex-col gap-3">
+                {interactions.map((ix, idx) => (
+                  <li key={idx} className="text-sm">
+                    <p className="font-semibold text-warmstone-900">
+                      {ix.medication_a} + {ix.medication_b}
+                      {ix.severity === "severe" && (
+                        <span className="ml-2 text-xs font-bold text-error">(Severe)</span>
+                      )}
+                    </p>
+                    <p className="text-warmstone-600 mt-0.5">{ix.description}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {contacts && contacts.length > 0 && (
+            <section className="bg-warmstone-white border border-warmstone-100 rounded-lg p-5">
+              <h2 className="font-bold text-warmstone-900 text-lg mb-3">Key Contacts</h2>
+              <ul className="flex flex-col gap-3">
+                {contacts.map((c) => (
+                  <li key={c.name} className="text-sm">
+                    <p className="font-semibold text-warmstone-900">{c.name}</p>
+                    {(c.role || c.organisation) && (
+                      <p className="text-warmstone-600 text-xs">{[c.role, c.organisation].filter(Boolean).join(", ")}</p>
+                    )}
+                    {c.phone && <p className="text-warmstone-800 font-semibold mt-0.5">{c.phone}</p>}
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
         </main>

@@ -11,6 +11,8 @@ const tabs = [
   { label: "Appointments", segment: "appointments" },
   { label: "Test Results", segment: "test-results" },
   { label: "Documents", segment: "documents" },
+  { label: "Insights", segment: "insights" },
+  { label: "Contacts", segment: "contacts" },
 ];
 
 export function PersonTabs({ baseUrl }: { baseUrl: string }) {
