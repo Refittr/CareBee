@@ -78,7 +78,7 @@ export default async function MembersPage({ params }: Props) {
     <div className="px-4 md:px-8 py-6 max-w-2xl">
       <Header title="Members" showBack backHref={`/household/${householdId}`} />
       <Breadcrumbs items={[
-        { label: "Your households", href: "/dashboard" },
+        { label: "Your care records", href: "/dashboard" },
         { label: household.name, href: `/household/${householdId}` },
         { label: "Members" },
       ]} />

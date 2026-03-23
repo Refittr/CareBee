@@ -39,7 +39,7 @@ export default async function PersonLayout({ children, params }: Props) {
       <div className="px-8 pt-6">
         <Breadcrumbs
           items={[
-            { label: "Your households", href: "/dashboard" },
+            { label: "Your care records", href: "/dashboard" },
             { label: household.name, href: `/household/${householdId}` },
             { label: `${person.first_name} ${person.last_name}` },
           ]}

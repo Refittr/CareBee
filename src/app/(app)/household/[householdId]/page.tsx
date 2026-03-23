@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { householdId } = await params;
   const supabase = await createClient();
   const { data } = await supabase.from("households").select("name").eq("id", householdId).single();
-  return { title: `${data?.name ?? "Household"} | CareBee` };
+  return { title: `${data?.name ?? "Care record"} | CareBee` };
 }
 
 export default async function HouseholdPage({ params }: Props) {
@@ -57,7 +57,7 @@ export default async function HouseholdPage({ params }: Props) {
       <Header title={household.name} showBack backHref="/dashboard" />
       <Breadcrumbs
         items={[
-          { label: "Your households", href: "/dashboard" },
+          { label: "Your care records", href: "/dashboard" },
           { label: household.name },
         ]}
       />

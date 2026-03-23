@@ -302,7 +302,7 @@ export function MembersClient({
         onClose={() => setRemoveMemberTarget(null)}
         onConfirm={handleRemoveMember}
         title="Remove member"
-        description={`Remove ${removeMemberTarget?.profiles?.full_name ?? "this member"} from ${householdName}? They will lose access to all records in this household.`}
+        description={`Remove ${removeMemberTarget?.profiles?.full_name ?? "this member"} from ${householdName}? They will lose access to all records in this care record.`}
         confirmLabel="Remove"
         loading={removing}
       />

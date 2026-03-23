@@ -121,8 +121,8 @@ export default function InvitePage() {
     <div className="px-4 md:px-8 py-6 max-w-lg">
       <Header title="Invite someone" showBack backHref={`/household/${householdId}/members`} />
       <Breadcrumbs items={[
-        { label: "Your households", href: "/dashboard" },
-        { label: "Household", href: `/household/${householdId}` },
+        { label: "Your care records", href: "/dashboard" },
+        { label: "Care record", href: `/household/${householdId}` },
         { label: "Members", href: `/household/${householdId}/members` },
         { label: "Invite" },
       ]} />

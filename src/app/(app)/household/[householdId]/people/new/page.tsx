@@ -83,8 +83,8 @@ export default function NewPersonPage() {
       <Header title="Add someone you care for" showBack backHref={`/household/${householdId}`} />
       <Breadcrumbs
         items={[
-          { label: "Your households", href: "/dashboard" },
-          { label: "Household", href: `/household/${householdId}` },
+          { label: "Your care records", href: "/dashboard" },
+          { label: "Care record", href: `/household/${householdId}` },
           { label: "Add a person" },
         ]}
       />

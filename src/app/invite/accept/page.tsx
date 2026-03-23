@@ -255,7 +255,7 @@ function AcceptState({
       <p className="text-sm text-warmstone-600">
         You have been invited to join as{" "}
         <Badge variant={roleBadgeVariant[role]}>{roleLabels[role]}</Badge>
-        . You will be able to {roleActionDescription[role]} the care records in this household.
+        . You will be able to {roleActionDescription[role]} the records in this care record.
       </p>
       <form action={boundAction} className="w-full flex flex-col gap-3">
         <button
@@ -309,7 +309,7 @@ function AlreadyMemberState({
     <div className="bg-warmstone-white border border-warmstone-100 rounded-2xl shadow-sm p-8 max-w-md w-full text-center flex flex-col items-center gap-4">
       <CheckCircle size={48} className="text-sage-400" />
       <h1 className="text-xl font-bold text-warmstone-900">
-        You are already a member of this household
+        You are already a member of this care record
       </h1>
       <Link
         href={`/household/${householdId}`}

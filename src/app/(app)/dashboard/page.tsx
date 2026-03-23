@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Your households | CareBee" };
+export const metadata: Metadata = { title: "Your care records | CareBee" };
 
 const roleLabels: Record<string, { label: string; variant: "owner" | "active" | "neutral" | "warning" }> = {
   owner: { label: "Owner", variant: "owner" },
@@ -48,26 +48,26 @@ export default async function DashboardPage() {
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-4xl">
-      <Header title="Your households" actions={<SignOutButton />} />
-      <Breadcrumbs items={[{ label: "Your households" }]} />
+      <Header title="Your care records" actions={<SignOutButton />} />
+      <Breadcrumbs items={[{ label: "Your care records" }]} />
 
       <div className="flex items-center justify-between mb-6 mt-4 md:mt-0">
-        <h1 className="text-2xl font-bold text-warmstone-900 hidden md:block">Your households</h1>
+        <h1 className="text-2xl font-bold text-warmstone-900 hidden md:block">Your care records</h1>
         <Link
           href="/household/new"
           className="bg-honey-400 text-warmstone-white font-bold rounded-md px-4 py-2 text-sm hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] flex items-center gap-2 min-h-[44px]"
         >
           <Plus size={16} />
-          New household
+          New care record
         </Link>
       </div>
 
       {households.length === 0 ? (
         <EmptyState
           icon={Home}
-          heading="No households yet"
-          description="Create a household to start building your care records."
-          ctaLabel="Create your first household"
+          heading="No care records yet"
+          description="Create a care record to start tracking health and care information."
+          ctaLabel="Create your first care record"
           ctaHref="/household/new"
         />
       ) : (
@@ -108,6 +108,7 @@ export default async function DashboardPage() {
           >
             <Plus size={24} className="text-warmstone-400" />
             <span className="text-sm font-semibold text-warmstone-600">Start a new care record</span>
+
           </Link>
         </div>
       )}
