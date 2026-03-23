@@ -44,11 +44,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-warmstone-50 flex flex-col items-center justify-center px-4 py-12">
+      <Link href="/" className="absolute top-4 left-4 flex items-center gap-1 text-sm text-warmstone-500 hover:text-warmstone-900 transition-colors">
+        <ChevronLeft size={16} />
+        Back to home
+      </Link>
       <div className="w-full max-w-sm">
-        <Link href="/" className="flex items-center gap-1 text-sm text-warmstone-500 hover:text-warmstone-900 transition-colors mb-6">
-          <ChevronLeft size={16} />
-          Back to home
-        </Link>
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-3">
             <Logo size="lg" />
