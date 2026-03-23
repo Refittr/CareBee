@@ -13,6 +13,7 @@ const tabs = [
   { label: "Documents", segment: "documents" },
   { label: "Insights", segment: "insights" },
   { label: "Contacts", segment: "contacts" },
+  { label: "Waiting lists", segment: "waiting-lists" },
   { label: "Entitlements", segment: "entitlements" },
   { label: "Letters", segment: "letters" },
 ];

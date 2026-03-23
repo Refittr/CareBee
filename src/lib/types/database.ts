@@ -51,6 +51,9 @@ export interface HouseholdMember {
   invited_email: string | null;
   accepted_at: string | null;
   created_at: string;
+  weekly_digest_enabled: boolean;
+  weekly_digest_day: string;
+  last_digest_sent_at: string | null;
 }
 
 export interface Person {
@@ -101,6 +104,58 @@ export interface Entitlement {
   award_amount: string | null;
   is_dismissed: boolean;
   last_checked_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type WaitStatus = "within_range" | "approaching_limit" | "overdue" | "significantly_overdue";
+
+export interface AppointmentPrep {
+  id: string;
+  appointment_id: string;
+  person_id: string;
+  household_id: string;
+  content: string;
+  generated_at: string;
+}
+
+export interface AppointmentDebrief {
+  id: string;
+  appointment_id: string;
+  person_id: string;
+  household_id: string;
+  summary: string | null;
+  medication_changes: boolean;
+  medication_change_details: string | null;
+  new_referrals: boolean;
+  new_referral_details: string | null;
+  tests_ordered: boolean;
+  test_details: string | null;
+  next_appointment: string | null;
+  concerns: string | null;
+  suggested_updates: Record<string, unknown>[];
+  status: "draft" | "complete";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WaitingList {
+  id: string;
+  person_id: string;
+  household_id: string;
+  department: string;
+  trust_name: string | null;
+  referred_by: string | null;
+  referral_date: string;
+  expected_wait: string | null;
+  status: "waiting" | "appointment_received" | "seen" | "cancelled";
+  notes: string | null;
+  estimated_weeks: number | null;
+  wait_status: WaitStatus | null;
+  estimate_details: string | null;
+  action_suggestion: string | null;
+  chase_recommended: boolean;
+  last_estimated_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -348,7 +403,7 @@ export type Database = {
       };
       household_members: {
         Row: Row & HouseholdMember;
-        Insert: Row & OptionalNullables<Omit<HouseholdMember, "id" | "created_at">>;
+        Insert: Row & OptionalNullables<Omit<HouseholdMember, "id" | "created_at" | "weekly_digest_enabled" | "weekly_digest_day">> & { weekly_digest_enabled?: boolean; weekly_digest_day?: string };
         Update: Row & Partial<Omit<HouseholdMember, "id" | "created_at">>;
         Relationships: never[];
       };
@@ -452,6 +507,24 @@ export type Database = {
         Row: Row & GeneratedLetter;
         Insert: Row & OptionalNullables<Omit<GeneratedLetter, "id" | "created_at" | "updated_at">>;
         Update: Row & Partial<Omit<GeneratedLetter, "id" | "created_at" | "updated_at">>;
+        Relationships: never[];
+      };
+      appointment_preps: {
+        Row: Row & AppointmentPrep;
+        Insert: Row & OptionalNullables<Omit<AppointmentPrep, "id" | "generated_at">>;
+        Update: Row & Partial<Omit<AppointmentPrep, "id">>;
+        Relationships: never[];
+      };
+      appointment_debriefs: {
+        Row: Row & AppointmentDebrief;
+        Insert: Row & OptionalNullables<Omit<AppointmentDebrief, "id" | "created_at" | "updated_at" | "status" | "suggested_updates">> & { status?: "draft" | "complete"; suggested_updates?: Record<string, unknown>[] };
+        Update: Row & Partial<Omit<AppointmentDebrief, "id" | "created_at">>;
+        Relationships: never[];
+      };
+      waiting_lists: {
+        Row: Row & WaitingList;
+        Insert: Row & OptionalNullables<Omit<WaitingList, "id" | "created_at" | "updated_at" | "chase_recommended">> & { chase_recommended?: boolean };
+        Update: Row & Partial<Omit<WaitingList, "id" | "created_at">>;
         Relationships: never[];
       };
     };

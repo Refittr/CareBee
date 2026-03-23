@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { HeartPulse, Pill, ShieldCheck, Calendar, FileText, FlaskConical, AlertTriangle } from "lucide-react";
+import { HeartPulse, Pill, ShieldCheck, Calendar, FileText, FlaskConical, AlertTriangle, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { ScanDocumentButton } from "@/components/scan/ScanDocumentButton";
@@ -22,7 +22,7 @@ export default async function PersonOverviewPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: person }, { data: conditions }, { data: medications }, { data: allergies }, { data: appointments }, { data: testResults }, { data: documents }] =
+  const [{ data: person }, { data: conditions }, { data: medications }, { data: allergies }, { data: appointments }, { data: testResults }, { data: documents }, { data: insights }] =
     await Promise.all([
       supabase.from("people").select("*").eq("id", personId).single(),
       supabase.from("conditions").select("name, is_active").eq("person_id", personId).order("created_at"),
@@ -31,6 +31,7 @@ export default async function PersonOverviewPage({ params }: Props) {
       supabase.from("appointments").select("title, appointment_date, location, status").eq("person_id", personId).order("appointment_date"),
       supabase.from("test_results").select("test_name, result_value, result_date, is_abnormal").eq("person_id", personId).order("result_date", { ascending: false, nullsFirst: false }).limit(3),
       supabase.from("documents").select("id", { count: "exact" }).eq("person_id", personId),
+      supabase.from("health_insights").select("title, priority").eq("person_id", personId).eq("status", "active").order("created_at", { ascending: false }).limit(5),
     ]);
 
   if (!person) notFound();
@@ -123,6 +124,53 @@ export default async function PersonOverviewPage({ params }: Props) {
             <p className="text-sm text-warmstone-400">No upcoming appointments</p>
           )}
           <p className="text-xs text-honey-600 font-semibold mt-3">View all appointments</p>
+        </Card>
+      </Link>
+
+      <Link href={`${baseUrl}/insights`} className="md:col-span-2">
+        <Card
+          hoverable
+          clickable
+          className={[
+            "p-5",
+            insights && insights.length > 0 ? "border-honey-300 bg-honey-50" : "",
+          ].join(" ")}
+        >
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles size={18} className={insights && insights.length > 0 ? "text-honey-600" : "text-warmstone-400"} />
+              <h2 className="font-bold text-warmstone-900">Health insights</h2>
+            </div>
+            {insights && insights.length > 0 && (
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-honey-400 text-white text-xs font-bold">
+                {insights.length}
+              </span>
+            )}
+          </div>
+          {insights && insights.length > 0 ? (
+            <>
+              {insights.slice(0, 3).map((insight, i) => (
+                <div key={i} className="flex items-start gap-2 mb-1.5">
+                  <span className={[
+                    "mt-1 shrink-0 w-1.5 h-1.5 rounded-full",
+                    insight.priority === "urgent" ? "bg-red-500" :
+                    insight.priority === "important" ? "bg-honey-500" :
+                    "bg-sage-400",
+                  ].join(" ")} />
+                  <p className="text-sm text-warmstone-800 leading-snug">{insight.title}</p>
+                </div>
+              ))}
+              {insights.length > 3 && (
+                <p className="text-xs text-warmstone-500 mt-1">+{insights.length - 3} more</p>
+              )}
+              <p className="text-xs text-honey-700 font-semibold mt-3">Review all insights</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-warmstone-400">No active insights</p>
+              <p className="text-xs text-honey-600 font-semibold mt-3">Run an insight check</p>
+            </>
+          )}
         </Card>
       </Link>
 
