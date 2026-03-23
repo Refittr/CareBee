@@ -157,6 +157,21 @@ export interface Document {
   created_at: string;
 }
 
+export interface TestResult {
+  id: string;
+  person_id: string;
+  household_id: string;
+  test_name: string;
+  result_value: string | null;
+  result_date: string | null;
+  normal_range: string | null;
+  is_abnormal: boolean | null;
+  ordered_by: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface EmergencyShare {
   id: string;
   person_id: string;
@@ -267,6 +282,12 @@ export type Database = {
         Row: Row & Invitation;
         Insert: Row & OptionalNullables<Omit<Invitation, "id" | "created_at">>;
         Update: Row & Partial<Omit<Invitation, "id" | "created_at">>;
+        Relationships: never[];
+      };
+      test_results: {
+        Row: Row & TestResult;
+        Insert: Row & OptionalNullables<Omit<TestResult, "id" | "created_at" | "updated_at">>;
+        Update: Row & Partial<Omit<TestResult, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
     };

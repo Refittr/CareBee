@@ -12,6 +12,8 @@ Do not invent or assume data that is not in the document. Only extract what you 
 
 Never use em dashes or en dashes in any extracted text. Use commas, full stops, colons, or rewrite instead.
 
+Extract any test results, blood work, blood pressure readings, or clinical measurements you find. Include the result value with its units, the normal range if stated, and whether the result is outside the normal range. Do not classify test results as conditions. A blood pressure reading of 142/88 is a test result, not a condition.
+
 {
   "document_type": "discharge_summary" | "prescription" | "appointment_letter" | "test_result" | "benefit_letter" | "referral_letter" | "other",
   "document_date": "YYYY-MM-DD or null",
@@ -56,6 +58,18 @@ Never use em dashes or en dashes in any extracted text. Use commas, full stops, 
       "department": "string or null",
       "trust_or_service": "string or null",
       "type": "upcoming" | "past",
+      "confidence": "high" | "medium" | "low"
+    }
+  ],
+  "test_results": [
+    {
+      "test_name": "string (e.g. HbA1c, Blood Pressure, Full Blood Count, eGFR, Cholesterol, TSH)",
+      "result_value": "string (e.g. 48 mmol/mol, 142/88 mmHg, 6.2 mmol/L)",
+      "result_date": "YYYY-MM-DD or null",
+      "normal_range": "string or null (e.g. below 42 mmol/mol, 90/60 to 120/80 mmHg)",
+      "is_abnormal": "boolean or null (true if the result is outside the normal range)",
+      "ordered_by": "string or null",
+      "notes": "string or null (plain English interpretation, e.g. slightly above normal range)",
       "confidence": "high" | "medium" | "low"
     }
   ],

@@ -69,6 +69,17 @@ export interface ScannedFollowUp {
   date: string | null;
 }
 
+export interface ScannedTestResult {
+  test_name: string;
+  result_value: string | null;
+  result_date: string | null;
+  normal_range: string | null;
+  is_abnormal: boolean | null;
+  ordered_by: string | null;
+  notes: string | null;
+  confidence: ScanConfidence;
+}
+
 export interface ScanResult {
   document_type: ScanDocumentType;
   document_date: string | null;
@@ -77,6 +88,7 @@ export interface ScanResult {
   conditions?: ScannedCondition[];
   allergies?: ScannedAllergy[];
   appointments?: ScannedAppointment[];
+  test_results?: ScannedTestResult[];
   referrals?: ScannedReferral[];
   professional_contacts?: ScannedContact[];
   follow_up_actions?: ScannedFollowUp[];

@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { HeartPulse, Pill, ShieldCheck, Calendar, FileText } from "lucide-react";
+import { HeartPulse, Pill, ShieldCheck, Calendar, FileText, FlaskConical, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { ScanDocumentButton } from "@/components/scan/ScanDocumentButton";
@@ -22,13 +22,14 @@ export default async function PersonOverviewPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: person }, { data: conditions }, { data: medications }, { data: allergies }, { data: appointments }, { data: documents }] =
+  const [{ data: person }, { data: conditions }, { data: medications }, { data: allergies }, { data: appointments }, { data: testResults }, { data: documents }] =
     await Promise.all([
       supabase.from("people").select("*").eq("id", personId).single(),
       supabase.from("conditions").select("name, is_active").eq("person_id", personId).order("created_at"),
       supabase.from("medications").select("name, dosage, is_active").eq("person_id", personId).order("created_at"),
       supabase.from("allergies").select("name").eq("person_id", personId),
       supabase.from("appointments").select("title, appointment_date, location, status").eq("person_id", personId).order("appointment_date"),
+      supabase.from("test_results").select("test_name, result_value, result_date, is_abnormal").eq("person_id", personId).order("result_date", { ascending: false, nullsFirst: false }).limit(3),
       supabase.from("documents").select("id", { count: "exact" }).eq("person_id", personId),
     ]);
 
@@ -122,6 +123,33 @@ export default async function PersonOverviewPage({ params }: Props) {
             <p className="text-sm text-warmstone-400">No upcoming appointments</p>
           )}
           <p className="text-xs text-honey-600 font-semibold mt-3">View all appointments</p>
+        </Card>
+      </Link>
+
+      <Link href={`${baseUrl}/test-results`} className="md:col-span-2">
+        <Card hoverable clickable className="p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <FlaskConical size={18} className="text-honey-600" />
+            <h2 className="font-bold text-warmstone-900">Test Results</h2>
+          </div>
+          {testResults && testResults.length > 0 ? (
+            <>
+              <p className="text-2xl font-bold text-warmstone-900 mb-2">{testResults.length}</p>
+              {testResults.map((r, i) => (
+                <div key={i} className="flex items-center gap-2 mb-1">
+                  {r.is_abnormal && <AlertTriangle size={12} className="text-error shrink-0" />}
+                  <p className="text-sm text-warmstone-600 truncate">
+                    {r.test_name}
+                    {r.result_value ? `: ${r.result_value}` : ""}
+                    {r.result_date ? ` (${formatDateUK(r.result_date)})` : ""}
+                  </p>
+                </div>
+              ))}
+            </>
+          ) : (
+            <p className="text-sm text-warmstone-400">None recorded</p>
+          )}
+          <p className="text-xs text-honey-600 font-semibold mt-3">View all test results</p>
         </Card>
       </Link>
 

@@ -6,10 +6,12 @@ import {
   HeartPulse,
   ShieldAlert,
   Calendar,
+  FlaskConical,
   ListChecks,
   Users,
   ArrowRight,
   CheckCircle,
+  AlertTriangle,
   Lightbulb,
   ChevronDown,
   ChevronUp,
@@ -25,6 +27,7 @@ import type {
   ScannedCondition,
   ScannedAllergy,
   ScannedAppointment,
+  ScannedTestResult,
 } from "@/lib/types/scan";
 import type { DocumentType } from "@/lib/types/database";
 
@@ -189,13 +192,16 @@ export function ReviewStep({
   const [appointments, setAppointments] = useState<ReviewItem<ScannedAppointment>[]>(
     () => initItems(scanResult.appointments)
   );
+  const [testResults, setTestResults] = useState<ReviewItem<ScannedTestResult>[]>(
+    () => initItems(scanResult.test_results)
+  );
 
   const [saving, setSaving] = useState(false);
 
   // Duplicate detection
   useEffect(() => {
     async function checkDuplicates() {
-      const [{ data: existingMeds }, { data: existingConds }, { data: existingAllergies }] =
+      const [{ data: existingMeds }, { data: existingConds }, { data: existingAllergies }, { data: existingTests }] =
         await Promise.all([
           supabase
             .from("medications")
@@ -208,6 +214,7 @@ export function ReviewStep({
             .eq("person_id", personId)
             .eq("is_active", true),
           supabase.from("allergies").select("name").eq("person_id", personId),
+          supabase.from("test_results").select("test_name, result_date").eq("person_id", personId),
         ]);
 
       const medNames = new Set(
@@ -218,6 +225,10 @@ export function ReviewStep({
       );
       const allergyNames = new Set(
         (existingAllergies ?? []).map((a) => a.name.toLowerCase())
+      );
+      // Key: "test_name|date"
+      const testKeys = new Set(
+        (existingTests ?? []).map((t) => `${t.test_name.toLowerCase()}|${t.result_date ?? ""}`)
       );
 
       setMedications((prev) =>
@@ -238,6 +249,14 @@ export function ReviewStep({
           isDuplicate: allergyNames.has(it.data.name.toLowerCase()),
         }))
       );
+      setTestResults((prev) =>
+        prev.map((it) => ({
+          ...it,
+          isDuplicate: testKeys.has(
+            `${it.data.test_name.toLowerCase()}|${it.data.result_date ?? ""}`
+          ),
+        }))
+      );
     }
     checkDuplicates();
   }, [personId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -246,7 +265,8 @@ export function ReviewStep({
     medications.filter((m) => m.checked).length +
     conditions.filter((c) => c.checked).length +
     allergies.filter((a) => a.checked).length +
-    appointments.filter((a) => a.checked).length;
+    appointments.filter((a) => a.checked).length +
+    testResults.filter((t) => t.checked).length;
 
   async function handleSave() {
     setSaving(true);
@@ -338,6 +358,23 @@ export function ReviewStep({
         department: appt.department ?? null,
         trust_or_service: appt.trust_or_service ?? null,
         status: isPast ? "completed" : "upcoming",
+      });
+      savedCount++;
+    }
+
+    // Save checked test results
+    for (const item of testResults.filter((t) => t.checked)) {
+      const tr = item.data;
+      await supabase.from("test_results").insert({
+        person_id: personId,
+        household_id: householdId,
+        test_name: tr.test_name,
+        result_value: tr.result_value ?? null,
+        result_date: tr.result_date ?? null,
+        normal_range: tr.normal_range ?? null,
+        is_abnormal: tr.is_abnormal ?? null,
+        ordered_by: tr.ordered_by ?? null,
+        notes: tr.notes ?? null,
       });
       savedCount++;
     }
@@ -728,6 +765,133 @@ export function ReviewStep({
                     {item.data.professional_name}
                     {item.data.department ? `, ${item.data.department}` : ""}
                   </p>
+                )}
+              </div>
+            </ReviewCard>
+          ))}
+        </Section>
+
+        {/* Test Results */}
+        <Section
+          icon={<FlaskConical size={16} />}
+          iconClass="text-sage-400"
+          title="Test Results"
+          count={testResults.length}
+        >
+          {testResults.map((item, i) => (
+            <ReviewCard
+              key={i}
+              checked={item.checked}
+              onToggle={() => setTestResults(toggle(testResults, i))}
+              confidence={item.data.confidence}
+              editing={item.editing}
+              onEditToggle={() =>
+                setTestResults(setEditing(testResults, i, !item.editing))
+              }
+              isDuplicate={item.isDuplicate}
+              duplicateMessage="A result with the same test name and date is already in the record."
+              editContent={
+                <div className="grid grid-cols-1 gap-3">
+                  <EditField
+                    label="Test name"
+                    value={item.data.test_name}
+                    onChange={(v) =>
+                      setTestResults(patchData(testResults, i, { test_name: v }))
+                    }
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <EditField
+                      label="Result value"
+                      value={item.data.result_value ?? ""}
+                      onChange={(v) =>
+                        setTestResults(
+                          patchData(testResults, i, { result_value: v || null })
+                        )
+                      }
+                    />
+                    <EditField
+                      label="Date (YYYY-MM-DD)"
+                      value={item.data.result_date ?? ""}
+                      onChange={(v) =>
+                        setTestResults(
+                          patchData(testResults, i, { result_date: v || null })
+                        )
+                      }
+                    />
+                  </div>
+                  <EditField
+                    label="Normal range"
+                    value={item.data.normal_range ?? ""}
+                    onChange={(v) =>
+                      setTestResults(
+                        patchData(testResults, i, { normal_range: v || null })
+                      )
+                    }
+                  />
+                  <EditField
+                    label="Ordered by"
+                    value={item.data.ordered_by ?? ""}
+                    onChange={(v) =>
+                      setTestResults(
+                        patchData(testResults, i, { ordered_by: v || null })
+                      )
+                    }
+                  />
+                  <EditField
+                    label="Notes"
+                    value={item.data.notes ?? ""}
+                    onChange={(v) =>
+                      setTestResults(
+                        patchData(testResults, i, { notes: v || null })
+                      )
+                    }
+                  />
+                </div>
+              }
+            >
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-bold text-warmstone-900">{item.data.test_name}</p>
+                  {item.data.is_abnormal === true && (
+                    <Badge variant="error">
+                      <AlertTriangle size={11} className="mr-1" />
+                      Outside normal range
+                    </Badge>
+                  )}
+                  {item.data.is_abnormal === false && (
+                    <span className="inline-flex items-center gap-1 bg-sage-50 text-sage-400 rounded-sm px-2.5 py-0.5 text-xs font-semibold">
+                      Within normal range
+                    </span>
+                  )}
+                </div>
+                {item.data.result_value && (
+                  <p
+                    className={`text-2xl font-bold ${
+                      item.data.is_abnormal === true
+                        ? "text-error"
+                        : item.data.is_abnormal === false
+                        ? "text-sage-400"
+                        : "text-warmstone-800"
+                    }`}
+                  >
+                    {item.data.result_value}
+                  </p>
+                )}
+                {item.data.result_date && (
+                  <p className="text-sm text-warmstone-600">{item.data.result_date}</p>
+                )}
+                {item.data.normal_range && (
+                  <p className="text-sm text-warmstone-600">
+                    Normal range: {item.data.normal_range}
+                  </p>
+                )}
+                {item.data.ordered_by && (
+                  <p className="text-xs text-warmstone-400">
+                    Ordered by {item.data.ordered_by}
+                  </p>
+                )}
+                {item.data.notes && (
+                  <p className="text-sm text-warmstone-600 mt-1">{item.data.notes}</p>
                 )}
               </div>
             </ReviewCard>
