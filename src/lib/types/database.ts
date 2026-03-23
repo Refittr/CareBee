@@ -281,6 +281,19 @@ export interface Contact {
   updated_at: string;
 }
 
+export interface GeneratedLetter {
+  id: string;
+  person_id: string;
+  household_id: string;
+  title: string;
+  content: string;
+  template_id: string | null;
+  custom_prompt: string | null;
+  entitlement_context: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface EmergencyShare {
   id: string;
   person_id: string;
@@ -433,6 +446,12 @@ export type Database = {
         Row: Row & Contact;
         Insert: Row & OptionalNullables<Omit<Contact, "id" | "created_at" | "updated_at">> & { display_order?: number };
         Update: Row & Partial<Omit<Contact, "id" | "created_at" | "updated_at">>;
+        Relationships: never[];
+      };
+      generated_letters: {
+        Row: Row & GeneratedLetter;
+        Insert: Row & OptionalNullables<Omit<GeneratedLetter, "id" | "created_at" | "updated_at">>;
+        Update: Row & Partial<Omit<GeneratedLetter, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
     };

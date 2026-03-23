@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Shield } from "lucide-react";
+import { Home, Shield, BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 
 const navItems = [
-  { href: "/dashboard", label: "Households", icon: Home },
+  { href: "/dashboard", label: "Care records", icon: Home },
+  { href: "/letters-vault", label: "Letters vault", icon: BookOpen },
 ];
 
 export function MobileNav() {
