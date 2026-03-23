@@ -1,3 +1,10 @@
+import { createClient } from "@/lib/supabase/client";
+
+/**
+ * Logs a user action to the admin activity log.
+ * Uses a SECURITY DEFINER Postgres function so the anon client
+ * can insert into the activity log table despite RLS.
+ */
 export async function logActivity(
   action: string,
   entity_type?: string,
@@ -5,17 +12,17 @@ export async function logActivity(
   metadata?: Record<string, unknown>
 ): Promise<void> {
   try {
-    const res = await fetch("/api/log-activity", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, entity_type, entity_id, metadata }),
-      keepalive: true,
+    const supabase = createClient();
+    const { error } = await supabase.rpc("log_user_activity", {
+      p_action: action,
+      p_entity_type: entity_type ?? null,
+      p_entity_id: entity_id ?? null,
+      p_metadata: metadata ?? {},
     });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      console.error("[logActivity] failed:", res.status, text);
+    if (error) {
+      console.error("[logActivity] rpc error:", error.message);
     }
   } catch (err) {
-    console.error("[logActivity] fetch error:", err);
+    console.error("[logActivity] error:", err);
   }
 }

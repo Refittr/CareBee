@@ -315,6 +315,15 @@ export type Database = {
         Args: Record<string, unknown> & { household_name: string };
         Returns: string;
       };
+      log_user_activity: {
+        Args: Record<string, unknown> & {
+          p_action: string;
+          p_entity_type?: string | null;
+          p_entity_id?: string | null;
+          p_metadata?: Record<string, unknown>;
+        };
+        Returns: void;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
