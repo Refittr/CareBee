@@ -13,6 +13,8 @@ const tabs = [
   { label: "Documents", segment: "documents" },
   { label: "Insights", segment: "insights" },
   { label: "Contacts", segment: "contacts" },
+  { label: "Entitlements", segment: "entitlements" },
+  { label: "Letters", segment: "letters" },
 ];
 
 export function PersonTabs({ baseUrl }: { baseUrl: string }) {

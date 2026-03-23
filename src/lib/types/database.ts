@@ -71,6 +71,36 @@ export interface Person {
   dnacpr_status: boolean;
   notes: string | null;
   avatar_url: string | null;
+  care_needs_assessment: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export type EntitlementEligibilityStatus = "likely_eligible" | "possibly_eligible" | "already_claiming" | "not_eligible" | "unknown";
+export type EntitlementConfidence = "high" | "medium" | "low";
+export type EntitlementCategory = "disability_benefit" | "carer_benefit" | "financial_support" | "practical_support" | "health_exemption" | "housing" | "tax_relief";
+export type EntitlementCurrentStatus = "not_started" | "application_in_progress" | "submitted" | "awarded" | "rejected" | "under_review";
+
+export interface Entitlement {
+  id: string;
+  person_id: string;
+  household_id: string;
+  benefit_name: string;
+  benefit_category: EntitlementCategory;
+  eligibility_status: EntitlementEligibilityStatus;
+  confidence: EntitlementConfidence;
+  estimated_annual_value: string | null;
+  reasoning: string;
+  what_it_is: string;
+  how_to_apply: string | null;
+  key_criteria: string[] | null;
+  missing_info: string[] | null;
+  current_status: EntitlementCurrentStatus;
+  application_reference: string | null;
+  review_date: string | null;
+  award_amount: string | null;
+  is_dismissed: boolean;
+  last_checked_at: string;
   created_at: string;
   updated_at: string;
 }
@@ -311,7 +341,7 @@ export type Database = {
       };
       people: {
         Row: Row & Person;
-        Insert: Row & OptionalNullables<Omit<Person, "id" | "created_at" | "updated_at">>;
+        Insert: Row & OptionalNullables<Omit<Person, "id" | "created_at" | "updated_at" | "care_needs_assessment">> & { care_needs_assessment?: Record<string, unknown> };
         Update: Row & Partial<Omit<Person, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
@@ -391,6 +421,12 @@ export type Database = {
         Row: Row & DrugInteraction;
         Insert: Row & OptionalNullables<Omit<DrugInteraction, "id" | "created_at">>;
         Update: Row & Partial<Omit<DrugInteraction, "id" | "created_at">>;
+        Relationships: never[];
+      };
+      entitlements: {
+        Row: Row & Entitlement;
+        Insert: Row & OptionalNullables<Omit<Entitlement, "id" | "created_at" | "updated_at">> & { last_checked_at?: string };
+        Update: Row & Partial<Omit<Entitlement, "id" | "created_at">>;
         Relationships: never[];
       };
       contacts: {
