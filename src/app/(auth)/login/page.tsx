@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BeeIcon } from "@/components/ui/BeeIcon";
+import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -45,10 +45,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-warmstone-50 flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <BeeIcon size={32} className="text-honey-400" />
+          <div className="flex items-center justify-center mb-3">
+            <Logo size="lg" />
           </div>
-          <h1 className="font-display text-3xl text-warmstone-900">CareBee</h1>
           <p className="text-warmstone-600 text-sm mt-1">Sign in to your account</p>
         </div>
 

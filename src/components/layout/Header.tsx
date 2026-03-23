@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { BeeIcon } from "@/components/ui/BeeIcon";
+import { Logo } from "@/components/ui/Logo";
 import { useRouter } from "next/navigation";
 
 interface HeaderProps {
@@ -36,7 +36,7 @@ export function Header({ title, showBack, backHref, actions }: HeaderProps) {
       )}
       {!showBack && (
         <Link href="/dashboard" className="flex items-center gap-1.5">
-          <BeeIcon size={20} className="text-honey-400" />
+          <Logo size="sm" />
         </Link>
       )}
       {title && (

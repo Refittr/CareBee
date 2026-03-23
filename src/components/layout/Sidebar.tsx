@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, LogOut } from "lucide-react";
-import { BeeIcon } from "@/components/ui/BeeIcon";
+import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -26,8 +26,7 @@ export function Sidebar() {
     <aside className="hidden md:flex flex-col w-60 bg-warmstone-white border-r border-warmstone-100 min-h-screen shrink-0">
       <div className="px-5 py-5 border-b border-warmstone-100">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <BeeIcon size={24} className="text-honey-400" />
-          <span className="font-display text-xl text-warmstone-900">CareBee</span>
+          <Logo size="md" />
         </Link>
       </div>
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">

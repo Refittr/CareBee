@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, Nunito } from "next/font/google";
+import { Outfit, Nunito } from "next/font/google";
 import "./globals.css";
 
-const dmSerifDisplay = DM_Serif_Display({
-  weight: "400",
+const outfit = Outfit({
+  weight: ["400", "700", "800"],
   subsets: ["latin"],
   variable: "--font-display-var",
   display: "swap",
@@ -33,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${dmSerifDisplay.variable} ${nunito.variable}`}>
+    <html lang="en" className={`${outfit.variable} ${nunito.variable}`}>
       <head>
         <meta name="theme-color" content="#E8A817" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
