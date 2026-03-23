@@ -67,7 +67,7 @@ export default function NewPersonPage() {
       setSubmitError(err?.message ?? "Something went wrong. Please try again.");
       setLoading(false);
     } else {
-      logActivity("person_added", "person", data.id, { household_id: householdId });
+      await logActivity("person_added", "person", data.id, { household_id: householdId });
       addToast(`Added ${fields.first_name} to your household.`, "success");
       router.push(`/household/${householdId}/people/${data.id}`);
     }

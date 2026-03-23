@@ -317,13 +317,13 @@ export async function POST(request: NextRequest) {
   try {
     const result = JSON.parse(jsonText);
     // Log the AI scan
-    svc.from("admin_activity_log").insert({
+    await svc.from("admin_activity_log").insert({
       user_id: user.id,
       action: "ai_scan_performed",
       entity_type: "document",
       entity_id: null,
       metadata: { person_id, household_id, document_type: result.document_type ?? "unknown" },
-    }).then(() => {});
+    });
     return NextResponse.json(result);
   } catch {
     console.error(

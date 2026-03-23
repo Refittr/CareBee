@@ -36,7 +36,7 @@ export default function NewHouseholdPage() {
       setError(err?.message ?? "Something went wrong. Please try again.");
       setLoading(false);
     } else {
-      logActivity("household_created", "household", data);
+      await logActivity("household_created", "household", data);
       addToast("Household created.", "success");
       router.push(`/household/${data}`);
     }
