@@ -2,33 +2,76 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
-import { Badge } from "@/components/ui/Badge";
 import { MembersClient } from "./MembersClient";
-import { getInitials } from "@/lib/utils/formatting";
-import { formatDateUK } from "@/lib/utils/dates";
 import type { Metadata } from "next";
+import type { MemberRole } from "@/lib/types/database";
 
 type Props = { params: Promise<{ householdId: string }> };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(_props: Props): Promise<Metadata> {
   return { title: "Members | CareBee" };
 }
+
+type MemberWithProfile = {
+  id: string;
+  user_id: string;
+  household_id: string;
+  role: MemberRole;
+  accepted_at: string | null;
+  profiles: { full_name: string; email: string; avatar_url: string | null } | null;
+};
+
+type PendingInviteWithProfile = {
+  id: string;
+  household_id: string;
+  invited_email: string;
+  role: MemberRole;
+  invite_token: string;
+  expires_at: string;
+  created_at: string;
+  profiles: { full_name: string } | null;
+};
 
 export default async function MembersPage({ params }: Props) {
   const { householdId } = await params;
   const supabase = await createClient();
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: household }, { data: members }] = await Promise.all([
+  const [{ data: household }, { data: rawMembers }, { data: userMembership }] = await Promise.all([
     supabase.from("households").select("name").eq("id", householdId).single(),
     supabase
       .from("household_members")
       .select("*, profiles(full_name, email, avatar_url)")
       .eq("household_id", householdId),
+    supabase
+      .from("household_members")
+      .select("role")
+      .eq("household_id", householdId)
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
   if (!household) notFound();
+
+  const userRole = (userMembership?.role ?? null) as MemberRole | null;
+  const isOwner = userRole === "owner";
+  const canEdit = userRole === "owner" || userRole === "editor";
+
+  const members = (rawMembers ?? []) as unknown as MemberWithProfile[];
+
+  let pendingInvites: PendingInviteWithProfile[] = [];
+  if (canEdit) {
+    const now = new Date().toISOString();
+    const { data: rawInvites } = await supabase
+      .from("invitations")
+      .select("*, profiles!invited_by(full_name)")
+      .eq("household_id", householdId)
+      .is("accepted_at", null)
+      .gt("expires_at", now);
+    pendingInvites = (rawInvites ?? []) as unknown as PendingInviteWithProfile[];
+  }
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-2xl">
@@ -38,10 +81,15 @@ export default async function MembersPage({ params }: Props) {
         { label: household.name, href: `/household/${householdId}` },
         { label: "Members" },
       ]} />
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-warmstone-900 hidden md:block">Members</h1>
-      </div>
-      <MembersClient members={(members ?? []) as unknown as Parameters<typeof MembersClient>[0]["members"]} currentUserId={user.id} householdId={householdId} householdName={household.name} />
+      <MembersClient
+        members={members}
+        pendingInvites={pendingInvites}
+        currentUserId={user.id}
+        householdId={householdId}
+        householdName={household.name}
+        isOwner={isOwner}
+        canEdit={canEdit}
+      />
     </div>
   );
 }

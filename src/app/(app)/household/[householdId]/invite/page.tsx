@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
-import { Copy, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { Copy, Check, CheckCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -15,45 +16,114 @@ import type { MemberRole } from "@/lib/types/database";
 export default function InvitePage() {
   const params = useParams<{ householdId: string }>();
   const { householdId } = params;
+  const router = useRouter();
   const supabase = createClient();
   const { addToast } = useAppToast();
 
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<MemberRole>("viewer");
+  const [role, setRole] = useState<"editor" | "viewer">("viewer");
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [existingToken, setExistingToken] = useState<string | null>(null);
+  const [existingLinkCopied, setExistingLinkCopied] = useState(false);
+
+  // Check role on mount; redirect non-editors/owners
+  useEffect(() => {
+    async function checkRole() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.replace("/login"); return; }
+      const { data: member } = await supabase
+        .from("household_members")
+        .select("role")
+        .eq("household_id", householdId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!member) { router.replace(`/household/${householdId}`); return; }
+      if (member.role === "viewer" || member.role === "emergency_only") {
+        router.replace(`/household/${householdId}`);
+      }
+    }
+    checkRole();
+  }, [householdId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setEmailError(null);
+    setError(null);
+    setExistingToken(null);
+
     if (!email.trim()) { setEmailError("Email address is required."); return; }
-    setEmailError(null); setError(null); setLoading(true);
+    if (!emailRegex.test(email.trim())) { setEmailError("Please enter a valid email address."); return; }
+
+    setLoading(true);
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
 
+    // Check if already a member
+    const { data: existingMembers } = await supabase
+      .from("household_members")
+      .select("id, profiles(email)")
+      .eq("household_id", householdId) as unknown as { data: { id: string; profiles: { email: string } | null }[] | null };
+
+    if (existingMembers) {
+      const alreadyMember = existingMembers.some(
+        (m) => m.profiles?.email?.toLowerCase() === email.trim().toLowerCase()
+      );
+      if (alreadyMember) {
+        setError("This person is already a member of this household.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Check for existing pending invite
+    const now = new Date().toISOString();
+    const { data: existingInvite } = await supabase
+      .from("invitations")
+      .select("invite_token")
+      .eq("household_id", householdId)
+      .eq("invited_email", email.trim().toLowerCase())
+      .is("accepted_at", null)
+      .gt("expires_at", now)
+      .maybeSingle();
+
+    if (existingInvite) {
+      setExistingToken(existingInvite.invite_token);
+      setLoading(false);
+      return;
+    }
+
+    // Insert new invitation with a generated token
     const token = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error: insertError } = await supabase
+      .from("invitations")
+      .insert({
+        household_id: householdId,
+        invited_email: email.trim().toLowerCase(),
+        role: role as MemberRole,
+        invited_by: user.id,
+        invite_token: token,
+        expires_at: expiresAt,
+      })
+      .select("invite_token")
+      .single();
 
-    const { error: err } = await supabase.from("invitations").insert({
-      household_id: householdId,
-      invited_email: email.trim(),
-      role,
-      invited_by: user.id,
-      invite_token: token,
-      expires_at: expiresAt,
-    });
-
-    if (err) {
-      setError(err.message);
+    if (insertError || !data) {
+      setError(insertError?.message ?? "Something went wrong. Please try again.");
       setLoading(false);
-    } else {
-      const link = `${window.location.origin}/invite/accept?token=${token}`;
-      setInviteLink(link);
-      setLoading(false);
+      return;
     }
+
+    const link = `${window.location.origin}/invite/accept?token=${data.invite_token}`;
+    setInviteLink(link);
+    setLoading(false);
   }
 
   async function handleCopy() {
@@ -62,6 +132,25 @@ export default function InvitePage() {
     setCopied(true);
     addToast("Link copied.", "success");
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleCopyExisting() {
+    if (!existingToken) return;
+    const link = `${window.location.origin}/invite/accept?token=${existingToken}`;
+    await navigator.clipboard.writeText(link);
+    setExistingLinkCopied(true);
+    addToast("Link copied.", "success");
+    setTimeout(() => setExistingLinkCopied(false), 2000);
+  }
+
+  function resetForm() {
+    setInviteLink(null);
+    setEmail("");
+    setRole("viewer");
+    setError(null);
+    setEmailError(null);
+    setExistingToken(null);
+    setCopied(false);
   }
 
   return (
@@ -73,50 +162,88 @@ export default function InvitePage() {
         { label: "Members", href: `/household/${householdId}/members` },
         { label: "Invite" },
       ]} />
-      <h1 className="text-2xl font-bold text-warmstone-900 mb-6 hidden md:block">Invite someone</h1>
-
-      {error && <div className="mb-4"><Alert type="error" description={error} /></div>}
 
       {!inviteLink ? (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <Input
-            label="Email address"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            error={emailError ?? undefined}
-            placeholder="name@example.com"
-          />
-          <Select label="Role" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
-            <option value="editor">Editor (can add and edit records)</option>
-            <option value="viewer">Viewer (can view records only)</option>
-          </Select>
-          <Button type="submit" loading={loading} fullWidth>Send invite</Button>
-        </form>
-      ) : (
-        <div className="flex flex-col gap-5">
-          <Alert type="success" title="Invite link created" description="Share this link with them. They will need to create an account or sign in to accept the invitation." />
+        <>
+          <h1 className="text-2xl font-bold text-warmstone-900 mb-6 hidden md:block">Invite someone</h1>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-warmstone-800">Invite link</label>
-            <div className="bg-warmstone-100 border border-warmstone-200 rounded-sm px-3 py-2.5 text-sm text-warmstone-800 break-all font-mono">
+          {error && (
+            <div className="mb-4">
+              <Alert type="error" description={error} />
+            </div>
+          )}
+
+          {existingToken && (
+            <div className="mb-4">
+              <Alert type="info" title="Invitation already sent">
+                <p className="text-sm text-warmstone-800 mt-1 mb-3">
+                  An invitation has already been sent to this address.
+                </p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleCopyExisting}
+                >
+                  {existingLinkCopied ? <Check size={14} /> : <Copy size={14} />}
+                  {existingLinkCopied ? "Copied" : "Copy existing link"}
+                </Button>
+              </Alert>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <Input
+              label="Email address"
+              type="email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setEmailError(null); setExistingToken(null); }}
+              required
+              error={emailError ?? undefined}
+              placeholder="name@example.com"
+              autoComplete="email"
+            />
+            <Select
+              label="Role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as "editor" | "viewer")}
+            >
+              <option value="editor">Editor (can add and edit records)</option>
+              <option value="viewer">Viewer (can view records only)</option>
+            </Select>
+            <Button type="submit" loading={loading} fullWidth>
+              Send invite
+            </Button>
+          </form>
+        </>
+      ) : (
+        <div className="bg-warmstone-white border border-warmstone-100 rounded-xl p-6 flex flex-col items-center gap-4">
+          <CheckCircle size={32} className="text-sage-400" />
+          <h2 className="font-bold text-warmstone-900 text-xl mt-3 mb-1 text-center">Invitation created</h2>
+          <p className="text-sm text-warmstone-600 text-center mb-1">
+            Share this link with your family member. They will need to create an account or sign in to accept. The link expires in 7 days.
+          </p>
+
+          <div className="w-full">
+            <div className="bg-warmstone-50 border border-warmstone-200 rounded-md px-3 py-2.5 text-sm font-mono text-warmstone-800 break-all w-full">
               {inviteLink}
             </div>
           </div>
 
-          <Button onClick={handleCopy} fullWidth variant={copied ? "secondary" : "primary"}>
+          <Button onClick={handleCopy} fullWidth>
             {copied ? <Check size={16} /> : <Copy size={16} />}
             {copied ? "Copied" : "Copy link"}
           </Button>
 
-          <p className="text-sm text-warmstone-600">
-            The link expires in 7 days. For MVP, this is a manual share. No email is sent.
-          </p>
-
-          <Button variant="ghost" onClick={() => { setInviteLink(null); setEmail(""); }} fullWidth>
-            Invite another person
+          <Button variant="ghost" onClick={resetForm} fullWidth>
+            Send another invite
           </Button>
+
+          <Link
+            href={`/household/${householdId}/members`}
+            className="text-sm text-warmstone-500 hover:text-warmstone-900 transition-colors"
+          >
+            Back to members
+          </Link>
         </div>
       )}
     </div>

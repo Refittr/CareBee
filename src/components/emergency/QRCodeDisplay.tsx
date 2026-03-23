@@ -71,12 +71,12 @@ export function QRCodeDisplay({ householdId, personId, personName }: QRCodeDispl
   if (!shareUrl) return <p className="text-warmstone-600 text-sm">Could not generate link. Please try again.</p>;
 
   return (
-    <div className="flex flex-col items-center gap-5">
+    <div className="flex flex-col items-center gap-3">
       <p className="text-sm text-warmstone-600 text-center">
         Show this QR code or share the link with emergency services. Anyone with the link can view {personName}&apos;s emergency information.
       </p>
-      <div className="p-4 bg-warmstone-white border border-warmstone-100 rounded-xl shadow-sm">
-        <QRCodeSVG value={shareUrl} size={200} />
+      <div className="p-3 bg-warmstone-white border border-warmstone-100 rounded-xl shadow-sm">
+        <QRCodeSVG value={shareUrl} size={160} />
       </div>
       <div className="w-full flex flex-col gap-2">
         <p className="text-xs text-warmstone-400 text-center break-all">{shareUrl}</p>
