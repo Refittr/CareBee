@@ -57,6 +57,8 @@ Flag anything else useful:
 - Carer assessment reminder if there is evidence of significant caring responsibilities
 - Annual health check for people with learning disabilities
 
+CRITICAL: Before returning your response, review your list of insights and merge any that are about the same underlying issue. Two insights are about the same issue if addressing one would address the other. For example: a missing kidney function check and a note that Metformin requires kidney monitoring are the same issue (the fix for both is to get a kidney function test). A low Metformin dose query and a Metformin dosage concern are the same issue. Merge them into a single, comprehensive insight that covers all the relevant angles. Your final list should have NO overlapping insights. If in doubt, merge them.
+
 Respond with a JSON array of insights:
 
 [
@@ -224,6 +226,7 @@ export async function POST(request: NextRequest) {
     description: string;
     priority: string;
     source_data: Record<string, unknown>;
+    dedup_key?: string;
   }>;
 
   try {
@@ -237,6 +240,16 @@ export async function POST(request: NextRequest) {
     console.error("[insights/generate] Failed to parse AI response:", responseText.slice(0, 300));
     newInsightData = [];
   }
+
+  // Code-level dedupe: if the AI returned multiple insights with the same dedup_key, keep only the first
+  const seenDedupKeys = new Set<string>();
+  newInsightData = newInsightData.filter((i) => {
+    const key = i.dedup_key?.trim().toLowerCase();
+    if (!key) return true;
+    if (seenDedupKeys.has(key)) return false;
+    seenDedupKeys.add(key);
+    return true;
+  });
 
   // Load existing active insights to avoid duplicates
   const { data: existingInsights } = await svc
