@@ -44,16 +44,16 @@ export default async function PersonOverviewPage({ params }: Props) {
   return (
     <div className="flex flex-col gap-4">
 
-      {/* AI Scan — hero CTA */}
-      <ScanDocumentButton householdId={householdId} personId={personId} />
+      {/* AI Scan + Health Insights side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
+        <ScanDocumentButton householdId={householdId} personId={personId} />
 
-      {/* Health Insights — hero section */}
-      <Link href={`${baseUrl}/insights`}>
+        <Link href={`${baseUrl}/insights`} className="block h-full">
         <Card
           hoverable
           clickable
           className={[
-            "p-5",
+            "p-4 h-full",
             insights && insights.length > 0 ? "border-honey-300 bg-honey-50" : "border-warmstone-200",
           ].join(" ")}
         >
@@ -94,9 +94,10 @@ export default async function PersonOverviewPage({ params }: Props) {
             </p>
           )}
         </Card>
-      </Link>
+        </Link>
+      </div>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Link href={`${baseUrl}/conditions`}>
         <Card hoverable clickable className="p-5 h-full">
           <div className="flex items-center gap-2 mb-3">

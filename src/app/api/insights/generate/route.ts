@@ -309,6 +309,15 @@ export async function POST(request: NextRequest) {
     await svc.from("health_insights").insert(toInsert);
   }
 
+  // Log to activity feed
+  void svc.from("admin_activity_log").insert({
+    user_id: user.id,
+    action: "ai_feature_used",
+    entity_type: "health_insights",
+    entity_id: null,
+    metadata: { person_id, household_id, insights_found: toInsert.length },
+  });
+
   // Log the check
   await svc.from("insight_checks").insert({
     person_id,

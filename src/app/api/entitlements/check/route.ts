@@ -269,5 +269,14 @@ export async function POST(request: NextRequest) {
     .eq("person_id", person_id)
     .order("created_at", { ascending: false });
 
+  // Log to activity feed
+  void svc.from("admin_activity_log").insert({
+    user_id: user.id,
+    action: "ai_feature_used",
+    entity_type: "entitlements_check",
+    entity_id: null,
+    metadata: { person_id, household_id, benefits_found: found.length },
+  });
+
   return NextResponse.json({ entitlements: all ?? [], checked_at: now });
 }

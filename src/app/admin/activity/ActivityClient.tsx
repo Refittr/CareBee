@@ -21,6 +21,14 @@ const ACTION_LABELS: Record<string, string> = {
   person_added: "added a person",
   document_uploaded: "uploaded a document",
   ai_scan_performed: "performed an AI scan",
+  ai_feature_used: "used an AI feature",
+};
+
+const ENTITY_TYPE_LABELS: Record<string, string> = {
+  health_insights: "Health insights",
+  appointment_prep: "Appointment prep",
+  entitlements_check: "Entitlements check",
+  document: "Document scan",
 };
 
 const ACTION_FILTERS = [
@@ -30,6 +38,7 @@ const ACTION_FILTERS = [
   { value: "person_added", label: "People added" },
   { value: "document_uploaded", label: "Documents uploaded" },
   { value: "ai_scan_performed", label: "AI scans" },
+  { value: "ai_feature_used", label: "AI features" },
 ];
 
 export function ActivityClient({
@@ -117,8 +126,8 @@ export function ActivityClient({
                     <span className="text-warmstone-600">{ACTION_LABELS[log.action] ?? log.action}</span>
                   </p>
                   {log.entity_type && (
-                    <p className="text-xs text-warmstone-400 mt-0.5 capitalize">
-                      {log.entity_type.replace(/_/g, " ")}
+                    <p className="text-xs text-warmstone-400 mt-0.5">
+                      {ENTITY_TYPE_LABELS[log.entity_type] ?? log.entity_type.replace(/_/g, " ")}
                       {log.entity_id && (
                         <span className="text-warmstone-300 ml-1">({log.entity_id.slice(0, 8)}...)</span>
                       )}

@@ -224,7 +224,7 @@ export default function PrivacyPage() {
               Health and care records (special category data):
             </span>{" "}
             explicit consent. You actively choose to enter this data. We process it solely to
-            provide the service to you and the family members you authorise. You can withdraw
+            provide the service to you and the family members/carers you authorise. You can withdraw
             consent and delete your data at any time.
           </li>
           <li>

@@ -134,6 +134,15 @@ RULES:
     return NextResponse.json({ error: "AI service error" }, { status: 500 });
   }
 
+  // Log to activity feed
+  void svc.from("admin_activity_log").insert({
+    user_id: user.id,
+    action: "ai_feature_used",
+    entity_type: "appointment_prep",
+    entity_id: appointment_id,
+    metadata: { person_id, household_id },
+  });
+
   // Delete any existing prep for this appointment and insert fresh
   await svc.from("appointment_preps").delete().eq("appointment_id", appointment_id);
   const { data: prep } = await svc.from("appointment_preps").insert({

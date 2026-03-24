@@ -303,12 +303,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = JSON.parse(jsonText);
-    // Log the AI scan via RPC (bypasses RLS via SECURITY DEFINER function)
-    const { error: logError } = await svc.rpc("log_user_activity", {
-      p_action: "ai_scan_performed",
-      p_entity_type: "document",
-      p_entity_id: null,
-      p_metadata: { person_id, household_id, document_type: result.document_type ?? "unknown" },
+    // Log the AI scan directly (service client + explicit user_id avoids auth.uid() null issue)
+    const { error: logError } = await svc.from("admin_activity_log").insert({
+      user_id: user.id,
+      action: "ai_scan_performed",
+      entity_type: "document",
+      entity_id: null,
+      metadata: { person_id, household_id, document_type: result.document_type ?? "unknown" },
     });
     if (logError) {
       console.error("[scan-document] activity log failed:", logError.message);
