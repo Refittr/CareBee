@@ -14,7 +14,7 @@ async function sendEmail({
     throw new Error("[email] BREVO_API_KEY is not set — cannot send email");
   }
 
-  const fromEmail = process.env.FROM_EMAIL ?? "noreply@carebee.co.uk";
+  const fromEmail = process.env.FROM_EMAIL ?? "noreply@mycarebee.co.uk";
   const fromName = process.env.FROM_NAME ?? "CareBee";
 
   const res = await fetch("https://api.brevo.com/v3/smtp/email", {

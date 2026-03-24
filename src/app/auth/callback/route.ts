@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (!existing) {
+        const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         await svc.from("profiles").insert({
           id: data.user.id,
           email: data.user.email ?? "",
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
           account_type: "standard",
           plan: "free",
           is_subscribed: false,
+          trial_ends_at: trialEndsAt,
         });
       }
 
