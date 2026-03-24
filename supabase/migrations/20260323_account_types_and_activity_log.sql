@@ -39,8 +39,13 @@ ALTER TABLE admin_activity_log ENABLE ROW LEVEL SECURITY;
 CREATE OR REPLACE FUNCTION log_user_signup()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
-  INSERT INTO admin_activity_log (user_id, action, entity_type, entity_id)
-  VALUES (NEW.id, 'user_signup', 'user', NEW.id);
+  BEGIN
+    INSERT INTO admin_activity_log (user_id, action, entity_type, entity_id)
+    VALUES (NEW.id, 'user_signup', 'user', NEW.id);
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE NOTICE 'Failed to log user signup for user %: %', NEW.id, SQLERRM;
+  END;
   RETURN NEW;
 END;
 $$;
@@ -49,3 +54,58 @@ DROP TRIGGER IF EXISTS on_user_signup ON auth.users;
 CREATE TRIGGER on_user_signup
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION log_user_signup();
+
+-- 5. Standard Supabase: Create profile on user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  BEGIN
+    INSERT INTO public.profiles (id, email, full_name)
+    VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name');
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'handle_new_user failed for user %: %', NEW.id, SQLERRM;
+  END;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 6. Create household with owner
+CREATE OR REPLACE FUNCTION public.create_household_with_owner(household_name TEXT)
+RETURNS UUID AS $$
+DECLARE
+  v_household_id UUID;
+  v_user_id UUID;
+BEGIN
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  INSERT INTO public.households (name, created_by)
+  VALUES (household_name, v_user_id)
+  RETURNING id INTO v_household_id;
+
+  INSERT INTO public.household_members (household_id, user_id, role, accepted_at)
+  VALUES (v_household_id, v_user_id, 'owner', now());
+
+  RETURN v_household_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 5. Standard Supabase: Create profile on user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name)
+  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

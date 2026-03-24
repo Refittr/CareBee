@@ -48,8 +48,7 @@ function SignupForm() {
       setError(err.message);
       setLoading(false);
     } else {
-      router.push(safePath);
-      router.refresh();
+      router.push(`/signup-confirmation?email=${encodeURIComponent(email)}`);
     }
   }
 
