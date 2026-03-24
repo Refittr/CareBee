@@ -152,7 +152,7 @@ export default function SettingsPage() {
         ) : (
           <div className="flex flex-col gap-3">
             {memberships.map((m) => (
-              <Card key={m.household_id} className="flex flex-col gap-3">
+              <Card key={m.household_id} className="flex flex-col gap-3 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -185,7 +185,7 @@ export default function SettingsPage() {
                 </div>
 
                 {m.weekly_digest_enabled && (
-                  <div className="border-t border-warmstone-100 pt-3">
+                  <div className="border-t border-warmstone-100 pt-3 -mx-4 px-4">
                     <label className="text-sm font-medium text-warmstone-700 block mb-1.5">Send on</label>
                     <Select
                       value={m.weekly_digest_day}

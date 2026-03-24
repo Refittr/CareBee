@@ -107,6 +107,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Rate limit: max once per hour per person
+  const { data: lastEntitlement } = await svc
+    .from("entitlements")
+    .select("last_checked_at")
+    .eq("person_id", person_id)
+    .order("last_checked_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (lastEntitlement?.last_checked_at) {
+    const elapsed = Date.now() - new Date(lastEntitlement.last_checked_at).getTime();
+    if (elapsed < 60 * 60 * 1000) {
+      const minutesLeft = Math.ceil((60 * 60 * 1000 - elapsed) / 60000);
+      return NextResponse.json(
+        { error: `Please wait ${minutesLeft} more minute${minutesLeft === 1 ? "" : "s"} before checking again.` },
+        { status: 429 }
+      );
+    }
+  }
+
   const [{ data: person }, { data: conditions }, { data: medications }, { data: allergies }, { data: existingEntitlements }] =
     await Promise.all([
       svc.from("people").select("*").eq("id", person_id).single(),

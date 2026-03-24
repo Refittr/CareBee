@@ -103,6 +103,7 @@ export default function EntitlementsPage() {
   const [statusTarget, setStatusTarget] = useState<Entitlement | null>(null);
   const [statusValue, setStatusValue] = useState<EntitlementCurrentStatus>("not_started");
   const [canEdit, setCanEdit] = useState(false);
+  const [nextAllowedAt, setNextAllowedAt] = useState<Date | null>(null);
 
   const load = useCallback(async () => {
     const [{ data: ents }, { data: person }, { data: membership }] = await Promise.all([
@@ -123,6 +124,8 @@ export default function EntitlementsPage() {
     if ((ents ?? []).length > 0) {
       const latest = (ents ?? []).reduce((a, b) => a.last_checked_at > b.last_checked_at ? a : b);
       setLastChecked(latest.last_checked_at);
+      const next = new Date(new Date(latest.last_checked_at).getTime() + 60 * 60 * 1000);
+      setNextAllowedAt(next > new Date() ? next : null);
     }
   }, [personId, householdId, supabase]);
 
@@ -141,9 +144,17 @@ export default function EntitlementsPage() {
         body: JSON.stringify({ person_id: personId, household_id: householdId }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Check failed."); return; }
+      if (!res.ok) {
+        setError(data.error ?? "Check failed.");
+        if (res.status === 429) {
+          const next = new Date(Date.now() + 60 * 60 * 1000);
+          setNextAllowedAt(next);
+        }
+        return;
+      }
       setEntitlements(data.entitlements ?? []);
       setLastChecked(data.checked_at);
+      setNextAllowedAt(new Date(Date.now() + 60 * 60 * 1000));
       addToast("Eligibility check complete.", "success");
     } catch {
       setError("Could not run eligibility check. Please try again.");
@@ -354,9 +365,22 @@ export default function EntitlementsPage() {
             <p className="text-xs text-warmstone-400 mt-0.5">Last checked: {formatDateUK(lastChecked)}</p>
           )}
         </div>
-        <Button size="sm" variant="ghost" loading={checking} onClick={() => hasAccess === false ? setShowUpgrade(true) : runCheck()}>
-          <RefreshCw size={14} /> Check eligibility
-        </Button>
+        <div className="flex flex-col items-end gap-0.5">
+          <Button
+            size="sm"
+            variant="ghost"
+            loading={checking}
+            disabled={checking || (nextAllowedAt !== null && nextAllowedAt > new Date())}
+            onClick={() => hasAccess === false ? setShowUpgrade(true) : runCheck()}
+          >
+            <RefreshCw size={14} /> Check eligibility
+          </Button>
+          {nextAllowedAt && nextAllowedAt > new Date() && (
+            <p className="text-[10px] text-warmstone-400">
+              Available in {Math.ceil((nextAllowedAt.getTime() - Date.now()) / 60000)}m
+            </p>
+          )}
+        </div>
       </div>
 
       {error && <Alert type="error" description={error} />}
