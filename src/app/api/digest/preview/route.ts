@@ -172,11 +172,16 @@ export async function POST(request: NextRequest) {
   const subject = `CareBee weekly update: ${dateRange}`;
 
   // Save to digest_logs
-  const { data: log } = await svc.from("digest_logs").insert({
+  const { data: log, error: insertError } = await svc.from("digest_logs").insert({
     user_id: user.id,
     subject,
     content_text,
   }).select().single();
+
+  if (insertError) {
+    console.error("[digest/preview] Failed to save digest log:", insertError);
+    return NextResponse.json({ error: "Failed to save update. Please try again." }, { status: 500 });
+  }
 
   return NextResponse.json({ log, content_text, subject, dateRange });
 }

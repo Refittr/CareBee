@@ -141,13 +141,13 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { file_path, person_id, household_id } = body as {
-    file_path: string;
+  const { file_paths, person_id, household_id } = body as {
+    file_paths: string[];
     person_id: string;
     household_id: string;
   };
 
-  if (!file_path || !person_id || !household_id) {
+  if (!file_paths?.length || !person_id || !household_id) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
@@ -168,58 +168,62 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Download file from Supabase Storage
-  const { data: fileData, error: downloadError } = await svc.storage
-    .from("documents")
-    .download(file_path);
+  const supportedImageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
-  if (downloadError || !fileData) {
-    console.error("Storage download error:", downloadError);
-    return NextResponse.json(
-      { error: "Could not retrieve the uploaded file." },
-      { status: 500 }
-    );
-  }
+  // Download all files and build content blocks
+  type ImageBlock = {
+    type: "image";
+    source: { type: "base64"; media_type: "image/jpeg" | "image/png" | "image/gif" | "image/webp"; data: string };
+  };
+  type PdfBlock = {
+    type: "document";
+    source: { type: "base64"; media_type: "application/pdf"; data: string };
+  };
 
-  // Check file size (10MB limit)
-  if (fileData.size > 10 * 1024 * 1024) {
-    return NextResponse.json(
-      { error: "This file is too large. Please use an image under 10MB." },
-      { status: 413 }
-    );
-  }
+  const contentBlocks: (ImageBlock | PdfBlock)[] = [];
+  let hasPdf = false;
 
-  const mimeType = fileData.type || "image/jpeg";
-  const buffer = Buffer.from(await fileData.arrayBuffer());
-  const base64Data = buffer.toString("base64");
+  for (const filePath of file_paths) {
+    const { data: fileData, error: downloadError } = await svc.storage
+      .from("documents")
+      .download(filePath);
 
-  // Determine if image or PDF
-  const isPdf = mimeType === "application/pdf";
-  const supportedImageTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "image/webp",
-  ];
+    if (downloadError || !fileData) {
+      console.error("Storage download error:", downloadError);
+      return NextResponse.json({ error: "Could not retrieve the uploaded file." }, { status: 500 });
+    }
 
-  if (!isPdf && !supportedImageTypes.includes(mimeType)) {
-    return NextResponse.json(
-      {
-        error:
-          "Unsupported file type. Please use a JPEG, PNG, or PDF file.",
-      },
-      { status: 415 }
-    );
+    if (fileData.size > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "A file is too large. Please use images under 10MB." },
+        { status: 413 }
+      );
+    }
+
+    const mimeType = fileData.type || "image/jpeg";
+    const base64Data = Buffer.from(await fileData.arrayBuffer()).toString("base64");
+
+    if (mimeType === "application/pdf") {
+      hasPdf = true;
+      contentBlocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: base64Data } });
+    } else if (supportedImageTypes.includes(mimeType)) {
+      contentBlocks.push({
+        type: "image",
+        source: { type: "base64", media_type: mimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp", data: base64Data },
+      });
+    } else {
+      return NextResponse.json(
+        { error: "Unsupported file type. Please use a JPEG, PNG, or PDF file." },
+        { status: 415 }
+      );
+    }
   }
 
   // Call Anthropic API
   if (!process.env.ANTHROPIC_API_KEY) {
     console.error("ANTHROPIC_API_KEY is not set");
     return NextResponse.json(
-      {
-        error:
-          "Something went wrong while reading your document. Please try again.",
-      },
+      { error: "Something went wrong while reading your document. Please try again." },
       { status: 500 }
     );
   }
@@ -228,7 +232,7 @@ export async function POST(request: NextRequest) {
 
   let responseText: string;
   try {
-    if (isPdf) {
+    if (hasPdf) {
       const message = await (anthropic.beta.messages as unknown as {
         create: (params: unknown) => Promise<Anthropic.Message>;
       }).create({
@@ -239,17 +243,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: "user",
-            content: [
-              {
-                type: "document",
-                source: {
-                  type: "base64",
-                  media_type: "application/pdf",
-                  data: base64Data,
-                },
-              },
-              { type: "text", text: USER_PROMPT },
-            ],
+            content: [...contentBlocks, { type: "text", text: USER_PROMPT }],
           },
         ],
       });
@@ -263,21 +257,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: "user",
-            content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: mimeType as
-                    | "image/jpeg"
-                    | "image/png"
-                    | "image/gif"
-                    | "image/webp",
-                  data: base64Data,
-                },
-              },
-              { type: "text", text: USER_PROMPT },
-            ],
+            content: [...contentBlocks, { type: "text", text: USER_PROMPT }],
           },
         ],
       });

@@ -26,7 +26,7 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
   const [step, setStep] = useState<Step>("capture");
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null);
+  const [uploadedFilePaths, setUploadedFilePaths] = useState<string[]>([]);
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
   const [uploadedFileSize, setUploadedFileSize] = useState<number | null>(null);
   const [uploadedMimeType, setUploadedMimeType] = useState<string>("image/jpeg");
@@ -36,16 +36,17 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
     setStep("capture");
     setScanResult(null);
     setErrorMessage(null);
-    setUploadedFilePath(null);
+    setUploadedFilePaths([]);
     onClose();
   }
 
-  async function handleCapture(file: File) {
-    setUploadedFileName(file.name);
-    setUploadedFileSize(file.size);
-    setUploadedMimeType(file.type || "image/jpeg");
+  async function handleCapture(files: File[]) {
+    const firstFile = files[0];
+    setUploadedFileName(firstFile.name);
+    setUploadedFileSize(firstFile.size);
+    setUploadedMimeType(firstFile.type || "image/jpeg");
 
-    // Step 1: Upload
+    // Step 1: Upload all files
     setStep("uploading");
 
     const {
@@ -58,23 +59,30 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
     }
 
     const timestamp = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = `${user.id}/${householdId}/scans/${timestamp}_${safeName}`;
+    const filePaths: string[] = [];
 
-    const { error: uploadError } = await supabase.storage
-      .from("documents")
-      .upload(filePath, file, { upsert: false });
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = `${user.id}/${householdId}/scans/${timestamp}_p${i + 1}_${safeName}`;
 
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      setErrorMessage(
-        "We could not upload your document. Please check your connection and try again."
-      );
-      setStep("error");
-      return;
+      const { error: uploadError } = await supabase.storage
+        .from("documents")
+        .upload(filePath, file, { upsert: false });
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        setErrorMessage(
+          "We could not upload your document. Please check your connection and try again."
+        );
+        setStep("error");
+        return;
+      }
+
+      filePaths.push(filePath);
     }
 
-    setUploadedFilePath(filePath);
+    setUploadedFilePaths(filePaths);
 
     // Step 2: AI reading
     setStep("reading");
@@ -85,7 +93,7 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          file_path: filePath,
+          file_paths: filePaths,
           person_id: personId,
           household_id: householdId,
         }),
@@ -144,7 +152,7 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
     setStep("capture");
     setScanResult(null);
     setErrorMessage(null);
-    setUploadedFilePath(null);
+    setUploadedFilePaths([]);
   }
 
   if (!open) return null;
@@ -171,10 +179,10 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
         </>
       )}
 
-      {step === "review" && scanResult && uploadedFilePath && (
+      {step === "review" && scanResult && uploadedFilePaths.length > 0 && (
         <ReviewStep
           scanResult={scanResult}
-          filePath={uploadedFilePath}
+          filePath={uploadedFilePaths[0]}
           fileName={uploadedFileName}
           fileSize={uploadedFileSize}
           mimeType={uploadedMimeType}
