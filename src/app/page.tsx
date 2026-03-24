@@ -44,9 +44,9 @@ export default async function LandingPage() {
       <LandingHeader />
 
       {/* Hero */}
-      <section className="pt-16">
+      <section>
         <div
-          className="px-4 md:px-8 py-20 md:py-32 max-w-6xl mx-auto"
+          className="px-4 md:px-8 pt-20 md:pt-24 pb-20 md:pb-28 max-w-6xl mx-auto"
           style={{ background: "radial-gradient(ellipse at top right, #FFF8E6 0%, #FEFCFA 60%)" }}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
