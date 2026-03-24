@@ -6,10 +6,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
-import { Select } from "@/components/ui/Input";
+import { Input, Select } from "@/components/ui/Input";
 import { useAppToast } from "@/components/layout/AppShell";
 
 const DAY_OPTIONS = [
@@ -39,6 +38,9 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [fullName, setFullName] = useState("");
+  const [fullNameSaved, setFullNameSaved] = useState("");
+  const [savingName, setSavingName] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,7 +48,7 @@ export default function SettingsPage() {
     if (!user) { setLoading(false); return; }
 
     const [{ data: profile }, { data: members }] = await Promise.all([
-      supabase.from("profiles").select("email").eq("id", user.id).single(),
+      supabase.from("profiles").select("email, full_name").eq("id", user.id).single(),
       supabase.from("household_members")
         .select("household_id, weekly_digest_enabled, weekly_digest_day, last_digest_sent_at")
         .eq("user_id", user.id)
@@ -54,6 +56,8 @@ export default function SettingsPage() {
     ]);
 
     setEmail(profile?.email ?? null);
+    setFullName(profile?.full_name ?? "");
+    setFullNameSaved(profile?.full_name ?? "");
 
     if (!members || members.length === 0) { setLoading(false); return; }
 
@@ -119,6 +123,24 @@ export default function SettingsPage() {
     setSaving(null);
   }
 
+  async function saveFullName() {
+    if (!fullName.trim()) { addToast("Name cannot be empty.", "error"); return; }
+    setSavingName(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSavingName(false); return; }
+    const { error: err } = await supabase
+      .from("profiles")
+      .update({ full_name: fullName.trim() })
+      .eq("id", user.id);
+    if (err) {
+      addToast(err.message, "error");
+    } else {
+      setFullNameSaved(fullName.trim());
+      addToast("Name updated.", "success");
+    }
+    setSavingName(false);
+  }
+
   function formatLastSent(date: string | null): string {
     if (!date) return "Not sent yet";
     return `Last sent ${new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`;
@@ -135,10 +157,44 @@ export default function SettingsPage() {
 
       <section className="flex flex-col gap-4">
         <div>
+          <h2 className="text-base font-bold text-warmstone-900">Your profile</h2>
+          <p className="text-sm text-warmstone-600 mt-0.5">This name appears when you are listed as a member of a care record.</p>
+        </div>
+        {loading ? (
+          <SkeletonLoader count={1} />
+        ) : (
+          <Card className="flex flex-col gap-4 p-4">
+            <Input
+              label="Full name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Your full name"
+              autoComplete="name"
+            />
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={saveFullName}
+                loading={savingName}
+                disabled={fullName.trim() === fullNameSaved || !fullName.trim()}
+                size="sm"
+              >
+                Save name
+              </Button>
+            </div>
+            {email && (
+              <p className="text-sm text-warmstone-500">
+                Signed in as <span className="font-medium text-warmstone-700">{email}</span>
+              </p>
+            )}
+          </Card>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div>
           <h2 className="text-base font-bold text-warmstone-900">Weekly updates</h2>
           <p className="text-sm text-warmstone-600 mt-0.5">
             Receive a weekly email summary of changes across your care records.
-            {email && <> Sent to <span className="font-medium text-warmstone-800">{email}</span>.</>}
           </p>
         </div>
 
