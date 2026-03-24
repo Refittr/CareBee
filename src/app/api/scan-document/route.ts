@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { trackApiCall } from "@/lib/analytics-server";
 
 const SYSTEM_PROMPT = `You are a health document scanner for CareBee, a UK family care record app. Examine the image and extract all structured health and care data from it.
 
@@ -231,7 +232,9 @@ export async function POST(request: NextRequest) {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   let responseText: string;
+  const aiStart = Date.now();
   try {
+    let totalTokens = 0;
     if (hasPdf) {
       const message = await (anthropic.beta.messages as unknown as {
         create: (params: unknown) => Promise<Anthropic.Message>;
@@ -247,6 +250,7 @@ export async function POST(request: NextRequest) {
           },
         ],
       });
+      totalTokens = (message.usage?.input_tokens ?? 0) + (message.usage?.output_tokens ?? 0);
       const block = message.content[0];
       responseText = block.type === "text" ? block.text : "";
     } else {
@@ -261,11 +265,14 @@ export async function POST(request: NextRequest) {
           },
         ],
       });
+      totalTokens = (message.usage?.input_tokens ?? 0) + (message.usage?.output_tokens ?? 0);
       const block = message.content[0];
       responseText = block.type === "text" ? block.text : "";
     }
+    void trackApiCall({ userId: user.id, householdId: household_id, feature: "document_scan", action: "scan_completed", status: "success", tokensUsed: totalTokens, durationMs: Date.now() - aiStart });
   } catch (err) {
     console.error("Anthropic API error:", err);
+    void trackApiCall({ userId: user.id, householdId: household_id, feature: "document_scan", action: "scan_failed", status: "error", errorMessage: String(err), durationMs: Date.now() - aiStart });
     return NextResponse.json(
       {
         error:

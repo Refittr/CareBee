@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
+import { trackFeatureUsage } from "@/lib/utils/analytics";
 import type { DocumentType } from "@/lib/types/database";
 
 const ACCEPTED = "image/jpeg,image/png,image/heic,application/pdf";
@@ -84,6 +85,7 @@ export function DocumentUpload({ householdId, personId, onUploaded, onCancel }: 
       setError(dbErr.message);
       setLoading(false);
     } else {
+      void trackFeatureUsage("documents", "document_uploaded", "person", personId, { document_type: docType });
       addToast("Document uploaded.", "success");
       onUploaded();
     }

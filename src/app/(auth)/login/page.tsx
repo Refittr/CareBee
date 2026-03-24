@@ -26,8 +26,9 @@ function LoginForm() {
     redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")
       ? redirectTo
       : "/dashboard";
+  const emailParam = searchParams.get("email");
   const supabase = createClient();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailParam ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);

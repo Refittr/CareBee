@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { trackApiCall } from "@/lib/analytics-server";
 import { calculateAge } from "@/lib/utils/dates";
 import type {
   EntitlementEligibilityStatus,
@@ -161,6 +162,7 @@ export async function POST(request: NextRequest) {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   let responseText: string;
+  const aiStart = Date.now();
   try {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
@@ -170,10 +172,12 @@ export async function POST(request: NextRequest) {
         content: SYSTEM_PROMPT.replace("{PERSON_DATA}", JSON.stringify(personData, null, 2)),
       }],
     });
+    void trackApiCall({ userId: user.id, householdId: person_id, feature: "entitlements_check", action: "check_performed", status: "success", tokensUsed: (message.usage?.input_tokens ?? 0) + (message.usage?.output_tokens ?? 0), durationMs: Date.now() - aiStart });
     const block = message.content[0];
     responseText = block.type === "text" ? block.text : "[]";
   } catch (err) {
     console.error("[entitlements/check] Anthropic error:", err);
+    void trackApiCall({ userId: user.id, feature: "entitlements_check", action: "check_failed", status: "error", errorMessage: String(err), durationMs: Date.now() - aiStart });
     return NextResponse.json({ error: "AI service error" }, { status: 500 });
   }
 

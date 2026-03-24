@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { trackApiCall } from "@/lib/analytics-server";
 import { hasPremiumAccess } from "@/lib/permissions";
 import type { HealthInsight, InsightPriority, InsightStatus, InsightType, InsightCategory } from "@/lib/types/database";
 
@@ -226,6 +227,7 @@ export async function POST(request: NextRequest) {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   let responseText: string;
+  const aiStart = Date.now();
   try {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
@@ -237,10 +239,12 @@ export async function POST(request: NextRequest) {
           .replace("{ALREADY_HANDLED}", alreadyHandledSection),
       }],
     });
+    void trackApiCall({ userId: user.id, feature: "health_insights", action: "insights_generated", status: "success", tokensUsed: (message.usage?.input_tokens ?? 0) + (message.usage?.output_tokens ?? 0), durationMs: Date.now() - aiStart });
     const block = message.content[0];
     responseText = block.type === "text" ? block.text : "[]";
   } catch (err) {
     console.error("[insights/generate] Anthropic error:", err);
+    void trackApiCall({ userId: user.id, feature: "health_insights", action: "insights_failed", status: "error", errorMessage: String(err), durationMs: Date.now() - aiStart });
     return NextResponse.json({ error: "AI service error" }, { status: 500 });
   }
 

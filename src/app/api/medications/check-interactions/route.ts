@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { trackApiCall } from "@/lib/analytics-server";
 import type { InteractionSeverity, InteractionStatus } from "@/lib/types/database";
 
 const SYSTEM_PROMPT = `You are a drug interaction checker for CareBee, a UK family health and care record app. You are given a person's complete current medication list. Check for known interactions between any pair of medications.
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   let responseText: string;
+  const aiStart = Date.now();
   try {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
@@ -99,10 +101,12 @@ export async function POST(request: NextRequest) {
         content: SYSTEM_PROMPT.replace("{MEDICATIONS}", JSON.stringify(medications, null, 2)),
       }],
     });
+    void trackApiCall({ userId: user.id, feature: "drug_interaction", action: "check_performed", status: "success", tokensUsed: (message.usage?.input_tokens ?? 0) + (message.usage?.output_tokens ?? 0), durationMs: Date.now() - aiStart });
     const block = message.content[0];
     responseText = block.type === "text" ? block.text : "[]";
   } catch (err) {
     console.error("[check-interactions] Anthropic error:", err);
+    void trackApiCall({ userId: user.id, feature: "drug_interaction", action: "check_failed", status: "error", errorMessage: String(err), durationMs: Date.now() - aiStart });
     return NextResponse.json({ error: "AI service error" }, { status: 500 });
   }
 

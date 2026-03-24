@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { calculateAge } from "@/lib/utils/dates";
+import { trackApiCall } from "@/lib/analytics-server";
 
 const SYSTEM_PROMPT = `You are a letter and document writer for CareBee, a UK family health and care record app. You write letters, applications, and supporting statements for UK families navigating health, care, and benefits systems.
 
@@ -124,6 +125,7 @@ export async function POST(request: NextRequest) {
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+  const aiStart = Date.now();
   try {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
@@ -131,12 +133,14 @@ export async function POST(request: NextRequest) {
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }],
     });
+    void trackApiCall({ userId: user.id, feature: "document_generation", action: "letter_generated", status: "success", tokensUsed: (message.usage?.input_tokens ?? 0) + (message.usage?.output_tokens ?? 0), durationMs: Date.now() - aiStart, metadata: { document_type: documentType } });
     const block = message.content[0];
     const content = block.type === "text" ? block.text.trim() : "";
     if (!content) return NextResponse.json({ error: "No content generated. Please try again." }, { status: 422 });
     return NextResponse.json({ title: templateLabel, content });
   } catch (err) {
     console.error("[documents/generate] Anthropic error:", err);
+    void trackApiCall({ userId: user.id, feature: "document_generation", action: "letter_failed", status: "error", errorMessage: String(err), durationMs: Date.now() - aiStart });
     return NextResponse.json({ error: "AI service error" }, { status: 500 });
   }
 }

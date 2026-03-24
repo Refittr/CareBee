@@ -190,9 +190,12 @@ export default function InvitePage() {
               <span>An email has been sent to <strong>{email}</strong></span>
             </div>
           ) : (
-            <p className="text-sm text-warmstone-600 text-center mb-1">
-              Share this link with the person you invited. It expires in 7 days.
-            </p>
+            <div className="flex flex-col gap-2 w-full">
+              <div className="flex items-start gap-2 text-sm text-honey-800 bg-honey-50 border border-honey-100 rounded-lg px-4 py-3 w-full">
+                <Mail size={15} className="shrink-0 mt-0.5" />
+                <span>Invitation created but the email could not be sent. Share the link below manually.</span>
+              </div>
+            </div>
           )}
 
           <div className="w-full">

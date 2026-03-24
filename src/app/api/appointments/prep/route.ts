@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { trackApiCall } from "@/lib/analytics-server";
 import { calculateAge } from "@/lib/utils/dates";
 
 export async function POST(request: NextRequest) {
@@ -111,6 +112,7 @@ RULES:
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   let content: string;
+  const aiStart = Date.now();
   try {
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
@@ -118,11 +120,13 @@ RULES:
       system: systemPrompt,
       messages: [{ role: "user", content: userMessage }],
     });
+    void trackApiCall({ userId: user.id, feature: "appointment_prep", action: "prep_generated", status: "success", tokensUsed: (msg.usage?.input_tokens ?? 0) + (msg.usage?.output_tokens ?? 0), durationMs: Date.now() - aiStart });
     const block = msg.content[0];
     content = block.type === "text" ? block.text.trim() : "";
     if (!content) return NextResponse.json({ error: "No content generated." }, { status: 422 });
   } catch (err) {
     console.error("[appointments/prep] Anthropic error:", err);
+    void trackApiCall({ userId: user.id, feature: "appointment_prep", action: "prep_failed", status: "error", errorMessage: String(err), durationMs: Date.now() - aiStart });
     return NextResponse.json({ error: "AI service error" }, { status: 500 });
   }
 

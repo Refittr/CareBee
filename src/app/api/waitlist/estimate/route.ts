@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { trackApiCall } from "@/lib/analytics-server";
 
 const SYSTEM_PROMPT = `You are a waiting list estimator for CareBee, a UK family health and care record app. You are given NHS referral details. Estimate typical waiting times and flag if a wait appears overdue.
 
@@ -84,6 +85,7 @@ For each entry return a JSON array object with:
     chase_recommended: boolean;
   }[] = [];
 
+  const aiStart = Date.now();
   try {
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
@@ -91,6 +93,7 @@ For each entry return a JSON array object with:
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }],
     });
+    void trackApiCall({ userId: user.id, feature: "waiting_list_estimate", action: "estimate_generated", status: "success", tokensUsed: (msg.usage?.input_tokens ?? 0) + (msg.usage?.output_tokens ?? 0), durationMs: Date.now() - aiStart });
     const block = msg.content[0];
     if (block.type === "text") {
       const json = block.text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "");
@@ -99,6 +102,7 @@ For each entry return a JSON array object with:
     }
   } catch (err) {
     console.error("[waitlist/estimate] error:", err);
+    void trackApiCall({ userId: user.id, feature: "waiting_list_estimate", action: "estimate_failed", status: "error", errorMessage: String(err), durationMs: Date.now() - aiStart });
     return NextResponse.json({ error: "AI service error" }, { status: 500 });
   }
 

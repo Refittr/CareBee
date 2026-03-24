@@ -18,6 +18,7 @@ import { Input, Textarea, Select } from "@/components/ui/Input";
 import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateUK } from "@/lib/utils/dates";
 import { useAIAccess } from "@/lib/utils/access";
+import { trackFeatureUsage } from "@/lib/utils/analytics";
 import { UpgradeModal } from "@/components/ui/UpgradeModal";
 import type { WaitingList, WaitStatus } from "@/lib/types/database";
 
@@ -126,11 +127,17 @@ export default function WaitingListsPage() {
     if (editTarget) {
       const { error: err } = await supabase.from("waiting_lists").update({ ...payload, updated_at: new Date().toISOString() }).eq("id", editTarget.id);
       if (err) { addToast(err.message, "error"); }
-      else { addToast("Waiting list entry updated.", "success"); setEditTarget(null); await load(); }
+      else {
+        void trackFeatureUsage("waiting_lists", "waiting_list_updated", "person", personId);
+        addToast("Waiting list entry updated.", "success"); setEditTarget(null); await load();
+      }
     } else {
       const { error: err } = await supabase.from("waiting_lists").insert({ ...payload, status: "waiting" });
       if (err) { addToast(err.message, "error"); }
-      else { addToast("Added to waiting list.", "success"); setAddOpen(false); await load(); }
+      else {
+        void trackFeatureUsage("waiting_lists", "waiting_list_added", "person", personId);
+        addToast("Added to waiting list.", "success"); setAddOpen(false); await load();
+      }
     }
     setSaving(false);
   }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { trackApiCall } from "@/lib/analytics-server";
 
 const SYSTEM_PROMPT = `You are analysing an appointment debrief for CareBee, a UK family health and care record app. The family member has recorded what happened at a medical appointment. Your job is to identify missing information and suggest specific updates to the person's health record.
 
@@ -119,6 +120,7 @@ CURRENT MEDICATIONS: ${medications?.map((m) => `${m.name} (${m.is_active ? "acti
   let missing_info_prompts: { field: string; prompt: string }[] = [];
   let suggested_updates: Record<string, unknown>[] = [];
 
+  const aiStart = Date.now();
   try {
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
@@ -126,6 +128,7 @@ CURRENT MEDICATIONS: ${medications?.map((m) => `${m.name} (${m.is_active ? "acti
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }],
     });
+    void trackApiCall({ userId: user.id, feature: "appointment_debrief", action: "debrief_analysed", status: "success", tokensUsed: (msg.usage?.input_tokens ?? 0) + (msg.usage?.output_tokens ?? 0), durationMs: Date.now() - aiStart });
     const block = msg.content[0];
     if (block.type === "text") {
       const json = block.text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "");
@@ -135,6 +138,7 @@ CURRENT MEDICATIONS: ${medications?.map((m) => `${m.name} (${m.is_active ? "acti
     }
   } catch (err) {
     console.error("[appointments/debrief] AI error:", err);
+    void trackApiCall({ userId: user.id, feature: "appointment_debrief", action: "debrief_failed", status: "error", errorMessage: String(err), durationMs: Date.now() - aiStart });
     // Non-fatal: return debrief without suggestions
   }
 

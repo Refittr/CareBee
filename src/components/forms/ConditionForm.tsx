@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
+import { trackFeatureUsage } from "@/lib/utils/analytics";
 import type { Condition } from "@/lib/types/database";
 
 interface ConditionFormProps {
@@ -63,6 +64,7 @@ export function ConditionForm({ householdId, personId, condition, onSaved, onCan
       setError(err.message);
       setLoading(false);
     } else {
+      void trackFeatureUsage("conditions", condition ? "condition_updated" : "condition_added", "person", personId);
       addToast(condition ? "Condition updated." : "Condition added.", "success");
       onSaved();
     }

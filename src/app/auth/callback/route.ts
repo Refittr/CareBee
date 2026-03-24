@@ -26,6 +26,9 @@ export async function GET(request: NextRequest) {
           id: data.user.id,
           email: data.user.email ?? "",
           full_name: data.user.user_metadata?.full_name ?? null,
+          account_type: "standard",
+          plan: "free",
+          is_subscribed: false,
         });
       }
 

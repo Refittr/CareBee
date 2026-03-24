@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, Users, Home, Activity, ArrowLeft, Shield } from "lucide-react";
+import { LayoutDashboard, Users, Home, Activity, ArrowLeft, Shield, BarChart2 } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Admin | CareBee" };
@@ -9,6 +9,7 @@ const navItems = [
   { href: "/admin/users", label: "Users", icon: Users, exact: false },
   { href: "/admin/households", label: "Households", icon: Home, exact: false },
   { href: "/admin/activity", label: "Activity", icon: Activity, exact: false },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart2, exact: false },
 ];
 
 function AdminSidebar() {

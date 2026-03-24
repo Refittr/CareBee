@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
+import { trackFeatureUsage } from "@/lib/utils/analytics";
 import type { Medication, Condition } from "@/lib/types/database";
 
 interface MedicationFormProps {
@@ -67,7 +68,11 @@ export function MedicationForm({ householdId, personId, medication, conditions, 
       : await supabase.from("medications").insert(payload);
 
     if (err) { setError(err.message); setLoading(false); }
-    else { addToast(medication ? "Medication updated." : "Medication added.", "success"); onSaved(); }
+    else {
+      void trackFeatureUsage("medications", medication ? "medication_updated" : "medication_added", "person", personId);
+      addToast(medication ? "Medication updated." : "Medication added.", "success");
+      onSaved();
+    }
   }
 
   return (

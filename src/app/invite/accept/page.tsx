@@ -118,6 +118,7 @@ export default async function InviteAcceptPage({ searchParams }: Props) {
           householdName={invite.households.name}
           role={invite.role}
           token={token}
+          invitedEmail={invite.invited_email}
         />
       </PageWrapper>
     );
@@ -191,10 +192,12 @@ function LoginRequiredState({
   householdName,
   role,
   token,
+  invitedEmail,
 }: {
   householdName: string;
   role: MemberRole;
   token: string;
+  invitedEmail: string;
 }) {
   const redirectPath = `/invite/accept?token=${token}`;
   return (
@@ -215,13 +218,13 @@ function LoginRequiredState({
       </p>
       <div className="flex flex-col gap-3 w-full">
         <Link
-          href={`/login?redirect=${encodeURIComponent(redirectPath)}`}
+          href={`/login?redirect=${encodeURIComponent(redirectPath)}&email=${encodeURIComponent(invitedEmail)}`}
           className="inline-flex items-center justify-center gap-2 rounded-md transition-colors cursor-pointer bg-honey-400 text-warmstone-white font-bold hover:bg-honey-600 shadow-[0_2px_8px_rgba(232,168,23,0.25)] px-6 py-3 text-base min-h-[44px] w-full"
         >
           Sign in
         </Link>
         <Link
-          href={`/signup?redirect=${encodeURIComponent(redirectPath)}`}
+          href={`/signup?redirect=${encodeURIComponent(redirectPath)}&email=${encodeURIComponent(invitedEmail)}`}
           className="inline-flex items-center justify-center gap-2 rounded-md transition-colors cursor-pointer bg-transparent text-warmstone-800 border border-warmstone-200 hover:bg-warmstone-100 px-6 py-3 text-base min-h-[44px] w-full"
         >
           Create a free account

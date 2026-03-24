@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
+import { trackFeatureUsage } from "@/lib/utils/analytics";
 import type { Appointment } from "@/lib/types/database";
 
 interface AppointmentFormProps {
@@ -72,7 +73,11 @@ export function AppointmentForm({ householdId, personId, appointment, onSaved, o
       : await supabase.from("appointments").insert(payload);
 
     if (err) { setError(err.message); setLoading(false); }
-    else { addToast(appointment ? "Appointment updated." : "Appointment added.", "success"); onSaved(); }
+    else {
+      void trackFeatureUsage("appointments", appointment ? "appointment_updated" : "appointment_added", "person", personId);
+      addToast(appointment ? "Appointment updated." : "Appointment added.", "success");
+      onSaved();
+    }
   }
 
   return (

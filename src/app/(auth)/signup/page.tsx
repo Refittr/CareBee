@@ -26,9 +26,10 @@ function SignupForm() {
     redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")
       ? redirectTo
       : "/dashboard";
+  const emailParam = searchParams.get("email");
   const supabase = createClient();
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailParam ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -93,15 +94,21 @@ function SignupForm() {
               required
               autoComplete="name"
             />
-            <Input
-              label="Email address"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              autoComplete="email"
-            />
+            <div>
+              <Input
+                label="Email address"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
+                readOnly={!!emailParam}
+              />
+              {emailParam && (
+                <p className="text-xs text-warmstone-500 mt-1">This email was set by your invitation.</p>
+              )}
+            </div>
             <Input
               label="Password"
               type="password"

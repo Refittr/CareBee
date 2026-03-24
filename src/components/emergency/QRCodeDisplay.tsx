@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Copy, Check, RefreshCw } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { trackFeatureUsage } from "@/lib/utils/analytics";
 import { Button } from "@/components/ui/Button";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 
@@ -49,6 +50,7 @@ export function QRCodeDisplay({ householdId, personId, personName }: QRCodeDispl
         .select("share_token")
         .single();
       share = created;
+      void trackFeatureUsage("emergency_share", "qr_code_created", "person", personId);
     }
 
     setToken(share?.share_token ?? null);
