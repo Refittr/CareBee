@@ -112,3 +112,60 @@ export async function sendInviteEmail({
     `.trim(),
   });
 }
+
+export async function sendContactEmail({
+  name,
+  email,
+  message,
+}: {
+  name: string;
+  email: string;
+  message: string;
+}) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) {
+    throw new Error("[email] ADMIN_EMAIL is not set");
+  }
+
+  await sendEmail({
+    to: adminEmail,
+    subject: `New contact message from ${name}`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f8f6f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f6f2;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+        <tr><td style="padding-bottom:24px;text-align:center;">
+          <span style="font-size:24px;font-weight:800;letter-spacing:-0.5px;">
+            <span style="color:#1c1917;">Care</span><span style="color:#E8A817;">Bee</span>
+          </span>
+        </td></tr>
+        <tr><td style="background:#fff;border:1px solid #e7e4df;border-radius:16px;padding:40px 32px;">
+          <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#1c1917;">New contact message</h1>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafaf9;border:1px solid #e7e4df;border-radius:8px;padding:16px;margin-bottom:24px;">
+            <tr>
+              <td style="font-size:13px;color:#78716c;padding-bottom:8px;">Name</td>
+              <td style="font-size:13px;font-weight:600;color:#1c1917;text-align:right;padding-bottom:8px;">${name}</td>
+            </tr>
+            <tr>
+              <td style="font-size:13px;color:#78716c;">Email</td>
+              <td style="font-size:13px;font-weight:600;color:#1c1917;text-align:right;">
+                <a href="mailto:${email}" style="color:#E8A817;">${email}</a>
+              </td>
+            </tr>
+          </table>
+          <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#1c1917;">Message</p>
+          <p style="margin:0;font-size:15px;color:#44403c;line-height:1.7;white-space:pre-wrap;">${message}</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+    `.trim(),
+    text: `New contact message from ${name} (${email}):\n\n${message}`,
+  });
+}

@@ -385,9 +385,9 @@ export default async function LandingPage() {
             <Link href="/terms" className="hover:text-warmstone-600 transition-colors">
               Terms of Service
             </Link>
-            <a href="#" className="hover:text-warmstone-600 transition-colors">
+            <Link href="/contact" className="hover:text-warmstone-600 transition-colors">
               Contact
-            </a>
+            </Link>
           </div>
           <div className="flex flex-col items-center md:items-end gap-1">
             <span className="text-sm text-warmstone-400">Made in the UK for UK carers</span>
