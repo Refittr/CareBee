@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { Input, Textarea } from "@/components/ui/Input";
 import { useAppToast } from "@/components/layout/AppShell";
+import { useCanEdit } from "@/lib/context/role";
 
 // ---- Template definitions --------------------------------------------------
 
@@ -133,6 +134,7 @@ function LettersPageInner() {
   const supabase = createClient();
   const { addToast } = useAppToast();
 
+  const canEdit = useCanEdit();
   const preselectedTemplate = searchParams.get("template") ?? null;
   const preselectedEntitlementId = searchParams.get("entitlement_id") ?? null;
 
@@ -388,10 +390,14 @@ function LettersPageInner() {
             </>
           )}
 
-          <Button onClick={generate} loading={generating} disabled={!canGenerate}>
-            <Sparkles size={16} />
-            {generating ? "Generating..." : "Generate text"}
-          </Button>
+          {canEdit ? (
+            <Button onClick={generate} loading={generating} disabled={!canGenerate}>
+              <Sparkles size={16} />
+              {generating ? "Generating..." : "Generate text"}
+            </Button>
+          ) : (
+            <Alert type="info" description="You have view-only access to this record. Generating and saving letters is not available." />
+          )}
 
           {generating && <SkeletonLoader variant="card" count={1} />}
 
@@ -416,14 +422,16 @@ function LettersPageInner() {
                       {copied ? <CheckCircle size={14} className="text-sage-500" /> : <Copy size={14} />}
                       {copied ? "Copied!" : "Copy text"}
                     </button>
-                    <Button
-                      size="sm"
-                      onClick={saveToVault}
-                      loading={saving}
-                    >
-                      <Save size={14} />
-                      Save to vault
-                    </Button>
+                    {canEdit && (
+                      <Button
+                        size="sm"
+                        onClick={saveToVault}
+                        loading={saving}
+                      >
+                        <Save size={14} />
+                        Save to vault
+                      </Button>
+                    )}
                   </div>
                   <div className="px-5 py-4 whitespace-pre-wrap text-sm text-warmstone-800 leading-relaxed font-mono max-h-[500px] overflow-y-auto">
                     {generated.content}

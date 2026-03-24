@@ -6,6 +6,8 @@ import { calculateAge } from "@/lib/utils/dates";
 import { formatNHSNumber } from "@/lib/utils/formatting";
 import { PersonActions } from "./PersonActions";
 import { PersonTabs } from "./PersonTabs";
+import { RoleProvider } from "@/lib/context/role";
+import type { MemberRole } from "@/lib/types/database";
 
 type Props = {
   children: React.ReactNode;
@@ -19,12 +21,15 @@ export default async function PersonLayout({ children, params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: person }, { data: household }] = await Promise.all([
+  const [{ data: person }, { data: household }, { data: membership }] = await Promise.all([
     supabase.from("people").select("*").eq("id", personId).single(),
     supabase.from("households").select("name").eq("id", householdId).single(),
+    supabase.from("household_members").select("role").eq("household_id", householdId).eq("user_id", user.id).maybeSingle(),
   ]);
 
   if (!person || !household) notFound();
+
+  const role = (membership?.role ?? "viewer") as MemberRole;
 
   const age = calculateAge(person.date_of_birth);
   const baseUrl = `/household/${householdId}/people/${personId}`;
@@ -60,14 +65,16 @@ export default async function PersonLayout({ children, params }: Props) {
               {person.gp_surgery && <span>{person.gp_surgery}</span>}
             </div>
           </div>
-          <PersonActions householdId={householdId} personId={personId} person={person} />
+          <PersonActions householdId={householdId} personId={personId} person={person} canEdit={role === "owner" || role === "editor"} />
         </div>
 
         <PersonTabs baseUrl={baseUrl} />
       </div>
 
       <div className="px-4 md:px-8 pt-4 pb-8">
-        {children}
+        <RoleProvider role={role}>
+          {children}
+        </RoleProvider>
       </div>
     </div>
   );

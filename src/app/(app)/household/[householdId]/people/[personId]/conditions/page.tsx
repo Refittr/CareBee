@@ -17,6 +17,7 @@ import { truncateText } from "@/lib/utils/formatting";
 import { useAppToast } from "@/components/layout/AppShell";
 import { useAIAccess } from "@/lib/utils/access";
 import { UpgradeModal } from "@/components/ui/UpgradeModal";
+import { useCanEdit } from "@/lib/context/role";
 import { ScanModal } from "@/components/scan/ScanModal";
 import type { Condition } from "@/lib/types/database";
 
@@ -26,6 +27,7 @@ export default function ConditionsPage() {
   const supabase = createClient();
   const { addToast } = useAppToast();
   const { hasAccess } = useAIAccess();
+  const canEdit = useCanEdit();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
 
@@ -74,14 +76,16 @@ export default function ConditionsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-warmstone-900">Conditions</h2>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
-            <Sparkles size={16} /> Scan with AI
-          </Button>
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus size={16} /> Add
-          </Button>
-        </div>
+        {canEdit && (
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
+              <Sparkles size={16} /> Scan with AI
+            </Button>
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Plus size={16} /> Add
+            </Button>
+          </div>
+        )}
       </div>
 
       {conditions.length === 0 ? (
@@ -90,7 +94,7 @@ export default function ConditionsPage() {
           heading="No conditions recorded"
           description="Add your loved one's conditions and diagnoses so everything is in one place."
           ctaLabel="Add a condition"
-          onCta={() => setAddOpen(true)}
+          onCta={canEdit ? () => setAddOpen(true) : undefined}
         />
       ) : (
         <div className="flex flex-col gap-3">
@@ -118,22 +122,24 @@ export default function ConditionsPage() {
                       <p className="text-sm text-warmstone-600">{condition.current_status}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => setEditTarget(condition)}
-                      className="p-2 text-warmstone-400 hover:text-warmstone-800 transition-colors rounded min-h-[44px] min-w-[44px] flex items-center justify-center"
-                      aria-label="Edit"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => setDeleteTarget(condition)}
-                      className="p-2 text-warmstone-400 hover:text-error transition-colors rounded min-h-[44px] min-w-[44px] flex items-center justify-center"
-                      aria-label="Delete"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  {canEdit && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => setEditTarget(condition)}
+                        className="p-2 text-warmstone-400 hover:text-warmstone-800 transition-colors rounded min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        aria-label="Edit"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(condition)}
+                        className="p-2 text-warmstone-400 hover:text-error transition-colors rounded min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        aria-label="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 {condition.notes && (
                   <div>

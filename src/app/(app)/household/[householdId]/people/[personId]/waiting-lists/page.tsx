@@ -19,6 +19,7 @@ import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateUK } from "@/lib/utils/dates";
 import { useAIAccess } from "@/lib/utils/access";
 import { trackFeatureUsage } from "@/lib/utils/analytics";
+import { useCanEdit } from "@/lib/context/role";
 import { UpgradeModal } from "@/components/ui/UpgradeModal";
 import type { WaitingList, WaitStatus } from "@/lib/types/database";
 
@@ -61,6 +62,7 @@ export default function WaitingListsPage() {
   const { addToast } = useAppToast();
 
   const { hasAccess } = useAIAccess();
+  const canEdit = useCanEdit();
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const [entries, setEntries] = useState<WaitingList[]>([]);
@@ -251,10 +253,12 @@ export default function WaitingListsPage() {
               {estimating ? "Checking..." : "Check wait times"}
             </Button>
           )}
-          <Button onClick={openAdd} className="gap-2">
-            <Plus size={16} />
-            Add referral
-          </Button>
+          {canEdit && (
+            <Button onClick={openAdd} className="gap-2">
+              <Plus size={16} />
+              Add referral
+            </Button>
+          )}
         </div>
       </div>
 
@@ -367,18 +371,24 @@ export default function WaitingListsPage() {
                       <p className="text-sm text-warmstone-600"><span className="font-medium">Expected wait from letter:</span> {entry.expected_wait}</p>
                     )}
                     <div className="flex gap-2 flex-wrap mt-1">
-                      <Button size="sm" variant="secondary" onClick={() => openEdit(entry)} className="gap-1.5">
-                        <Pencil size={14} /> Edit
-                      </Button>
-                      <Button size="sm" variant="secondary" onClick={() => markAsSeen(entry)} className="gap-1.5">
-                        <CheckCircle size={14} /> Mark as seen
-                      </Button>
+                      {canEdit && (
+                        <Button size="sm" variant="secondary" onClick={() => openEdit(entry)} className="gap-1.5">
+                          <Pencil size={14} /> Edit
+                        </Button>
+                      )}
+                      {canEdit && (
+                        <Button size="sm" variant="secondary" onClick={() => markAsSeen(entry)} className="gap-1.5">
+                          <CheckCircle size={14} /> Mark as seen
+                        </Button>
+                      )}
                       <Button size="sm" variant="secondary" onClick={() => goToChase(entry)} className="gap-1.5">
                         <Mail size={14} /> Chase letter
                       </Button>
-                      <Button size="sm" variant="secondary" onClick={() => setDeleteTarget(entry)} className="gap-1.5 text-red-600 hover:text-red-700">
-                        <Trash2 size={14} /> Remove
-                      </Button>
+                      {canEdit && (
+                        <Button size="sm" variant="secondary" onClick={() => setDeleteTarget(entry)} className="gap-1.5 text-red-600 hover:text-red-700">
+                          <Trash2 size={14} /> Remove
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -408,12 +418,14 @@ export default function WaitingListsPage() {
                       Referred {formatDateUK(entry.referral_date)} · {entry.status === "seen" ? "Seen" : entry.status === "cancelled" ? "Cancelled" : "Appointment received"}
                     </p>
                   </div>
-                  <button
-                    onClick={() => setDeleteTarget(entry)}
-                    className="p-1.5 text-warmstone-400 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={() => setDeleteTarget(entry)}
+                      className="p-1.5 text-warmstone-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </Card>
               ))}
             </div>

@@ -12,19 +12,22 @@ interface PersonActionsProps {
   householdId: string;
   personId: string;
   person: Person;
+  canEdit?: boolean;
 }
 
-export function PersonActions({ householdId, personId, person }: PersonActionsProps) {
+export function PersonActions({ householdId, personId, person, canEdit = false }: PersonActionsProps) {
   const [qrOpen, setQrOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
   return (
     <>
       <div className="flex items-center gap-2 shrink-0">
-        <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
-          <Pencil size={16} />
-          <span className="hidden sm:inline">Edit</span>
-        </Button>
+        {canEdit && (
+          <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil size={16} />
+            <span className="hidden sm:inline">Edit</span>
+          </Button>
+        )}
         <Button variant="secondary" size="sm" onClick={() => setQrOpen(true)}>
           <QrCode size={16} />
           <span className="hidden sm:inline">Emergency QR</span>

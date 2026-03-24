@@ -16,12 +16,15 @@ import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateUK } from "@/lib/utils/dates";
 import { formatDocumentType } from "@/lib/utils/formatting";
 import type { Document, DocumentType } from "@/lib/types/database";
+import { useCanEdit } from "@/lib/context/role";
 
 export default function DocumentsPage() {
   const params = useParams<{ householdId: string; personId: string }>();
   const { householdId, personId } = params;
   const supabase = createClient();
   const { addToast } = useAppToast();
+
+  const canEdit = useCanEdit();
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,28 +74,30 @@ export default function DocumentsPage() {
     <div className="flex flex-col gap-4">
       <h2 className="font-bold text-warmstone-900">Documents</h2>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button
-          onClick={() => setScanOpen(true)}
-          className="flex-1 flex items-start gap-3 bg-honey-400 hover:bg-honey-500 text-warmstone-white rounded-xl p-4 transition-colors text-left"
-        >
-          <Sparkles size={20} className="shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold text-sm">Scan document with AI</p>
-            <p className="text-xs text-honey-100 mt-0.5">Our AI reads your document and adds the details to your record automatically</p>
-          </div>
-        </button>
-        <button
-          onClick={() => setUploadOpen(true)}
-          className="flex-1 flex items-start gap-3 border border-warmstone-200 hover:bg-warmstone-100 text-warmstone-800 rounded-xl p-4 transition-colors text-left"
-        >
-          <Upload size={20} className="shrink-0 mt-0.5 text-warmstone-500" />
-          <div>
-            <p className="font-bold text-sm">Upload without scanning</p>
-            <p className="text-xs text-warmstone-500 mt-0.5">Just store the file. Nothing will be added to your record.</p>
-          </div>
-        </button>
-      </div>
+      {canEdit && (
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={() => setScanOpen(true)}
+            className="flex-1 flex items-start gap-3 bg-honey-400 hover:bg-honey-500 text-warmstone-white rounded-xl p-4 transition-colors text-left"
+          >
+            <Sparkles size={20} className="shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-sm">Scan document with AI</p>
+              <p className="text-xs text-honey-100 mt-0.5">Our AI reads your document and adds the details to your record automatically</p>
+            </div>
+          </button>
+          <button
+            onClick={() => setUploadOpen(true)}
+            className="flex-1 flex items-start gap-3 border border-warmstone-200 hover:bg-warmstone-100 text-warmstone-800 rounded-xl p-4 transition-colors text-left"
+          >
+            <Upload size={20} className="shrink-0 mt-0.5 text-warmstone-500" />
+            <div>
+              <p className="font-bold text-sm">Upload without scanning</p>
+              <p className="text-xs text-warmstone-500 mt-0.5">Just store the file. Nothing will be added to your record.</p>
+            </div>
+          </button>
+        </div>
+      )}
 
       {documents.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center py-12 px-6 gap-4">
@@ -103,16 +108,20 @@ export default function DocumentsPage() {
               Photograph or upload a letter, prescription, or test result. Our AI will read it and add the details to your record for you.
             </p>
           </div>
-          <Button onClick={() => setScanOpen(true)} className="mt-1 gap-2">
-            <Sparkles size={16} />
-            Scan your first document
-          </Button>
-          <button
-            onClick={() => setUploadOpen(true)}
-            className="text-sm text-warmstone-500 hover:text-warmstone-800 transition-colors"
-          >
-            Or just upload a file without scanning
-          </button>
+          {canEdit && (
+            <>
+              <Button onClick={() => setScanOpen(true)} className="mt-1 gap-2">
+                <Sparkles size={16} />
+                Scan your first document
+              </Button>
+              <button
+                onClick={() => setUploadOpen(true)}
+                className="text-sm text-warmstone-500 hover:text-warmstone-800 transition-colors"
+              >
+                Or just upload a file without scanning
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -134,12 +143,14 @@ export default function DocumentsPage() {
                   <Badge variant="neutral">{formatDocumentType(doc.document_type as DocumentType)}</Badge>
                   {doc.document_date && <p className="text-xs text-warmstone-400 mt-1">{formatDateUK(doc.document_date)}</p>}
                   {doc.description && <p className="text-xs text-warmstone-600 mt-1 truncate">{doc.description}</p>}
-                  <button
-                    onClick={() => setDeleteTarget(doc)}
-                    className="mt-2 text-xs text-error hover:underline flex items-center gap-1 min-h-[44px]"
-                  >
-                    <Trash2 size={12} /> Remove
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={() => setDeleteTarget(doc)}
+                      className="mt-2 text-xs text-error hover:underline flex items-center gap-1 min-h-[44px]"
+                    >
+                      <Trash2 size={12} /> Remove
+                    </button>
+                  )}
                 </div>
               </Card>
             );

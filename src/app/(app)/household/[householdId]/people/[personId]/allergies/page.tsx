@@ -15,6 +15,7 @@ import { AllergyForm } from "@/components/forms/AllergyForm";
 import { useAppToast } from "@/components/layout/AppShell";
 import { useAIAccess } from "@/lib/utils/access";
 import { UpgradeModal } from "@/components/ui/UpgradeModal";
+import { useCanEdit } from "@/lib/context/role";
 import { ScanModal } from "@/components/scan/ScanModal";
 import type { Allergy } from "@/lib/types/database";
 
@@ -31,6 +32,7 @@ export default function AllergiesPage() {
   const supabase = createClient();
   const { addToast } = useAppToast();
   const { hasAccess } = useAIAccess();
+  const canEdit = useCanEdit();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
 
@@ -68,14 +70,16 @@ export default function AllergiesPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-warmstone-900">Allergies</h2>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
-            <Sparkles size={16} /> Scan with AI
-          </Button>
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus size={16} /> Add
-          </Button>
-        </div>
+        {canEdit && (
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
+              <Sparkles size={16} /> Scan with AI
+            </Button>
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Plus size={16} /> Add
+            </Button>
+          </div>
+        )}
       </div>
 
       {allergies.length === 0 ? (
@@ -84,7 +88,7 @@ export default function AllergiesPage() {
           heading="No known allergies"
           description="That is good news. If anything changes, add it here so it shows on the emergency summary."
           ctaLabel="Add an allergy"
-          onCta={() => setAddOpen(true)}
+          onCta={canEdit ? () => setAddOpen(true) : undefined}
           iconColor="text-sage-400"
         />
       ) : (
@@ -102,10 +106,12 @@ export default function AllergiesPage() {
                   {allergy.reaction && <p className="text-sm text-warmstone-600">Reaction: {allergy.reaction}</p>}
                   {allergy.notes && <p className="text-sm text-warmstone-400 mt-1">{allergy.notes}</p>}
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => setEditTarget(allergy)} className="p-2 text-warmstone-400 hover:text-warmstone-800 transition-colors rounded min-h-[44px] min-w-[44px] flex items-center justify-center"><Pencil size={16} /></button>
-                  <button onClick={() => setDeleteTarget(allergy)} className="p-2 text-warmstone-400 hover:text-error transition-colors rounded min-h-[44px] min-w-[44px] flex items-center justify-center"><Trash2 size={16} /></button>
-                </div>
+                {canEdit && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => setEditTarget(allergy)} className="p-2 text-warmstone-400 hover:text-warmstone-800 transition-colors rounded min-h-[44px] min-w-[44px] flex items-center justify-center"><Pencil size={16} /></button>
+                    <button onClick={() => setDeleteTarget(allergy)} className="p-2 text-warmstone-400 hover:text-error transition-colors rounded min-h-[44px] min-w-[44px] flex items-center justify-center"><Trash2 size={16} /></button>
+                  </div>
+                )}
               </div>
             </Card>
           ))}
