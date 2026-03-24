@@ -142,7 +142,7 @@ export default async function LandingPage() {
       <section id="features" className="px-4 md:px-8 py-20 bg-warmstone-white">
         <div className="max-w-6xl mx-auto">
           <h2 className="font-display text-3xl md:text-4xl text-warmstone-900 text-center mb-4">
-            Everything in one place. For the whole family.
+            Everything in one place. For the whole village.
           </h2>
           <p className="text-warmstone-600 text-center max-w-2xl mx-auto mb-12">
             CareBee brings together the things carers and families actually need, built around
@@ -343,7 +343,8 @@ export default async function LandingPage() {
                 interaction checking cost us money every time they run. We have priced it as low as
                 we can at <span className="font-semibold text-warmstone-800">£4.99 a month</span>.
                 We know the people who need CareBee most are often the ones with the least to spare,
-                and we never want cost to be a barrier.
+                and we never want cost to be a barrier. We have a number of free Plus licenses to give 
+                away each month, please get in touch using the contact at the bottom of this page.
               </p>
             </div>
           </div>
@@ -368,6 +369,7 @@ export default async function LandingPage() {
           </Link>
           <p className="text-sm text-warmstone-400 mt-4">
             Free for 30 days. Then £4.99/month or £44.99/year.
+            Contact us for enterprise and whitelabel options.
           </p>
         </div>
       </section>

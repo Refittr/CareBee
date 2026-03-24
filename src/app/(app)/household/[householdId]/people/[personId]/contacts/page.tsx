@@ -333,7 +333,7 @@ export default function ContactsPage() {
         <EmptyState
           icon={BookUser}
           heading="No contacts added yet"
-          description={`Add the key people involved in ${personName ? `${personName.split(" ")[0]}'s` : "their"} care so everyone in the family knows who to call.`}
+          description={`Add the key people involved in ${personName ? `${personName.split(" ")[0]}'s` : "their"} care so everyone in the care circle knows who to call.`}
           ctaLabel="Add a contact"
           onCta={canEdit ? openAdd : undefined}
         />
@@ -414,7 +414,7 @@ export default function ContactsPage() {
       {/* Family members */}
       {family.length > 0 && (
         <div>
-          <h3 className="font-bold text-warmstone-800 text-sm uppercase tracking-wide mb-3">Family and Household</h3>
+          <h3 className="font-bold text-warmstone-800 text-sm uppercase tracking-wide mb-3">Family, Household and Care Circle</h3>
           <div className="flex flex-col gap-2">
             {family.map((m) => (
               <Card key={m.id} className="p-4">

@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { trackApiCall } from "@/lib/analytics-server";
 
-const SYSTEM_PROMPT = `You are analysing an appointment debrief for CareBee, a UK family health and care record app. The family member has recorded what happened at a medical appointment. Your job is to identify missing information and suggest specific updates to the person's health record.
+const SYSTEM_PROMPT = `You are analysing an appointment debrief for CareBee, a UK family/carer health and care record app. The family member has recorded what happened at a medical appointment. Your job is to identify missing information and suggest specific updates to the person's health record.
 
 RULES:
 - Only suggest updates for things clearly mentioned in the debrief. Do not infer or speculate.

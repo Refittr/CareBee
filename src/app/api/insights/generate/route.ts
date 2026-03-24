@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
   // Check premium access
   const { data: profile } = await svc
     .from("profiles")
-    .select("account_type")
+    .select("account_type, plan, trial_ends_at, is_subscribed")
     .eq("id", user.id)
     .maybeSingle();
 

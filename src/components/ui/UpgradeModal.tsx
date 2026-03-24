@@ -28,7 +28,7 @@ export function UpgradeModal({ open, onClose }: UpgradeModalProps) {
 
         <div className="text-center">
           <p className="text-sm text-warmstone-600 leading-relaxed">
-            CareBee&apos;s AI features help you stay on top of complex care — spotting risks, flagging gaps, and saving hours of research.
+            CareBee&apos;s AI features help you stay on top of complex care - spotting risks, flagging gaps, and saving hours of research.
           </p>
         </div>
 

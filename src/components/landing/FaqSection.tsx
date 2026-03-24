@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     q: "What happens after my 30 day trial?",
-    a: "You keep your account and all your data. You are automatically moved to the free tier, which includes a basic record for one person with up to 2 family members. You can upgrade to CareBee Plus at any time to get the AI features back.",
+    a: "You keep your account and all your data. You are automatically moved to the free tier, which includes a basic record for one person with up to 2 family members/other carers. You can upgrade to CareBee Plus at any time to get the AI features back.",
   },
   {
     q: "Can I use it for more than one person?",

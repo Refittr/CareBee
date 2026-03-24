@@ -1,7 +1,7 @@
 {
   "name": "CareBee",
   "short_name": "CareBee",
-  "description": "Your family's health and care record",
+  "description": "Your AI powered health and care record",
   "theme_color": "#E8A817",
   "background_color": "#FEFCFA",
   "display": "standalone",

@@ -22,14 +22,16 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (!existing) {
+        const trialStartedAt = new Date().toISOString();
         const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         await svc.from("profiles").insert({
           id: data.user.id,
           email: data.user.email ?? "",
-          full_name: data.user.user_metadata?.full_name ?? null,
+          full_name: data.user.user_metadata?.full_name ?? data.user.user_metadata?.name ?? null,
           account_type: "standard",
-          plan: "free",
+          plan: "family",
           is_subscribed: false,
+          trial_started_at: trialStartedAt,
           trial_ends_at: trialEndsAt,
         });
       }
