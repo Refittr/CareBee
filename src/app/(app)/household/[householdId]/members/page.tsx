@@ -54,7 +54,7 @@ export default async function MembersPage({ params }: Props) {
   if (!household) notFound();
 
   // Fetch profiles separately so we don't depend on PostgREST FK inference
-  const userIds = (rawMembers ?? []).map((m) => m.user_id as string);
+  const userIds = (rawMembers ?? []).map((m) => m.user_id as string).filter(Boolean);
   const { data: profileRows } = userIds.length
     ? await svcEarly.from("profiles").select("id, full_name, email, avatar_url").in("id", userIds)
     : { data: [] };

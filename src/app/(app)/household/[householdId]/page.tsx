@@ -1,14 +1,14 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { Plus, AlertTriangle, Users } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { Plus, AlertTriangle, Calendar } from "lucide-react";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Badge } from "@/components/ui/Badge";
 import { getInitials } from "@/lib/utils/formatting";
 import { calculateAge } from "@/lib/utils/dates";
 import type { Metadata } from "next";
-import type { Person, HouseholdMember } from "@/lib/types/database";
+import type { Person } from "@/lib/types/database";
 
 type Props = { params: Promise<{ householdId: string }> };
 
@@ -32,18 +32,39 @@ export default async function HouseholdPage({ params }: Props) {
     .single();
   if (!household) notFound();
 
-  const [{ data: people }, { data: members }, { data: conditions }, { data: medications }, { data: allergies }, { data: interactions }] =
+  const svc = await createServiceClient();
+
+  const now = new Date().toISOString();
+
+  const [{ data: people }, { data: rawMembers }, { data: conditions }, { data: medications }, { data: allergies }, { data: interactions }, { data: upcomingAppointments }] =
     await Promise.all([
       supabase.from("people").select("*").eq("household_id", householdId),
-      supabase
-        .from("household_members")
-        .select("*, profiles(full_name, email, avatar_url)")
-        .eq("household_id", householdId),
+      svc.from("household_members").select("*").eq("household_id", householdId),
       supabase.from("conditions").select("person_id, is_active").eq("household_id", householdId).eq("is_active", true),
       supabase.from("medications").select("person_id, is_active").eq("household_id", householdId).eq("is_active", true),
       supabase.from("allergies").select("person_id").eq("household_id", householdId),
       supabase.from("drug_interactions").select("person_id, severity").eq("household_id", householdId).eq("status", "active"),
+      supabase
+        .from("appointments")
+        .select("id, person_id, title, appointment_date, location, department, professional_name")
+        .eq("household_id", householdId)
+        .eq("status", "upcoming")
+        .gte("appointment_date", now)
+        .order("appointment_date", { ascending: true })
+        .limit(10),
     ]);
+
+  const memberUserIds = (rawMembers ?? []).map((m) => m.user_id as string).filter(Boolean);
+  const { data: memberProfiles } = memberUserIds.length
+    ? await svc.from("profiles").select("id, full_name, email, avatar_url").in("id", memberUserIds)
+    : { data: [] };
+  const profileMap = new Map((memberProfiles ?? []).map((p) => [p.id, p]));
+  const members = (rawMembers ?? []).map((m) => ({
+    ...m,
+    profiles: profileMap.get(m.user_id as string) ?? null,
+  }));
+
+  const peopleMap = new Map((people ?? []).map((p) => [p.id, p]));
 
   function getPersonStats(personId: string) {
     const personInteractions = interactions?.filter((i) => i.person_id === personId) ?? [];
@@ -69,6 +90,62 @@ export default async function HouseholdPage({ params }: Props) {
         ]}
       />
       <h1 className="text-2xl font-bold text-warmstone-900 mb-6 hidden md:block">{household.name}</h1>
+
+      {upcomingAppointments && upcomingAppointments.length > 0 && (
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-warmstone-900">Upcoming appointments</h2>
+            <span className="text-xs text-warmstone-400">{upcomingAppointments.length} scheduled</span>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap">
+            {upcomingAppointments.map((appt, i) => {
+              const person = peopleMap.get(appt.person_id);
+              const d = new Date(appt.appointment_date);
+              const day = d.toLocaleDateString("en-GB", { day: "numeric" });
+              const month = d.toLocaleDateString("en-GB", { month: "short" });
+              const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+              const isToday = d.toDateString() === new Date().toDateString();
+              const isTomorrow = d.toDateString() === new Date(Date.now() + 86400000).toDateString();
+              const dayLabel = isToday ? "Today" : isTomorrow ? "Tomorrow" : null;
+
+              const palette = [
+                { card: "bg-honey-50 border-honey-200 hover:border-honey-300", dateBg: "bg-honey-400", dateText: "text-warmstone-white", meta: "text-honey-700" },
+                { card: "bg-sage-50 border-sage-200 hover:border-sage-300", dateBg: "bg-sage-500", dateText: "text-warmstone-white", meta: "text-sage-700" },
+                { card: "bg-blue-50 border-blue-200 hover:border-blue-300", dateBg: "bg-blue-500", dateText: "text-white", meta: "text-blue-700" },
+                { card: "bg-rose-50 border-rose-200 hover:border-rose-300", dateBg: "bg-rose-400", dateText: "text-white", meta: "text-rose-700" },
+              ] as const;
+              const colors = isToday
+                ? { card: "bg-honey-400 border-honey-500 hover:border-honey-600", dateBg: "bg-honey-600", dateText: "text-warmstone-white", meta: "text-honey-100" }
+                : palette[i % palette.length];
+
+              return (
+                <Link
+                  key={appt.id}
+                  href={`/household/${householdId}/people/${appt.person_id}/appointments`}
+                  className={`flex-none w-[148px] border rounded-xl overflow-hidden hover:shadow-md transition-all flex flex-col ${colors.card}`}
+                >
+                  <div className={`${colors.dateBg} px-3 py-2.5 flex items-center justify-between gap-2`}>
+                    <span className={`text-lg font-black leading-none ${colors.dateText}`}>{day}</span>
+                    <span className={`text-xs font-bold uppercase tracking-wide ${colors.dateText} opacity-80`}>{month}</span>
+                  </div>
+                  <div className="px-3 py-2.5 flex flex-col gap-1 min-w-0">
+                    <p className={`text-[11px] font-bold ${colors.meta}`}>
+                      {dayLabel ? `${dayLabel} · ${time}` : time}
+                    </p>
+                    <p className={`text-sm font-bold leading-snug line-clamp-2 ${isToday ? "text-warmstone-white" : "text-warmstone-900"}`}>{appt.title}</p>
+                    {person && (
+                      <p className={`text-xs truncate ${isToday ? "text-honey-100" : "text-warmstone-500"}`}>{person.first_name}</p>
+                    )}
+                    {(appt.department || appt.location) && (
+                      <p className={`text-xs truncate ${isToday ? "text-honey-100" : "text-warmstone-400"}`}>{appt.department ?? appt.location}</p>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="mb-8">
         <div className="flex items-center justify-between mb-4">

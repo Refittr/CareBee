@@ -28,7 +28,7 @@ export default async function PersonOverviewPage({ params }: Props) {
       supabase.from("conditions").select("name, is_active").eq("person_id", personId).order("created_at"),
       supabase.from("medications").select("name, dosage, is_active").eq("person_id", personId).order("created_at"),
       supabase.from("allergies").select("name").eq("person_id", personId),
-      supabase.from("appointments").select("title, appointment_date, location, status").eq("person_id", personId).order("appointment_date"),
+      supabase.from("appointments").select("id, title, appointment_date, location, department, status").eq("person_id", personId).eq("status", "upcoming").gte("appointment_date", new Date().toISOString()).order("appointment_date", { ascending: true }).limit(5),
       supabase.from("test_results").select("test_name, result_value, result_date, is_abnormal").eq("person_id", personId).order("result_date", { ascending: false, nullsFirst: false }).limit(3),
       supabase.from("documents").select("id", { count: "exact" }).eq("person_id", personId),
       supabase.from("health_insights").select("title, priority").eq("person_id", personId).eq("status", "active").order("created_at", { ascending: false }).limit(5),
@@ -39,7 +39,7 @@ export default async function PersonOverviewPage({ params }: Props) {
   const baseUrl = `/household/${householdId}/people/${personId}`;
   const activeConditions = conditions?.filter((c) => c.is_active) ?? [];
   const activeMedications = medications?.filter((m) => m.is_active) ?? [];
-  const nextAppointment = appointments?.find((a) => a.status === "upcoming");
+  const upcomingAppts = appointments ?? [];
 
   return (
     <div className="flex flex-col gap-4">
@@ -112,14 +112,33 @@ export default async function PersonOverviewPage({ params }: Props) {
             <Calendar size={18} className="text-honey-600" />
             <h2 className="font-bold text-warmstone-900">Appointments</h2>
           </div>
-          {nextAppointment ? (
-            <>
-              <p className="text-sm font-bold text-warmstone-900 truncate">{nextAppointment.title}</p>
-              <p className="text-sm text-warmstone-600">{formatDateTime(nextAppointment.appointment_date)}</p>
-              {nextAppointment.location && (
-                <p className="text-sm text-warmstone-400 truncate">{nextAppointment.location}</p>
-              )}
-            </>
+          {upcomingAppts.length > 0 ? (
+            <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
+              {upcomingAppts.map((appt, i) => {
+                const d = new Date(appt.appointment_date);
+                const day = d.toLocaleDateString("en-GB", { day: "numeric" });
+                const month = d.toLocaleDateString("en-GB", { month: "short" });
+                const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+                const isToday = d.toDateString() === new Date().toDateString();
+                const palette = ["bg-honey-400", "bg-sage-500", "bg-blue-500", "bg-rose-400"] as const;
+                const headerBg = isToday ? "bg-honey-600" : palette[i % palette.length];
+                return (
+                  <div key={appt.id} className="flex-none w-[110px] rounded-lg overflow-hidden border border-warmstone-100 flex flex-col">
+                    <div className={`${headerBg} px-2 py-1.5 flex items-center justify-between`}>
+                      <span className="text-base font-black text-white leading-none">{day}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-white opacity-80">{month}</span>
+                    </div>
+                    <div className="px-2 py-2 flex flex-col gap-0.5">
+                      <p className="text-[10px] font-semibold text-warmstone-400">{time}</p>
+                      <p className="text-xs font-bold text-warmstone-900 leading-snug line-clamp-2">{appt.title}</p>
+                      {(appt.department || appt.location) && (
+                        <p className="text-[10px] text-warmstone-400 truncate">{appt.department ?? appt.location}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <p className="text-sm text-warmstone-400">No upcoming appointments</p>
           )}
