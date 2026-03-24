@@ -545,6 +545,141 @@ export type Database = {
         Update: Row & Partial<Omit<WaitingList, "id" | "created_at">>;
         Relationships: never[];
       };
+      api_usage_log: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          household_id: string | null;
+          feature: string;
+          action: string;
+          status: string;
+          error_message: string | null;
+          tokens_used: number | null;
+          duration_ms: number | null;
+          metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          household_id?: string | null;
+          feature: string;
+          action: string;
+          status?: string;
+          error_message?: string | null;
+          tokens_used?: number | null;
+          duration_ms?: number | null;
+          metadata?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          household_id?: string | null;
+          feature?: string;
+          action?: string;
+          status?: string;
+          error_message?: string | null;
+          tokens_used?: number | null;
+          duration_ms?: number | null;
+          metadata?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Relationships: never[];
+      };
+      page_view_log: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          path: string;
+          referrer_path: string | null;
+          session_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          path: string;
+          referrer_path?: string | null;
+          session_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          path?: string;
+          referrer_path?: string | null;
+          session_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: never[];
+      };
+      feature_usage_log: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          feature: string;
+          action: string;
+          entity_type: string | null;
+          entity_id: string | null;
+          metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          feature: string;
+          action: string;
+          entity_type?: string | null;
+          entity_id?: string | null;
+          metadata?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          feature?: string;
+          action?: string;
+          entity_type?: string | null;
+          entity_id?: string | null;
+          metadata?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Relationships: never[];
+      };
+      error_log: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          error_type: string;
+          error_message: string;
+          stack_trace: string | null;
+          path: string | null;
+          metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          error_type: string;
+          error_message: string;
+          stack_trace?: string | null;
+          path?: string | null;
+          metadata?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          error_type?: string;
+          error_message?: string;
+          stack_trace?: string | null;
+          path?: string | null;
+          metadata?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Relationships: never[];
+      };
     };
     Views: Record<string, never>;
     Functions: {
