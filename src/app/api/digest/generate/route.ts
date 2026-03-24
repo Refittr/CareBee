@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 
 // Secured endpoint: callable by Vercel Cron (CRON_SECRET header) or admin users.
-// Email sending: set RESEND_API_KEY environment variable to enable.
+// Email sending: set BREVO_API_KEY environment variable to enable.
 // If not configured, digest content is generated but not sent.
 
 const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -136,22 +136,30 @@ function buildEmailText(personSections: string[], dateRange: string): string {
 }
 
 async function sendEmail(to: string, subject: string, html: string, text: string): Promise<void> {
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) {
-    console.log(`[digest] Email not sent (no RESEND_API_KEY). Would send to: ${to}`);
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) {
+    console.log(`[digest] Email not sent (no BREVO_API_KEY). Would send to: ${to}`);
     return;
   }
 
-  const from = process.env.DIGEST_FROM_EMAIL ?? "CareBee <updates@carebee.co.uk>";
-  const res = await fetch("https://api.resend.com/emails", {
+  const fromEmail = process.env.FROM_EMAIL ?? "updates@carebee.co.uk";
+  const fromName = process.env.FROM_NAME ?? "CareBee";
+
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
-    headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to, subject, html, text }),
+    headers: { "api-key": apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+      textContent: text,
+    }),
   });
 
   if (!res.ok) {
     const body = await res.text();
-    console.error(`[digest] Resend error: ${body}`);
+    console.error(`[digest] Brevo error: ${body}`);
   }
 }
 

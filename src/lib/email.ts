@@ -1,8 +1,43 @@
-import { Resend } from "resend";
+async function sendEmail({
+  to,
+  subject,
+  html,
+  text,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+}): Promise<void> {
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) {
+    console.log(`[email] BREVO_API_KEY not set. Would send to: ${to} — ${subject}`);
+    return;
+  }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+  const fromEmail = process.env.FROM_EMAIL ?? "noreply@carebee.co.uk";
+  const fromName = process.env.FROM_NAME ?? "CareBee";
 
-const FROM = "CareBee <onboarding@resend.dev>";
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+      ...(text ? { textContent: text } : {}),
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Brevo error: ${body}`);
+  }
+}
 
 export async function sendInviteEmail({
   to,
@@ -23,8 +58,7 @@ export async function sendInviteEmail({
     : role === "emergency_only" ? "Emergency only (can view emergency summaries)"
     : role;
 
-  const { error } = await resend.emails.send({
-    from: FROM,
+  await sendEmail({
     to,
     subject: `You've been invited to join ${householdName} on CareBee`,
     html: `
@@ -38,7 +72,7 @@ export async function sendInviteEmail({
         <!-- Logo -->
         <tr><td style="padding-bottom:24px;text-align:center;">
           <span style="font-size:24px;font-weight:800;letter-spacing:-0.5px;">
-            <span style="color:#1c1917;">Care</span><span style="color:#f59e0b;">Bee</span>
+            <span style="color:#1c1917;">Care</span><span style="color:#E8A817;">Bee</span>
           </span>
         </td></tr>
         <!-- Card -->
@@ -47,7 +81,7 @@ export async function sendInviteEmail({
             You've been invited to join ${householdName}
           </h1>
           <p style="margin:0 0 24px;font-size:15px;color:#78716c;line-height:1.6;">
-            <strong style="color:#1c1917;">${inviterName}</strong> has invited you to join their household on CareBee — a private, secure place to keep care records for the people you love.
+            <strong style="color:#1c1917;">${inviterName}</strong> has invited you to join their household on CareBee, a private, secure place to keep care records for the people you love.
           </p>
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafaf9;border:1px solid #e7e4df;border-radius:8px;padding:16px;margin-bottom:24px;">
             <tr>
@@ -61,14 +95,14 @@ export async function sendInviteEmail({
           </table>
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="center">
-              <a href="${inviteLink}" style="display:inline-block;background:#f59e0b;color:#fff;font-weight:700;font-size:16px;text-decoration:none;padding:14px 32px;border-radius:8px;letter-spacing:-0.2px;">
+              <a href="${inviteLink}" style="display:inline-block;background:#E8A817;color:#fff;font-weight:700;font-size:16px;text-decoration:none;padding:14px 32px;border-radius:8px;letter-spacing:-0.2px;">
                 Accept invitation
               </a>
             </td></tr>
           </table>
           <p style="margin:24px 0 0;font-size:12px;color:#a8a29e;text-align:center;line-height:1.6;">
-            This link expires in 7 days. If you weren't expecting this invitation, you can ignore this email.<br>
-            If the button doesn't work, copy this link: <a href="${inviteLink}" style="color:#a8a29e;">${inviteLink}</a>
+            This link expires in 7 days. If you were not expecting this invitation, you can ignore this email.<br>
+            If the button does not work, copy this link: <a href="${inviteLink}" style="color:#a8a29e;">${inviteLink}</a>
           </p>
         </td></tr>
       </table>
@@ -78,6 +112,4 @@ export async function sendInviteEmail({
 </html>
     `.trim(),
   });
-
-  if (error) throw new Error(error.message);
 }
