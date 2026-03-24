@@ -110,6 +110,14 @@ export interface Entitlement {
 
 export type WaitStatus = "within_range" | "approaching_limit" | "overdue" | "significantly_overdue";
 
+export interface DigestLog {
+  id: string;
+  user_id: string;
+  subject: string;
+  content_text: string;
+  created_at: string;
+}
+
 export interface AppointmentPrep {
   id: string;
   appointment_id: string;
@@ -519,6 +527,12 @@ export type Database = {
         Row: Row & AppointmentDebrief;
         Insert: Row & OptionalNullables<Omit<AppointmentDebrief, "id" | "created_at" | "updated_at" | "status" | "suggested_updates">> & { status?: "draft" | "complete"; suggested_updates?: Record<string, unknown>[] };
         Update: Row & Partial<Omit<AppointmentDebrief, "id" | "created_at">>;
+        Relationships: never[];
+      };
+      digest_logs: {
+        Row: Row & DigestLog;
+        Insert: Row & Omit<DigestLog, "id" | "created_at">;
+        Update: Row & Partial<Omit<DigestLog, "id" | "created_at">>;
         Relationships: never[];
       };
       waiting_lists: {

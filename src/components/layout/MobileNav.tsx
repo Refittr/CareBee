@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Shield, BookOpen, Settings } from "lucide-react";
+import { Home, Shield, BookOpen, Settings, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/dashboard", label: "Care records", icon: Home },
   { href: "/letters-vault", label: "Letters vault", icon: BookOpen },
+  { href: "/updates", label: "Updates", icon: Mail },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

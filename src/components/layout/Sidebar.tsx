@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LogOut, Shield, BookOpen, Settings } from "lucide-react";
+import { Home, LogOut, Shield, BookOpen, Settings, Mail } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 const navItems = [
   { href: "/dashboard", label: "Care records", icon: Home },
   { href: "/letters-vault", label: "Letters vault", icon: BookOpen },
+  { href: "/updates", label: "Weekly updates", icon: Mail },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

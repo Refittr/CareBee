@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Bell, BellOff, CheckCircle } from "lucide-react";
+import { Bell, BellOff, CheckCircle, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -205,6 +206,14 @@ export default function SettingsPage() {
         <p className="text-xs text-warmstone-400">
           Weekly updates include a summary of new appointments, medication changes, test results, waiting list updates, and entitlement changes from the past 7 days. This is not medical advice.
         </p>
+
+        <Link
+          href="/updates"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-honey-600 hover:text-honey-800 transition-colors"
+        >
+          View past updates and generate a preview
+          <ArrowRight size={14} />
+        </Link>
       </section>
     </div>
   );
