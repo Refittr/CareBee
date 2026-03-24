@@ -1,47 +1,284 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Mail, RefreshCw, ChevronDown, ChevronUp, Clock } from "lucide-react";
+import {
+  Mail, RefreshCw, ChevronDown, ChevronUp, Clock, Copy, Check,
+  Download, Share2, Pill, Calendar, FlaskConical, Sparkles,
+  AlertTriangle, FileText, Clock3, Gift, User,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { useAppToast } from "@/components/layout/AppShell";
 import type { DigestLog } from "@/lib/types/database";
 
-function formatDate(iso: string) {
+function formatDateShort(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function formatDateLong(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
     day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
 }
 
+// Parse the label of a change line to pick an icon + colour
+function lineIcon(line: string): { icon: React.ReactNode; color: string } {
+  const l = line.toLowerCase();
+  if (l.startsWith("medications added") || l.startsWith("medications stopped"))
+    return { icon: <Pill size={13} />, color: "text-sage-600" };
+  if (l.startsWith("upcoming appointments") || l.startsWith("appointments attended"))
+    return { icon: <Calendar size={13} />, color: "text-honey-600" };
+  if (l.startsWith("new test results"))
+    return { icon: <FlaskConical size={13} />, color: "text-info" };
+  if (l.startsWith("new health insights"))
+    return { icon: <Sparkles size={13} />, color: "text-honey-600" };
+  if (l.startsWith("drug interactions"))
+    return { icon: <AlertTriangle size={13} />, color: "text-error" };
+  if (l.startsWith("waiting list"))
+    return { icon: <Clock3 size={13} />, color: "text-warmstone-500" };
+  if (l.startsWith("entitlement"))
+    return { icon: <Gift size={13} />, color: "text-sage-600" };
+  if (l.startsWith("documents"))
+    return { icon: <FileText size={13} />, color: "text-warmstone-500" };
+  if (l.startsWith("new conditions"))
+    return { icon: <User size={13} />, color: "text-error" };
+  return { icon: null, color: "text-warmstone-600" };
+}
+
+interface ParsedSection {
+  type: "household" | "person";
+  label: string;
+  lines: string[];
+}
+
+function parseContent(text: string): { dateRange: string; sections: ParsedSection[] } {
+  const allLines = text.split("\n");
+  // First line is "CareBee weekly update: <dateRange>"
+  const headerLine = allLines[0] ?? "";
+  const dateRange = headerLine.replace(/^CareBee weekly update:\s*/i, "").trim();
+
+  const sections: ParsedSection[] = [];
+  let current: ParsedSection | null = null;
+
+  for (const raw of allLines.slice(1)) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    if (line.startsWith("===") && line.endsWith("===")) {
+      if (current) sections.push(current);
+      current = { type: "household", label: line.replace(/===/g, "").trim(), lines: [] };
+    } else if (line.startsWith("---") && line.endsWith("---")) {
+      if (current) sections.push(current);
+      current = { type: "person", label: line.replace(/---/g, "").trim(), lines: [] };
+    } else if (current) {
+      current.lines.push(line);
+    }
+  }
+  if (current) sections.push(current);
+
+  return { dateRange, sections };
+}
+
+function openPrintWindow(subject: string, content: string) {
+  const { dateRange, sections } = parseContent(content);
+  const sectionsHtml = sections.map((s) => {
+    if (s.type === "household") {
+      return `<h2 style="font-size:14pt;color:#3d3530;margin:24px 0 8px;border-bottom:2px solid #E8A817;padding-bottom:4px">${s.label}</h2>`;
+    }
+    const linesHtml = s.lines.map((l) =>
+      l.startsWith("No changes")
+        ? `<p style="color:#9e9490;font-style:italic;margin:4px 0">${l}</p>`
+        : `<p style="margin:4px 0;color:#3d3530">${l.replace(/</g, "&lt;")}</p>`
+    ).join("");
+    return `<div style="margin-bottom:16px;padding:12px 16px;background:#faf9f7;border-radius:6px;border-left:3px solid #E8A817">
+      <p style="font-weight:700;color:#3d3530;margin:0 0 8px">${s.label}</p>
+      ${linesHtml}
+    </div>`;
+  }).join("");
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${subject}</title>
+<style>body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.6;margin:2cm;color:#3d3530}
+h1{font-size:16pt;margin:0 0 4px}p.date{color:#9e9490;font-size:10pt;margin:0 0 24px}
+@media print{body{margin:2cm}}</style></head>
+<body>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+    <svg width="28" height="28" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="4" cy="6.5" rx="3.2" ry="1.6" fill="#E8A817" opacity="0.3" transform="rotate(-20 4 6.5)"/>
+      <ellipse cx="12" cy="6.5" rx="3.2" ry="1.6" fill="#E8A817" opacity="0.3" transform="rotate(20 12 6.5)"/>
+      <ellipse cx="8" cy="11" rx="2.4" ry="3.5" fill="#E8A817"/>
+      <rect x="5.6" y="9.2" width="4.8" height="1" rx="0.5" fill="white" opacity="0.55"/>
+      <rect x="5.6" y="11.2" width="4.8" height="1" rx="0.5" fill="white" opacity="0.55"/>
+      <ellipse cx="8" cy="7.2" rx="2" ry="1.6" fill="#E8A817"/>
+      <circle cx="8" cy="5" r="1.5" fill="#E8A817"/>
+      <line x1="7.2" y1="3.8" x2="5.8" y2="2" stroke="#E8A817" stroke-width="0.8" stroke-linecap="round"/>
+      <line x1="8.8" y1="3.8" x2="10.2" y2="2" stroke="#E8A817" stroke-width="0.8" stroke-linecap="round"/>
+      <circle cx="5.6" cy="1.8" r="0.5" fill="#E8A817"/><circle cx="10.4" cy="1.8" r="0.5" fill="#E8A817"/>
+    </svg>
+    <h1>Care<span style="color:#E8A817">Bee</span> weekly update</h1>
+  </div>
+  <p class="date">${dateRange}</p>
+  ${sectionsHtml}
+  <p style="font-size:9pt;color:#b0a89f;margin-top:32px">This is an automated summary from CareBee. This is not medical advice.</p>
+</body></html>`;
+
+  const win = window.open("", "_blank");
+  if (!win) { alert("Please allow pop-ups to download."); return; }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 400);
+}
+
+function DigestDisplay({ content, dateRange }: { content: string; dateRange?: string }) {
+  const parsed = parseContent(content);
+  const dr = dateRange ?? parsed.dateRange;
+  const personSections = parsed.sections.filter((s) => s.type === "person");
+
+  return (
+    <div className="flex flex-col gap-0 rounded-xl overflow-hidden border border-warmstone-100">
+      {/* Branded header */}
+      <div className="bg-honey-400 px-5 py-4 flex items-center gap-3">
+        <svg width="28" height="28" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <ellipse cx="4" cy="6.5" rx="3.2" ry="1.6" fill="white" opacity="0.4" transform="rotate(-20 4 6.5)"/>
+          <ellipse cx="12" cy="6.5" rx="3.2" ry="1.6" fill="white" opacity="0.4" transform="rotate(20 12 6.5)"/>
+          <ellipse cx="8" cy="11" rx="2.4" ry="3.5" fill="white"/>
+          <rect x="5.6" y="9.2" width="4.8" height="1" rx="0.5" fill="#E8A817" opacity="0.7"/>
+          <rect x="5.6" y="11.2" width="4.8" height="1" rx="0.5" fill="#E8A817" opacity="0.7"/>
+          <ellipse cx="8" cy="7.2" rx="2" ry="1.6" fill="white"/>
+          <circle cx="8" cy="5" r="1.5" fill="white"/>
+          <line x1="7.2" y1="3.8" x2="5.8" y2="2" stroke="white" strokeWidth="0.8" strokeLinecap="round"/>
+          <line x1="8.8" y1="3.8" x2="10.2" y2="2" stroke="white" strokeWidth="0.8" strokeLinecap="round"/>
+          <circle cx="5.6" cy="1.8" r="0.5" fill="white"/><circle cx="10.4" cy="1.8" r="0.5" fill="white"/>
+        </svg>
+        <div>
+          <p className="font-bold text-white text-base leading-tight">CareBee weekly update</p>
+          <p className="text-white/80 text-xs mt-0.5">{dr}</p>
+        </div>
+      </div>
+
+      {/* Person sections */}
+      <div className="bg-white divide-y divide-warmstone-50">
+        {personSections.map((section, i) => {
+          const hasChanges = !section.lines.some((l) => l.startsWith("No changes"));
+          return (
+            <div key={i} className="px-5 py-4">
+              <p className="font-bold text-warmstone-900 text-sm mb-2 flex items-center gap-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-honey-400 shrink-0" />
+                {section.label}
+              </p>
+              {hasChanges ? (
+                <div className="flex flex-col gap-1.5">
+                  {section.lines.map((line, j) => {
+                    const { icon, color } = lineIcon(line);
+                    const [label, ...rest] = line.split(": ");
+                    const value = rest.join(": ");
+                    return (
+                      <div key={j} className="flex items-start gap-2">
+                        {icon && <span className={`shrink-0 mt-0.5 ${color}`}>{icon}</span>}
+                        <p className="text-sm text-warmstone-700 leading-snug">
+                          <span className="font-semibold text-warmstone-800">{label}</span>
+                          {value ? <span className="text-warmstone-600">: {value}</span> : null}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-warmstone-400 italic">No changes this week.</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div className="bg-warmstone-50 px-5 py-3 border-t border-warmstone-100">
+        <p className="text-xs text-warmstone-400">This is an automated summary from CareBee. This is not medical advice.</p>
+      </div>
+    </div>
+  );
+}
+
+function ShareBar({ subject, content }: { subject: string; content: string }) {
+  const { addToast } = useAppToast();
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(content);
+    setCopied(true);
+    addToast("Copied to clipboard.", "success");
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleShare() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: subject, text: content });
+      } catch { /* user cancelled */ }
+    } else {
+      handleCopy();
+    }
+  }
+
+  function handleDownload() {
+    openPrintWindow(subject, content);
+  }
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <button
+        onClick={handleCopy}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-md bg-warmstone-100 text-warmstone-700 hover:bg-warmstone-200 transition-colors min-h-[36px]"
+      >
+        {copied ? <Check size={14} className="text-sage-500" /> : <Copy size={14} />}
+        {copied ? "Copied" : "Copy text"}
+      </button>
+      <button
+        onClick={handleDownload}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-md bg-warmstone-100 text-warmstone-700 hover:bg-warmstone-200 transition-colors min-h-[36px]"
+      >
+        <Download size={14} />
+        Save as PDF
+      </button>
+      {typeof navigator !== "undefined" && "share" in navigator && (
+        <button
+          onClick={handleShare}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-md bg-warmstone-100 text-warmstone-700 hover:bg-warmstone-200 transition-colors min-h-[36px]"
+        >
+          <Share2 size={14} />
+          Share
+        </button>
+      )}
+    </div>
+  );
+}
+
 function DigestCard({ log }: { log: DigestLog }) {
   const [expanded, setExpanded] = useState(false);
 
-  const lines = log.content_text
-    .split("\n")
-    .slice(2); // skip "CareBee weekly update: ..." header line and blank line
-
   return (
-    <Card className="flex flex-col gap-0">
+    <Card className="flex flex-col gap-0 overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-start justify-between gap-3 p-5 text-left w-full"
+        className="flex items-start justify-between gap-3 px-5 py-4 text-left w-full"
       >
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-warmstone-900 text-sm truncate">{log.subject}</p>
           <p className="text-xs text-warmstone-400 mt-0.5 flex items-center gap-1">
             <Clock size={11} />
-            Generated {formatDate(log.created_at)}
+            Generated {formatDateLong(log.created_at)}
           </p>
         </div>
-        {expanded ? <ChevronUp size={16} className="text-warmstone-400 shrink-0 mt-0.5" /> : <ChevronDown size={16} className="text-warmstone-400 shrink-0 mt-0.5" />}
+        {expanded
+          ? <ChevronUp size={16} className="text-warmstone-400 shrink-0 mt-0.5" />
+          : <ChevronDown size={16} className="text-warmstone-400 shrink-0 mt-0.5" />}
       </button>
 
       {expanded && (
-        <div className="px-5 pb-5 border-t border-warmstone-100">
-          <div className="mt-4 font-mono text-xs text-warmstone-700 bg-warmstone-50 rounded-lg p-4 whitespace-pre-wrap leading-relaxed">
-            {lines.join("\n")}
-          </div>
+        <div className="border-t border-warmstone-100 flex flex-col gap-3 p-4">
+          <DigestDisplay content={log.content_text} />
+          <ShareBar subject={log.subject} content={log.content_text} />
         </div>
       )}
     </Card>
@@ -103,22 +340,18 @@ export default function UpdatesPage() {
       </div>
 
       {preview && (
-        <div className="bg-honey-50 border border-honey-200 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Mail size={16} className="text-honey-600" />
-            <p className="font-bold text-warmstone-900 text-sm">{preview.subject}</p>
-          </div>
-          <div className="font-mono text-xs text-warmstone-700 bg-warmstone-white rounded-lg p-4 whitespace-pre-wrap leading-relaxed border border-warmstone-100">
-            {preview.content_text.split("\n").slice(2).join("\n")}
-          </div>
-          <p className="text-xs text-warmstone-400 mt-3">
-            This is the same content that would be emailed to you on your chosen digest day. To change the day or turn updates on, go to <a href="/settings" className="text-honey-600 font-semibold hover:underline">Settings</a>.
+        <div className="flex flex-col gap-3">
+          <DigestDisplay content={preview.content_text} dateRange={preview.dateRange} />
+          <ShareBar subject={preview.subject} content={preview.content_text} />
+          <p className="text-xs text-warmstone-400">
+            This is the same content that would be emailed on your chosen digest day.{" "}
+            <a href="/settings" className="text-honey-600 font-semibold hover:underline">Change settings</a>
           </p>
         </div>
       )}
 
       <section>
-        <h2 className="text-sm font-bold text-warmstone-600 uppercase tracking-wide mb-3">Past updates</h2>
+        <h2 className="text-sm font-bold text-warmstone-500 uppercase tracking-wide mb-3">Past updates</h2>
 
         {loading ? (
           <SkeletonLoader count={3} />
