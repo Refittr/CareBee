@@ -129,8 +129,6 @@ Rules:
 - Only return document_type "unrecognised" if the image contains absolutely no health, care, medication, appointment, benefit, or legal information at all.
 - Do not invent data. If a field is not clearly visible, set it to null.`;
 
-const USER_PROMPT =
-  "Extract all structured health and care data from this document. Return only valid JSON matching the schema described in your instructions. Do not include any text outside the JSON object.";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -168,6 +166,19 @@ export async function POST(request: NextRequest) {
   ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  // Load care notes to provide context for cross-referencing
+  const { data: careNotes } = await svc
+    .from("care_notes")
+    .select("title, content, category, is_pinned")
+    .eq("person_id", person_id)
+    .order("is_pinned", { ascending: false })
+    .order("updated_at", { ascending: false });
+
+  const userPromptText = [
+    "Extract all structured health and care data from this document. Return only valid JSON matching the schema described in your instructions. Do not include any text outside the JSON object.",
+    (careNotes ?? []).length > 0 ? `\nFor context, this person already has the following care notes on record. Cross-reference the document against these:\n${(careNotes ?? []).map(n => `[${n.is_pinned ? "PINNED - " : ""}${n.category}] ${n.title}: ${n.content}`).join("\n\n")}\n\nIf the scanned document relates to something already noted (e.g. a referral for a treatment the person has already tried), mention this in the summary field.` : "",
+  ].filter(Boolean).join("\n");
 
   const supportedImageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
@@ -246,7 +257,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: "user",
-            content: [...contentBlocks, { type: "text", text: USER_PROMPT }],
+            content: [...contentBlocks, { type: "text", text: userPromptText }],
           },
         ],
       });
@@ -261,7 +272,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: "user",
-            content: [...contentBlocks, { type: "text", text: USER_PROMPT }],
+            content: [...contentBlocks, { type: "text", text: userPromptText }],
           },
         ],
       });

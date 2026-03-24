@@ -14,6 +14,8 @@ const SYSTEM_PROMPT = `You are the entitlements engine for CareBee, a UK family 
 
 You must ONLY flag entitlements based on publicly available eligibility criteria. You are NOT a benefits adviser. Always note that formal advice should be sought from Citizens Advice or a qualified benefits adviser.
 
+If benefits_advice_notes are present in the person's record, use any specific advice about wording or approach from a benefits advisor when generating the reasoning and how_to_apply fields.
+
 Check eligibility for ALL of the following (where relevant to the person's situation):
 
 DISABILITY BENEFITS:
@@ -128,13 +130,14 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const [{ data: person }, { data: conditions }, { data: medications }, { data: allergies }, { data: existingEntitlements }] =
+  const [{ data: person }, { data: conditions }, { data: medications }, { data: allergies }, { data: existingEntitlements }, { data: benefitsNotes }] =
     await Promise.all([
       svc.from("people").select("*").eq("id", person_id).single(),
       svc.from("conditions").select("name, date_diagnosed, is_active, notes").eq("person_id", person_id),
       svc.from("medications").select("name, dosage, frequency, purpose, is_active").eq("person_id", person_id).eq("is_active", true),
       svc.from("allergies").select("name, severity").eq("person_id", person_id),
       svc.from("entitlements").select("benefit_name, eligibility_status, current_status").eq("person_id", person_id),
+      svc.from("care_notes").select("title, content, category, is_pinned").eq("person_id", person_id).eq("category", "benefits_advice"),
     ]);
 
   if (!person) return NextResponse.json({ error: "Person not found" }, { status: 404 });
@@ -153,6 +156,7 @@ export async function POST(request: NextRequest) {
     already_claiming: (existingEntitlements ?? [])
       .filter((e) => e.eligibility_status === "already_claiming")
       .map((e) => e.benefit_name),
+    benefits_advice_notes: (benefitsNotes ?? []).map(n => `${n.title}: ${n.content}`),
   };
 
   if (!process.env.ANTHROPIC_API_KEY) {

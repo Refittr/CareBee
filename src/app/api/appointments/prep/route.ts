@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
     { data: allergies },
     { data: insights },
     { data: interactions },
+    { data: careNotes },
   ] = await Promise.all([
     svc.from("appointments").select("*").eq("id", appointment_id).single(),
     svc.from("people").select("*").eq("id", person_id).single(),
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
     svc.from("allergies").select("*").eq("person_id", person_id),
     svc.from("health_insights").select("*").eq("person_id", person_id).eq("status", "active").order("created_at", { ascending: false }).limit(10),
     svc.from("drug_interactions").select("*").eq("person_id", person_id).eq("status", "active"),
+    svc.from("care_notes").select("title, content, category, is_pinned").eq("person_id", person_id).order("is_pinned", { ascending: false }).order("updated_at", { ascending: false }),
   ]);
 
   if (!appt || !person) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -80,6 +82,7 @@ Generate a preparation brief with these sections:
 
 4. THINGS TO MENTION
 - Anything the family should proactively tell the clinician: new symptoms, problems with medications, changes in care needs, carer concerns.
+- Reference any relevant care notes, especially communication needs or behavioural notes that are relevant to this appointment type.
 
 5. DOCUMENTS TO BRING
 - List useful documents to bring. Note: "Your CareBee emergency summary has all key information if needed."
@@ -101,6 +104,7 @@ RULES:
     `\nCONDITIONS:\n${JSON.stringify(conditions ?? [], null, 2)}`,
     `\nMEDICATIONS:\n${JSON.stringify(medications ?? [], null, 2)}`,
     `\nALLERGIES:\n${JSON.stringify(allergies ?? [], null, 2)}`,
+    (careNotes ?? []).length > 0 ? `\nCARE NOTES (important context about this person):\n${(careNotes ?? []).map(n => `[${n.is_pinned ? "PINNED - " : ""}${n.category}] ${n.title}: ${n.content}`).join("\n\n")}` : "",
     previousAppt ? `\nPREVIOUS APPOINTMENT WITH THIS DEPARTMENT:\n${JSON.stringify(previousAppt, null, 2)}` : "",
     (insights ?? []).length > 0 ? `\nACTIVE HEALTH INSIGHTS:\n${JSON.stringify(insights, null, 2)}` : "",
     (interactions ?? []).length > 0 ? `\nACTIVE DRUG INTERACTIONS:\n${JSON.stringify(interactions, null, 2)}` : "",

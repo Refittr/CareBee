@@ -397,6 +397,28 @@ export interface ContactMessage {
   created_at: string;
 }
 
+export type CareNoteCategory =
+  | "general"
+  | "communication"
+  | "behaviour"
+  | "preferences"
+  | "professional_contacts"
+  | "benefits_advice"
+  | "important_context";
+
+export interface CareNote {
+  id: string;
+  person_id: string;
+  household_id: string;
+  created_by: string;
+  title: string;
+  content: string;
+  category: CareNoteCategory;
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // ---- Supabase Database type ------------------------------------------
 // Uses Record<string, unknown> row types for compatibility with
 // @supabase/supabase-js v2 GenericTable requirement under TS 5.x strict mode.
@@ -664,6 +686,12 @@ export type Database = {
         Row: Row & ContactMessage;
         Insert: Row & Omit<ContactMessage, "id" | "created_at">;
         Update: Row & Partial<Omit<ContactMessage, "id" | "created_at">>;
+        Relationships: never[];
+      };
+      care_notes: {
+        Row: Row & CareNote;
+        Insert: Row & OptionalNullables<Omit<CareNote, "id" | "created_at" | "updated_at">>;
+        Update: Row & Partial<Omit<CareNote, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
       error_log: {

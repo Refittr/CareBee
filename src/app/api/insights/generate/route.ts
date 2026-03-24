@@ -14,6 +14,8 @@ PERSON'S RECORD:
 
 {ALREADY_HANDLED}
 
+When analysing the record, pay attention to the CARE NOTES section in the person data. These notes capture important context about how the person communicates, behaves, what has been tried before, professional contacts, and benefits advice. Pinned notes are particularly important. Factor any relevant notes into your insights.
+
 Based on this record, generate insights in the following categories:
 
 1. NICE GUIDELINE CHECKS ("missing_check")
@@ -181,6 +183,7 @@ export async function POST(request: NextRequest) {
     { data: testResults },
     { data: appointments },
     { data: handledInsights },
+    { data: careNotes },
   ] = await Promise.all([
     svc.from("people").select("*").eq("id", person_id).single(),
     svc.from("conditions").select("*").eq("person_id", person_id).eq("is_active", true),
@@ -197,6 +200,7 @@ export async function POST(request: NextRequest) {
       .select("title, status")
       .eq("person_id", person_id)
       .in("status", ["dismissed", "resolved"]),
+    svc.from("care_notes").select("title, content, category, is_pinned").eq("person_id", person_id).order("is_pinned", { ascending: false }).order("updated_at", { ascending: false }),
   ]);
 
   if (!person) return NextResponse.json({ error: "Person not found" }, { status: 404 });
@@ -212,6 +216,7 @@ export async function POST(request: NextRequest) {
     gp_surgery: person.gp_surgery,
     gp_name: person.gp_name,
     notes: person.notes,
+    care_notes: (careNotes ?? []).map(n => ({ title: n.title, content: n.content, category: n.category, pinned: n.is_pinned })),
   };
 
   // Build already-handled context for the AI

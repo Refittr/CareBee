@@ -11,6 +11,7 @@ const tabs = [
   { label: "Appointments", segment: "appointments" },
   { label: "Test Results", segment: "test-results" },
   { label: "Documents", segment: "documents" },
+  { label: "Notes", segment: "notes" },
   { label: "Insights", segment: "insights" },
   { label: "Contacts", segment: "contacts" },
   { label: "Waiting lists", segment: "waiting-lists" },

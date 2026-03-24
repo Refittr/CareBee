@@ -15,7 +15,7 @@ Write a complete, ready-to-use piece of text. It should:
 - Be written in clear, professional but accessible English
 - Include today's date at the top
 - Reference the person's name, NHS number (if available), and other relevant details
-- Be factual and based only on the data provided
+- Be factual and based only on the data provided. For benefit applications: if care_notes contain benefits_advice entries, use the specific wording advice from those notes.
 - Include all standard sections this type of document requires
 - Leave [PLACEHOLDER] markers for specific details that are not in the record
 
@@ -75,13 +75,14 @@ export async function POST(request: NextRequest) {
 
   if (!membership) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const [{ data: person }, { data: conditions }, { data: medications }, { data: allergies }, { data: appointments }] =
+  const [{ data: person }, { data: conditions }, { data: medications }, { data: allergies }, { data: appointments }, { data: careNotes }] =
     await Promise.all([
       svc.from("people").select("*").eq("id", person_id).single(),
       svc.from("conditions").select("*").eq("person_id", person_id).eq("is_active", true),
       svc.from("medications").select("*").eq("person_id", person_id).eq("is_active", true),
       svc.from("allergies").select("*").eq("person_id", person_id),
       svc.from("appointments").select("*").eq("person_id", person_id).order("appointment_date", { ascending: false }).limit(10),
+      svc.from("care_notes").select("title, content, category, is_pinned").eq("person_id", person_id).order("is_pinned", { ascending: false }),
     ]);
 
   if (!person) return NextResponse.json({ error: "Person not found" }, { status: 404 });
@@ -106,6 +107,7 @@ export async function POST(request: NextRequest) {
     dnacpr_status: person.dnacpr_status,
     notes: person.notes,
     today,
+    care_notes: (careNotes ?? []).map(n => ({ title: n.title, content: n.content, category: n.category, pinned: n.is_pinned })),
   };
 
   const templateLabel = template_id ? TEMPLATE_LABELS[template_id] ?? template_id : "custom letter";
