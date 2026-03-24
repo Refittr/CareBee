@@ -43,9 +43,59 @@ export default async function PersonOverviewPage({ params }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-end">
-        <ScanDocumentButton householdId={householdId} personId={personId} />
-      </div>
+
+      {/* AI Scan — hero CTA */}
+      <ScanDocumentButton householdId={householdId} personId={personId} />
+
+      {/* Health Insights — hero section */}
+      <Link href={`${baseUrl}/insights`}>
+        <Card
+          hoverable
+          clickable
+          className={[
+            "p-5",
+            insights && insights.length > 0 ? "border-honey-300 bg-honey-50" : "border-warmstone-200",
+          ].join(" ")}
+        >
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles size={18} className={insights && insights.length > 0 ? "text-honey-600" : "text-warmstone-400"} />
+              <h2 className="font-bold text-warmstone-900">Health insights</h2>
+              {insights && insights.length > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-honey-400 text-white text-xs font-bold">
+                  {insights.length}
+                </span>
+              )}
+            </div>
+            <span className="text-xs font-semibold text-honey-700">
+              {insights && insights.length > 0 ? "Review all →" : "Run a check →"}
+            </span>
+          </div>
+          {insights && insights.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {insights.slice(0, 4).map((insight, i) => (
+                <div key={i} className="flex items-start gap-2.5">
+                  <span className={[
+                    "mt-1.5 shrink-0 w-2 h-2 rounded-full",
+                    insight.priority === "urgent" ? "bg-red-500" :
+                    insight.priority === "important" ? "bg-honey-500" :
+                    "bg-sage-400",
+                  ].join(" ")} />
+                  <p className="text-sm text-warmstone-800 leading-snug">{insight.title}</p>
+                </div>
+              ))}
+              {insights.length > 4 && (
+                <p className="text-xs text-warmstone-500 ml-4.5">+{insights.length - 4} more insights</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-warmstone-500 leading-relaxed">
+              AI checks for missing NICE guideline reviews, overdue tests, drug interactions, care gaps, and benefit eligibility — across all of {`${person.first_name}`}'s record at once.
+            </p>
+          )}
+        </Card>
+      </Link>
+
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Link href={`${baseUrl}/conditions`}>
         <Card hoverable clickable className="p-5 h-full">
@@ -142,53 +192,6 @@ export default async function PersonOverviewPage({ params }: Props) {
             <p className="text-sm text-warmstone-400">No upcoming appointments</p>
           )}
           <p className="text-xs text-honey-600 font-semibold mt-3">View all appointments</p>
-        </Card>
-      </Link>
-
-      <Link href={`${baseUrl}/insights`} className="md:col-span-2">
-        <Card
-          hoverable
-          clickable
-          className={[
-            "p-5",
-            insights && insights.length > 0 ? "border-honey-300 bg-honey-50" : "",
-          ].join(" ")}
-        >
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-2">
-              <Sparkles size={18} className={insights && insights.length > 0 ? "text-honey-600" : "text-warmstone-400"} />
-              <h2 className="font-bold text-warmstone-900">Health insights</h2>
-            </div>
-            {insights && insights.length > 0 && (
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-honey-400 text-white text-xs font-bold">
-                {insights.length}
-              </span>
-            )}
-          </div>
-          {insights && insights.length > 0 ? (
-            <>
-              {insights.slice(0, 3).map((insight, i) => (
-                <div key={i} className="flex items-start gap-2 mb-1.5">
-                  <span className={[
-                    "mt-1 shrink-0 w-1.5 h-1.5 rounded-full",
-                    insight.priority === "urgent" ? "bg-red-500" :
-                    insight.priority === "important" ? "bg-honey-500" :
-                    "bg-sage-400",
-                  ].join(" ")} />
-                  <p className="text-sm text-warmstone-800 leading-snug">{insight.title}</p>
-                </div>
-              ))}
-              {insights.length > 3 && (
-                <p className="text-xs text-warmstone-500 mt-1">+{insights.length - 3} more</p>
-              )}
-              <p className="text-xs text-honey-700 font-semibold mt-3">Review all insights</p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-warmstone-400">No active insights</p>
-              <p className="text-xs text-honey-600 font-semibold mt-3">Run an insight check</p>
-            </>
-          )}
         </Card>
       </Link>
 

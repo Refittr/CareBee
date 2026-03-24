@@ -36,7 +36,7 @@ export default async function PersonLayout({ children, params }: Props) {
         showBack
         backHref={`/household/${householdId}`}
       />
-      <div className="px-8 pt-6">
+      <div className="px-4 md:px-8 pt-3">
         <Breadcrumbs
           items={[
             { label: "Your care records", href: "/dashboard" },
@@ -46,7 +46,7 @@ export default async function PersonLayout({ children, params }: Props) {
         />
       </div>
 
-      <div className="px-4 md:px-8 pt-4 pb-0">
+      <div className="px-4 md:px-8 pt-2 pb-0">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <h1 className="font-display text-3xl md:text-4xl text-warmstone-900 leading-tight">
@@ -66,7 +66,7 @@ export default async function PersonLayout({ children, params }: Props) {
         <PersonTabs baseUrl={baseUrl} />
       </div>
 
-      <div className="px-4 md:px-8 py-6">
+      <div className="px-4 md:px-8 pt-4 pb-8">
         {children}
       </div>
     </div>

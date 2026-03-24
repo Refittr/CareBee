@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Bell, BellOff, CheckCircle, ArrowRight, Sparkles, CreditCard } from "lucide-react";
@@ -39,6 +40,14 @@ interface PlanInfo {
 }
 
 export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+function SettingsContent() {
   const supabase = createClient();
   const { addToast } = useAppToast();
   const searchParams = useSearchParams();

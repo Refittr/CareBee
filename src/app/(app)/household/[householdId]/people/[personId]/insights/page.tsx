@@ -140,7 +140,7 @@ export default function InsightsPage() {
       <>
         <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-4 max-w-sm mx-auto">
           <Lightbulb size={48} className="text-warmstone-300" strokeWidth={1.5} />
-          <h2 className="text-xl font-bold text-warmstone-900">Health Insights is a CareBee Family feature</h2>
+          <h2 className="text-xl font-bold text-warmstone-900">Health Insights is a CareBee Plus feature</h2>
           <p className="text-sm text-warmstone-600 leading-relaxed">
             Get personalised health insights, NICE guideline checks, and care gap detection for everyone in your household.
           </p>
