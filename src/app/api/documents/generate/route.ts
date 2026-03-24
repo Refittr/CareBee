@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }],
     });
-    void trackApiCall({ userId: user.id, feature: "document_generation", action: "letter_generated", status: "success", tokensUsed: (message.usage?.input_tokens ?? 0) + (message.usage?.output_tokens ?? 0), durationMs: Date.now() - aiStart, metadata: { document_type: documentType } });
+    void trackApiCall({ userId: user.id, feature: "document_generation", action: "letter_generated", status: "success", tokensUsed: (message.usage?.input_tokens ?? 0) + (message.usage?.output_tokens ?? 0), durationMs: Date.now() - aiStart, metadata: { document_type: template_id } });
     const block = message.content[0];
     const content = block.type === "text" ? block.text.trim() : "";
     if (!content) return NextResponse.json({ error: "No content generated. Please try again." }, { status: 422 });
