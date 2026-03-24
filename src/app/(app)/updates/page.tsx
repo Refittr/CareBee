@@ -80,59 +80,115 @@ function parseContent(text: string): { dateRange: string; sections: ParsedSectio
   return { dateRange, sections };
 }
 
+const BEE_SVG = `<svg width="28" height="28" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="4" cy="6.5" rx="3.2" ry="1.6" fill="#E8A817" opacity="0.3" transform="rotate(-20 4 6.5)"/>
+  <ellipse cx="12" cy="6.5" rx="3.2" ry="1.6" fill="#E8A817" opacity="0.3" transform="rotate(20 12 6.5)"/>
+  <ellipse cx="8" cy="11" rx="2.4" ry="3.5" fill="#E8A817"/>
+  <rect x="5.6" y="9.2" width="4.8" height="1" rx="0.5" fill="white" opacity="0.55"/>
+  <rect x="5.6" y="11.2" width="4.8" height="1" rx="0.5" fill="white" opacity="0.55"/>
+  <ellipse cx="8" cy="7.2" rx="2" ry="1.6" fill="#E8A817"/>
+  <circle cx="8" cy="5" r="1.5" fill="#E8A817"/>
+  <line x1="7.2" y1="3.8" x2="5.8" y2="2" stroke="#E8A817" stroke-width="0.8" stroke-linecap="round"/>
+  <line x1="8.8" y1="3.8" x2="10.2" y2="2" stroke="#E8A817" stroke-width="0.8" stroke-linecap="round"/>
+  <circle cx="5.6" cy="1.8" r="0.5" fill="#E8A817"/><circle cx="10.4" cy="1.8" r="0.5" fill="#E8A817"/>
+</svg>`;
+
+const PRINT_HEADER = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">${BEE_SVG}<h1>Care<span style="color:#E8A817">Bee</span> weekly update</h1></div>`;
+const PRINT_FOOTER = `<p style="font-size:9pt;color:#b0a89f;margin-top:32px">This is an automated summary from CareBee. This is not medical advice.</p>`;
+const PRINT_STYLE = `<style>body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.6;margin:2cm;color:#3d3530}h1{font-size:16pt;margin:0 0 4px}p.date{color:#9e9490;font-size:10pt;margin:0 0 24px}@media print{body{margin:2cm}}</style>`;
+
+function personSectionHtml(section: ParsedSection) {
+  const linesHtml = section.lines.map((l) =>
+    l.startsWith("No changes")
+      ? `<p style="color:#9e9490;font-style:italic;margin:4px 0">${l}</p>`
+      : `<p style="margin:4px 0;color:#3d3530">${l.replace(/</g, "&lt;")}</p>`
+  ).join("");
+  return `<div style="margin-bottom:16px;padding:12px 16px;background:#faf9f7;border-radius:6px;border-left:3px solid #E8A817">
+    <p style="font-weight:700;color:#3d3530;margin:0 0 8px">${section.label}</p>
+    ${linesHtml}
+  </div>`;
+}
+
+function launchPrintWindow(title: string, bodyHtml: string) {
+  const win = window.open("", "_blank");
+  if (!win) { alert("Please allow pop-ups to download."); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>${PRINT_STYLE}</head><body>${bodyHtml}${PRINT_FOOTER}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 400);
+}
+
 function openPrintWindow(subject: string, content: string) {
   const { dateRange, sections } = parseContent(content);
   const sectionsHtml = sections.map((s) => {
     if (s.type === "household") {
       return `<h2 style="font-size:14pt;color:#3d3530;margin:24px 0 8px;border-bottom:2px solid #E8A817;padding-bottom:4px">${s.label}</h2>`;
     }
-    const linesHtml = s.lines.map((l) =>
-      l.startsWith("No changes")
-        ? `<p style="color:#9e9490;font-style:italic;margin:4px 0">${l}</p>`
-        : `<p style="margin:4px 0;color:#3d3530">${l.replace(/</g, "&lt;")}</p>`
-    ).join("");
-    return `<div style="margin-bottom:16px;padding:12px 16px;background:#faf9f7;border-radius:6px;border-left:3px solid #E8A817">
-      <p style="font-weight:700;color:#3d3530;margin:0 0 8px">${s.label}</p>
-      ${linesHtml}
-    </div>`;
+    return personSectionHtml(s);
   }).join("");
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${subject}</title>
-<style>body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.6;margin:2cm;color:#3d3530}
-h1{font-size:16pt;margin:0 0 4px}p.date{color:#9e9490;font-size:10pt;margin:0 0 24px}
-@media print{body{margin:2cm}}</style></head>
-<body>
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-    <svg width="28" height="28" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="4" cy="6.5" rx="3.2" ry="1.6" fill="#E8A817" opacity="0.3" transform="rotate(-20 4 6.5)"/>
-      <ellipse cx="12" cy="6.5" rx="3.2" ry="1.6" fill="#E8A817" opacity="0.3" transform="rotate(20 12 6.5)"/>
-      <ellipse cx="8" cy="11" rx="2.4" ry="3.5" fill="#E8A817"/>
-      <rect x="5.6" y="9.2" width="4.8" height="1" rx="0.5" fill="white" opacity="0.55"/>
-      <rect x="5.6" y="11.2" width="4.8" height="1" rx="0.5" fill="white" opacity="0.55"/>
-      <ellipse cx="8" cy="7.2" rx="2" ry="1.6" fill="#E8A817"/>
-      <circle cx="8" cy="5" r="1.5" fill="#E8A817"/>
-      <line x1="7.2" y1="3.8" x2="5.8" y2="2" stroke="#E8A817" stroke-width="0.8" stroke-linecap="round"/>
-      <line x1="8.8" y1="3.8" x2="10.2" y2="2" stroke="#E8A817" stroke-width="0.8" stroke-linecap="round"/>
-      <circle cx="5.6" cy="1.8" r="0.5" fill="#E8A817"/><circle cx="10.4" cy="1.8" r="0.5" fill="#E8A817"/>
-    </svg>
-    <h1>Care<span style="color:#E8A817">Bee</span> weekly update</h1>
-  </div>
-  <p class="date">${dateRange}</p>
-  ${sectionsHtml}
-  <p style="font-size:9pt;color:#b0a89f;margin-top:32px">This is an automated summary from CareBee. This is not medical advice.</p>
-</body></html>`;
-
-  const win = window.open("", "_blank");
-  if (!win) { alert("Please allow pop-ups to download."); return; }
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => win.print(), 400);
+  launchPrintWindow(subject, `${PRINT_HEADER}<p class="date">${dateRange}</p>${sectionsHtml}`);
 }
 
-function DigestDisplay({ content, dateRange }: { content: string; dateRange?: string }) {
+function PersonSectionActions({ section, dateRange, subject }: { section: ParsedSection; dateRange: string; subject: string }) {
+  const { addToast } = useAppToast();
+  const [copied, setCopied] = useState(false);
+
+  const personText = `CareBee weekly update: ${dateRange}\n\n--- ${section.label} ---\n${section.lines.join("\n")}`;
+  const personTitle = `${subject} — ${section.label}`;
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(personText);
+    setCopied(true);
+    addToast("Copied to clipboard.", "success");
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleDownload() {
+    launchPrintWindow(personTitle, `${PRINT_HEADER}<p class="date">${dateRange}</p>${personSectionHtml(section)}`);
+  }
+
+  async function handleShare() {
+    if (navigator.share) {
+      try { await navigator.share({ title: personTitle, text: personText }); } catch { /* cancelled */ }
+    } else {
+      handleCopy();
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1 mt-2">
+      <button
+        onClick={handleCopy}
+        title="Copy to clipboard"
+        className="p-1.5 rounded text-warmstone-400 hover:text-warmstone-700 hover:bg-warmstone-100 transition-colors"
+      >
+        {copied ? <Check size={13} className="text-sage-500" /> : <Copy size={13} />}
+      </button>
+      <button
+        onClick={handleDownload}
+        title="Save as PDF"
+        className="p-1.5 rounded text-warmstone-400 hover:text-warmstone-700 hover:bg-warmstone-100 transition-colors"
+      >
+        <Download size={13} />
+      </button>
+      {typeof navigator !== "undefined" && "share" in navigator && (
+        <button
+          onClick={handleShare}
+          title="Share"
+          className="p-1.5 rounded text-warmstone-400 hover:text-warmstone-700 hover:bg-warmstone-100 transition-colors"
+        >
+          <Share2 size={13} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function DigestDisplay({ content, dateRange, subject }: { content: string; dateRange?: string; subject?: string }) {
   const parsed = parseContent(content);
   const dr = dateRange ?? parsed.dateRange;
+  const subj = subject ?? `CareBee weekly update: ${dr}`;
   const personSections = parsed.sections.filter((s) => s.type === "person");
 
   return (
@@ -163,10 +219,13 @@ function DigestDisplay({ content, dateRange }: { content: string; dateRange?: st
           const hasChanges = !section.lines.some((l) => l.startsWith("No changes"));
           return (
             <div key={i} className="px-5 py-4">
-              <p className="font-bold text-warmstone-900 text-sm mb-2 flex items-center gap-2">
-                <span className="inline-block w-2 h-2 rounded-full bg-honey-400 shrink-0" />
-                {section.label}
-              </p>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="font-bold text-warmstone-900 text-sm flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-honey-400 shrink-0" />
+                  {section.label}
+                </p>
+                <PersonSectionActions section={section} dateRange={dr} subject={subj} />
+              </div>
               {hasChanges ? (
                 <div className="flex flex-col gap-1.5">
                   {section.lines.map((line, j) => {
@@ -277,7 +336,7 @@ function DigestCard({ log }: { log: DigestLog }) {
 
       {expanded && (
         <div className="border-t border-warmstone-100 flex flex-col gap-3 p-4">
-          <DigestDisplay content={log.content_text} />
+          <DigestDisplay content={log.content_text} subject={log.subject} />
           <ShareBar subject={log.subject} content={log.content_text} />
         </div>
       )}
@@ -341,7 +400,7 @@ export default function UpdatesPage() {
 
       {preview && (
         <div className="flex flex-col gap-3">
-          <DigestDisplay content={preview.content_text} dateRange={preview.dateRange} />
+          <DigestDisplay content={preview.content_text} dateRange={preview.dateRange} subject={preview.subject} />
           <ShareBar subject={preview.subject} content={preview.content_text} />
           <p className="text-xs text-warmstone-400">
             This is the same content that would be emailed on your chosen digest day.{" "}
