@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   title: "CareBee",
   description: "Your health and care record",
   manifest: "/manifest.json",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: "/icon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
