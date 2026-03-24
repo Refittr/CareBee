@@ -11,8 +11,7 @@ async function sendEmail({
 }): Promise<void> {
   const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) {
-    console.log(`[email] BREVO_API_KEY not set. Would send to: ${to} — ${subject}`);
-    return;
+    throw new Error("[email] BREVO_API_KEY is not set — cannot send email");
   }
 
   const fromEmail = process.env.FROM_EMAIL ?? "noreply@carebee.co.uk";

@@ -45,7 +45,8 @@ function SignupForm() {
       options: { data: { full_name: fullName } },
     });
     if (err) {
-      setError(err.message);
+      const msg = err.message && err.message !== "{}" ? err.message : "Sign up failed. Please check your details and try again.";
+      setError(msg);
       setLoading(false);
     } else {
       router.push(`/signup-confirmation?email=${encodeURIComponent(email)}`);
