@@ -43,7 +43,10 @@ function SignupForm() {
     const { error: err } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
     if (err) {
       const msg = err.message && err.message !== "{}" ? err.message : "Sign up failed. Please check your details and try again.";

@@ -194,7 +194,15 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
       )}
 
       {step === "empty" && (
-        <div className="flex flex-col items-center justify-center flex-1 px-6 py-12 gap-6 text-center max-w-sm mx-auto">
+        <>
+          <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-warmstone-100">
+            <div className="flex items-center gap-2">
+              <ScanLine size={18} className="text-honey-400" />
+              <span className="font-bold text-warmstone-900">Scan a document</span>
+            </div>
+            <button onClick={handleClose} className="text-warmstone-400 hover:text-warmstone-700 transition-colors p-1" aria-label="Close">✕</button>
+          </div>
+          <div className="flex flex-col items-center justify-center flex-1 px-6 py-12 gap-6 text-center max-w-sm mx-auto">
           <ScanLine size={48} className="text-warmstone-300" />
           <div>
             <h2 className="text-xl font-bold text-warmstone-900 mb-2">
@@ -216,6 +224,7 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
             </Button>
           </div>
         </div>
+        </>
       )}
 
       {step === "error" && (

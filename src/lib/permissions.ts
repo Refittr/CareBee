@@ -17,7 +17,7 @@ export function hasPremiumAccess(profile: ProfileForPermissions): boolean {
     return true;
   }
 
-  if (profile.plan === "family" || profile.plan === "custom") {
+  if (profile.plan === "family" || profile.plan === "custom" || profile.plan === "plus") {
     return true;
   }
 

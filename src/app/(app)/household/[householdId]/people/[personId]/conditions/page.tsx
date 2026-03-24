@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Plus, Pencil, Trash2, HeartPulse } from "lucide-react";
+import { Plus, Pencil, Trash2, HeartPulse, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -15,6 +15,9 @@ import { ConditionForm } from "@/components/forms/ConditionForm";
 import { formatDateUK } from "@/lib/utils/dates";
 import { truncateText } from "@/lib/utils/formatting";
 import { useAppToast } from "@/components/layout/AppShell";
+import { useAIAccess } from "@/lib/utils/access";
+import { UpgradeModal } from "@/components/ui/UpgradeModal";
+import { ScanModal } from "@/components/scan/ScanModal";
 import type { Condition } from "@/lib/types/database";
 
 export default function ConditionsPage() {
@@ -22,6 +25,9 @@ export default function ConditionsPage() {
   const { householdId, personId } = params;
   const supabase = createClient();
   const { addToast } = useAppToast();
+  const { hasAccess } = useAIAccess();
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
 
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,9 +74,14 @@ export default function ConditionsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-warmstone-900">Conditions</h2>
-        <Button size="sm" onClick={() => setAddOpen(true)}>
-          <Plus size={16} /> Add a condition
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
+            <Sparkles size={16} /> Scan with AI
+          </Button>
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus size={16} /> Add
+          </Button>
+        </div>
       </div>
 
       {conditions.length === 0 ? (
@@ -174,6 +185,9 @@ export default function ConditionsPage() {
         description={`Are you sure you want to remove "${deleteTarget?.name}"? This cannot be undone.`}
         loading={deleting}
       />
+
+      <ScanModal open={scanOpen} onClose={() => { setScanOpen(false); void load(); }} householdId={householdId} personId={personId} />
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

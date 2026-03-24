@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Bell, BellOff, CheckCircle, ArrowRight } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Bell, BellOff, CheckCircle, ArrowRight, Sparkles, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -29,9 +30,18 @@ interface HouseholdMembership {
   last_digest_sent_at: string | null;
 }
 
+interface PlanInfo {
+  plan: string;
+  is_subscribed: boolean;
+  trial_ends_at: string | null;
+  subscription_status: string | null;
+  subscription_current_period_end: string | null;
+}
+
 export default function SettingsPage() {
   const supabase = createClient();
   const { addToast } = useAppToast();
+  const searchParams = useSearchParams();
 
   const [memberships, setMemberships] = useState<HouseholdMembership[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +51,11 @@ export default function SettingsPage() {
   const [fullName, setFullName] = useState("");
   const [fullNameSaved, setFullNameSaved] = useState("");
   const [savingName, setSavingName] = useState(false);
+  const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState<"monthly" | "annual" | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const statusParam = searchParams.get("status");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -48,7 +63,7 @@ export default function SettingsPage() {
     if (!user) { setLoading(false); return; }
 
     const [{ data: profile }, { data: members }] = await Promise.all([
-      supabase.from("profiles").select("email, full_name").eq("id", user.id).single(),
+      supabase.from("profiles").select("email, full_name, plan, is_subscribed, trial_ends_at, subscription_status, subscription_current_period_end").eq("id", user.id).single(),
       supabase.from("household_members")
         .select("household_id, weekly_digest_enabled, weekly_digest_day, last_digest_sent_at")
         .eq("user_id", user.id)
@@ -58,6 +73,15 @@ export default function SettingsPage() {
     setEmail(profile?.email ?? null);
     setFullName(profile?.full_name ?? "");
     setFullNameSaved(profile?.full_name ?? "");
+    if (profile) {
+      setPlanInfo({
+        plan: profile.plan ?? "family",
+        is_subscribed: profile.is_subscribed ?? false,
+        trial_ends_at: profile.trial_ends_at ?? null,
+        subscription_status: profile.subscription_status ?? null,
+        subscription_current_period_end: profile.subscription_current_period_end ?? null,
+      });
+    }
 
     if (!members || members.length === 0) { setLoading(false); return; }
 
@@ -141,6 +165,44 @@ export default function SettingsPage() {
     setSavingName(false);
   }
 
+  async function startCheckout(plan: "monthly" | "annual") {
+    setCheckoutLoading(plan);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        addToast(data.error ?? "Could not start checkout.", "error");
+        setCheckoutLoading(null);
+      }
+    } catch {
+      addToast("Could not start checkout.", "error");
+      setCheckoutLoading(null);
+    }
+  }
+
+  async function openPortal() {
+    setPortalLoading(true);
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        addToast(data.error ?? "Could not open billing portal.", "error");
+        setPortalLoading(false);
+      }
+    } catch {
+      addToast("Could not open billing portal.", "error");
+      setPortalLoading(false);
+    }
+  }
+
   function formatLastSent(date: string | null): string {
     if (!date) return "Not sent yet";
     return `Last sent ${new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`;
@@ -188,6 +250,93 @@ export default function SettingsPage() {
             )}
           </Card>
         )}
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-base font-bold text-warmstone-900">Your plan</h2>
+          <p className="text-sm text-warmstone-600 mt-0.5">Manage your CareBee Plus subscription.</p>
+        </div>
+
+        {statusParam === "success" && (
+          <div className="flex items-center gap-2 text-sm text-sage-800 bg-sage-50 border border-sage-200 rounded-lg px-4 py-3">
+            <CheckCircle size={16} className="text-sage-500 shrink-0" />
+            <span>You&apos;re now subscribed to CareBee Plus. Enjoy unlimited AI features!</span>
+          </div>
+        )}
+
+        {loading ? (
+          <SkeletonLoader count={1} />
+        ) : planInfo?.is_subscribed ? (
+          <Card className="flex flex-col gap-3 p-4">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-honey-500" />
+              <span className="font-semibold text-warmstone-900">CareBee Plus</span>
+              <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-sage-100 text-sage-800">Active</span>
+            </div>
+            {planInfo.subscription_current_period_end && (
+              <p className="text-xs text-warmstone-500">
+                {planInfo.subscription_status === "canceled"
+                  ? `Access until ${new Date(planInfo.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                  : `Renews ${new Date(planInfo.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`}
+              </p>
+            )}
+            <Button
+              size="sm"
+              variant="secondary"
+              className="gap-1.5 w-fit"
+              onClick={openPortal}
+              loading={portalLoading}
+            >
+              <CreditCard size={14} />
+              Manage billing
+            </Button>
+          </Card>
+        ) : (() => {
+          const trialActive = planInfo?.trial_ends_at && new Date(planInfo.trial_ends_at) > new Date();
+          const daysLeft = trialActive
+            ? Math.max(0, Math.ceil((new Date(planInfo!.trial_ends_at!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+            : 0;
+          return (
+            <Card className="flex flex-col gap-4 p-4">
+              {trialActive ? (
+                <div className="flex items-center gap-2">
+                  <Sparkles size={16} className="text-honey-500" />
+                  <span className="font-semibold text-warmstone-900">Free trial</span>
+                  <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-honey-100 text-honey-800">{daysLeft} day{daysLeft !== 1 ? "s" : ""} left</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Sparkles size={16} className="text-warmstone-400" />
+                  <span className="font-semibold text-warmstone-900">No active plan</span>
+                  <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-warmstone-100 text-warmstone-600">Trial ended</span>
+                </div>
+              )}
+              <p className="text-sm text-warmstone-600">Subscribe to keep your AI features after your trial ends.</p>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  loading={checkoutLoading === "monthly"}
+                  disabled={checkoutLoading !== null}
+                  onClick={() => startCheckout("monthly")}
+                >
+                  Subscribe — £4.99 / month
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={checkoutLoading === "annual"}
+                  disabled={checkoutLoading !== null}
+                  onClick={() => startCheckout("annual")}
+                >
+                  Subscribe — £49.99 / year
+                  <span className="ml-1.5 text-xs font-normal text-white bg-white/20 rounded-full px-2 py-0.5">Save ~17%</span>
+                </Button>
+              </div>
+            </Card>
+          );
+        })()}
       </section>
 
       <section className="flex flex-col gap-4">

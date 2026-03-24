@@ -1,6 +1,6 @@
 export type MemberRole = "owner" | "editor" | "viewer" | "emergency_only";
 export type AccountType = "standard" | "tester" | "admin";
-export type PlanType = "free" | "family" | "custom";
+export type PlanType = "free" | "family" | "custom" | "plus";
 export type AppointmentStatus = "upcoming" | "completed" | "cancelled" | "missed";
 export type DocumentType =
   | "discharge_summary"
@@ -24,6 +24,11 @@ export interface Profile {
   plan: PlanType;
   is_subscribed: boolean;
   trial_ends_at: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_status: string | null;
+  subscription_price_id: string | null;
+  subscription_current_period_end: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -384,6 +389,14 @@ export interface Invitation {
   created_at: string;
 }
 
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  created_at: string;
+}
+
 // ---- Supabase Database type ------------------------------------------
 // Uses Record<string, unknown> row types for compatibility with
 // @supabase/supabase-js v2 GenericTable requirement under TS 5.x strict mode.
@@ -645,6 +658,12 @@ export type Database = {
           metadata?: Record<string, unknown>;
           created_at?: string;
         };
+        Relationships: never[];
+      };
+      contact_messages: {
+        Row: Row & ContactMessage;
+        Insert: Row & Omit<ContactMessage, "id" | "created_at">;
+        Update: Row & Partial<Omit<ContactMessage, "id" | "created_at">>;
         Relationships: never[];
       };
       error_log: {

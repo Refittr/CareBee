@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
-  Plus, Pencil, Trash2, Pill, RefreshCw, Tag, AlertTriangle, CheckCircle, ChevronDown, ChevronUp,
+  Plus, Pencil, Trash2, Pill, RefreshCw, Tag, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Sparkles,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -18,6 +18,7 @@ import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateUK } from "@/lib/utils/dates";
 import { useAIAccess } from "@/lib/utils/access";
 import { UpgradeModal } from "@/components/ui/UpgradeModal";
+import { ScanModal } from "@/components/scan/ScanModal";
 import type { Medication, MedicationChange, Condition, DrugInteraction } from "@/lib/types/database";
 
 export default function MedicationsPage() {
@@ -38,6 +39,7 @@ export default function MedicationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Medication | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Medication | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -178,9 +180,14 @@ export default function MedicationsPage() {
 
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-warmstone-900">Medications</h2>
-        <Button size="sm" onClick={() => setAddOpen(true)}>
-          <Plus size={16} /> Add a medication
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
+            <Sparkles size={16} /> Scan with AI
+          </Button>
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus size={16} /> Add
+          </Button>
+        </div>
       </div>
 
       {medications.length === 0 ? (
@@ -360,6 +367,7 @@ export default function MedicationsPage() {
 
       <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Remove medication" description={`Are you sure you want to remove "${deleteTarget?.name}"? This cannot be undone.`} loading={deleting} />
 
+      <ScanModal open={scanOpen} onClose={() => { setScanOpen(false); void afterMedSave(); }} householdId={householdId} personId={personId} />
       <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );

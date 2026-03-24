@@ -18,13 +18,13 @@ export default function EmailConfirmedPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-warmstone-900 mb-1">Email confirmed</h1>
-            <p className="text-sm text-warmstone-600">Your account is ready. Sign in to get started.</p>
+            <p className="text-sm text-warmstone-600">Your email has been verified and your account is ready to use.</p>
           </div>
           <Link
-            href="/login"
+            href="/dashboard"
             className="w-full mt-2 inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-honey-400 hover:bg-honey-500 text-warmstone-white font-semibold text-sm transition-colors"
           >
-            Sign in
+            Go to dashboard
           </Link>
         </div>
       </div>

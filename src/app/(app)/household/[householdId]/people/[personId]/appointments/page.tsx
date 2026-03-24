@@ -20,6 +20,7 @@ import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateTime, formatDateUK } from "@/lib/utils/dates";
 import { useAIAccess } from "@/lib/utils/access";
 import { UpgradeModal } from "@/components/ui/UpgradeModal";
+import { ScanModal } from "@/components/scan/ScanModal";
 import type { Appointment } from "@/lib/types/database";
 
 type BadgeVariant = "info" | "active" | "neutral" | "error";
@@ -302,6 +303,7 @@ export default function AppointmentsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [addOpen, setAddOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Appointment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Appointment | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -439,7 +441,12 @@ export default function AppointmentsPage() {
 
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-warmstone-900">Appointments</h2>
-        <Button size="sm" onClick={() => setAddOpen(true)}><Plus size={16} /> Add an appointment</Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
+            <Sparkles size={16} /> Scan with AI
+          </Button>
+          <Button size="sm" onClick={() => setAddOpen(true)}><Plus size={16} /> Add</Button>
+        </div>
       </div>
 
       {appointments.length === 0 ? (
@@ -470,6 +477,7 @@ export default function AppointmentsPage() {
       <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Remove appointment" description={`Are you sure you want to remove "${deleteTarget?.title}"?`} loading={deleting} />
       {prepTarget && <PrepModal appt={prepTarget} householdId={householdId} personId={personId} onClose={() => { setPrepTarget(null); load(); }} />}
       {debriefTarget && <DebriefModal appt={debriefTarget} householdId={householdId} personId={personId} existing={debriefs[debriefTarget.id] ?? null} onClose={() => setDebriefTarget(null)} onSaved={() => { setDebriefTarget(null); load(); }} />}
+      <ScanModal open={scanOpen} onClose={() => { setScanOpen(false); void load(); }} householdId={householdId} personId={personId} />
       <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );

@@ -9,6 +9,7 @@ import {
   FlaskConical,
   AlertTriangle,
   CheckCircle,
+  Sparkles,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +22,9 @@ import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { TestResultForm } from "@/components/forms/TestResultForm";
 import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateUK } from "@/lib/utils/dates";
+import { useAIAccess } from "@/lib/utils/access";
+import { UpgradeModal } from "@/components/ui/UpgradeModal";
+import { ScanModal } from "@/components/scan/ScanModal";
 import type { TestResult } from "@/lib/types/database";
 
 function ResultValue({ value, isAbnormal }: { value: string | null; isAbnormal: boolean | null }) {
@@ -39,6 +43,9 @@ export default function TestResultsPage() {
   const { householdId, personId } = params;
   const supabase = createClient();
   const { addToast } = useAppToast();
+  const { hasAccess } = useAIAccess();
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
 
   const [results, setResults] = useState<TestResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,9 +132,14 @@ export default function TestResultsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-warmstone-900">Test Results</h2>
-        <Button size="sm" onClick={() => setAddOpen(true)}>
-          <Plus size={16} /> Add a result
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
+            <Sparkles size={16} /> Scan with AI
+          </Button>
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus size={16} /> Add
+          </Button>
+        </div>
       </div>
 
       {results.length === 0 ? (
@@ -246,6 +258,9 @@ export default function TestResultsPage() {
         confirmLabel="Remove"
         loading={deleting}
       />
+
+      <ScanModal open={scanOpen} onClose={() => { setScanOpen(false); void load(); }} householdId={householdId} personId={personId} />
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

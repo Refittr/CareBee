@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Sparkles, Brain, Pill, Clock, FileSearch, PoundSterling } from "lucide-react";
 import { Modal } from "./Modal";
 import { Button } from "./Button";
@@ -19,6 +20,29 @@ const FEATURES = [
 ];
 
 export function UpgradeModal({ open, onClose }: UpgradeModalProps) {
+  const [loading, setLoading] = useState<"monthly" | "annual" | null>(null);
+
+  async function startCheckout(plan: "monthly" | "annual") {
+    setLoading(plan);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setLoading(null);
+        alert(data.error ?? "Could not start checkout. Please try again.");
+      }
+    } catch {
+      setLoading(null);
+      alert("Could not start checkout. Please try again.");
+    }
+  }
+
   return (
     <Modal open={open} onClose={onClose} title="Unlock AI features" maxWidth="sm">
       <div className="flex flex-col gap-5">
@@ -41,24 +65,30 @@ export function UpgradeModal({ open, onClose }: UpgradeModalProps) {
           ))}
         </ul>
 
-        <div className="rounded-xl bg-honey-50 border border-honey-200 px-4 py-3 text-center">
-          <p className="text-lg font-bold text-warmstone-900">£4.99 <span className="text-sm font-normal text-warmstone-500">/ month</span></p>
-          <p className="text-xs text-warmstone-500 mt-0.5">Cancel any time. No hidden fees.</p>
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="primary"
+            className="w-full"
+            loading={loading === "monthly"}
+            disabled={loading !== null}
+            onClick={() => startCheckout("monthly")}
+          >
+            Subscribe — £4.99 / month
+          </Button>
+          <Button
+            variant="secondary"
+            className="w-full"
+            loading={loading === "annual"}
+            disabled={loading !== null}
+            onClick={() => startCheckout("annual")}
+          >
+            Subscribe — £49.99 / year
+            <span className="ml-1.5 text-xs font-normal text-white bg-white/20 rounded-full px-2 py-0.5">Save ~17%</span>
+          </Button>
         </div>
 
-        <Button
-          variant="primary"
-          className="w-full"
-          onClick={() => {
-            // Stripe checkout will be wired here
-            onClose();
-          }}
-        >
-          Upgrade to CareBee Plus
-        </Button>
-
         <p className="text-xs text-warmstone-400 text-center leading-relaxed">
-          We keep AI costs honest - your subscription goes directly towards the compute that powers these checks. We don&apos;t believe in charging for things you can do yourself; AI is where it genuinely saves you time.
+          We keep AI costs honest - your subscription goes directly towards the compute that powers these checks. Cancel any time.
         </p>
 
         <button

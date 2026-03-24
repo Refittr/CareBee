@@ -8,6 +8,7 @@ interface ProfileForAIAccess {
   account_type: AccountType;
   plan: PlanType;
   trial_ends_at?: string | null;
+  is_subscribed?: boolean;
 }
 
 /**
@@ -18,7 +19,10 @@ export function hasAIAccess(profile: ProfileForAIAccess): boolean {
   if (profile.account_type === "admin" || profile.account_type === "tester") {
     return true;
   }
-  if (profile.plan === "family" || profile.plan === "custom") {
+  if (profile.plan === "family" || profile.plan === "custom" || profile.plan === "plus") {
+    return true;
+  }
+  if (profile.is_subscribed) {
     return true;
   }
   if (profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date()) {
@@ -40,7 +44,7 @@ export function useAIAccess(): { hasAccess: boolean | null } {
       if (!user) { setHasAccess(false); return; }
       supabase
         .from("profiles")
-        .select("account_type, plan, trial_ends_at")
+        .select("account_type, plan, trial_ends_at, is_subscribed")
         .eq("id", user.id)
         .maybeSingle()
         .then(({ data }) => {

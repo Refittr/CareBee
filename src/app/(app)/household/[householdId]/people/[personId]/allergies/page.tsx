@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Plus, Pencil, Trash2, ShieldCheck } from "lucide-react";
+import { Plus, Pencil, Trash2, ShieldCheck, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -13,6 +13,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { AllergyForm } from "@/components/forms/AllergyForm";
 import { useAppToast } from "@/components/layout/AppShell";
+import { useAIAccess } from "@/lib/utils/access";
+import { UpgradeModal } from "@/components/ui/UpgradeModal";
+import { ScanModal } from "@/components/scan/ScanModal";
 import type { Allergy } from "@/lib/types/database";
 
 const severityVariant = (s: string | null): "active" | "warning" | "error" | "neutral" => {
@@ -27,6 +30,9 @@ export default function AllergiesPage() {
   const { householdId, personId } = params;
   const supabase = createClient();
   const { addToast } = useAppToast();
+  const { hasAccess } = useAIAccess();
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
 
   const [allergies, setAllergies] = useState<Allergy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,9 +68,14 @@ export default function AllergiesPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-warmstone-900">Allergies</h2>
-        <Button size="sm" onClick={() => setAddOpen(true)}>
-          <Plus size={16} /> Add an allergy
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
+            <Sparkles size={16} /> Scan with AI
+          </Button>
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus size={16} /> Add
+          </Button>
+        </div>
       </div>
 
       {allergies.length === 0 ? (
@@ -108,6 +119,9 @@ export default function AllergiesPage() {
         {editTarget && <AllergyForm householdId={householdId} personId={personId} allergy={editTarget} onSaved={() => { setEditTarget(null); load(); }} onCancel={() => setEditTarget(null)} />}
       </Modal>
       <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Remove allergy" description={`Are you sure you want to remove the allergy to "${deleteTarget?.name}"?`} loading={deleting} />
+
+      <ScanModal open={scanOpen} onClose={() => { setScanOpen(false); void load(); }} householdId={householdId} personId={personId} />
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }
