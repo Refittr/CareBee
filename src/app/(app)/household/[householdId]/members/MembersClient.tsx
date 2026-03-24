@@ -131,11 +131,8 @@ export function MembersClient({
   async function handleCancelInvite() {
     if (!cancelInviteTarget) return;
     setCancelling(true);
-    const { error } = await supabase
-      .from("invitations")
-      .delete()
-      .eq("id", cancelInviteTarget.id);
-    if (error) {
+    const res = await fetch(`/api/invitations?id=${cancelInviteTarget.id}`, { method: "DELETE" });
+    if (!res.ok) {
       addToast("Something went wrong. Please try again.", "error");
     } else {
       addToast("Invitation cancelled.", "success");

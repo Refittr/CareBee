@@ -116,3 +116,41 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ inviteToken: invite.invite_token, emailSent: true });
 }
+
+export async function DELETE(request: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+
+  const { searchParams } = new URL(request.url);
+  const inviteId = searchParams.get("id");
+  if (!inviteId) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+
+  const svc = await createServiceClient();
+
+  // Verify the invite exists and get its household
+  const { data: invite } = await svc
+    .from("invitations")
+    .select("household_id")
+    .eq("id", inviteId)
+    .maybeSingle();
+
+  if (!invite) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Verify caller is owner or editor of that household
+  const { data: membership } = await svc
+    .from("household_members")
+    .select("role")
+    .eq("household_id", invite.household_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!membership || (membership.role !== "owner" && membership.role !== "editor")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { error } = await svc.from("invitations").delete().eq("id", inviteId);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ ok: true });
+}

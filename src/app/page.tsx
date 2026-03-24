@@ -53,7 +53,7 @@ export default async function LandingPage() {
             {/* Left column */}
             <div>
               <span className="text-honey-600 text-sm font-bold bg-honey-50 px-3 py-1 rounded-full inline-block mb-6">
-                Free for 30 days. No credit card.
+                Free for 30 days. No card required.
               </span>
               <h1 className="font-display text-4xl md:text-5xl lg:text-6xl text-warmstone-900 leading-tight mb-6">
                 One record for everyone who cares
@@ -71,7 +71,7 @@ export default async function LandingPage() {
                 Start your free trial
               </Link>
               <p className="text-sm text-warmstone-400 mt-3">
-                Free for 30 days. No credit card needed.
+                Free for 30 days. No card needed.
               </p>
             </div>
 
@@ -327,6 +327,28 @@ export default async function LandingPage() {
       </section>
 
       <FaqSection />
+
+      {/* Pricing philosophy */}
+      <section className="px-4 md:px-8 py-16 bg-warmstone-white border-t border-warmstone-100">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-start gap-4">
+            <span className="text-3xl leading-none mt-1" aria-hidden="true">🐝</span>
+            <div>
+              <h2 className="font-display text-xl md:text-2xl text-warmstone-900 mb-4 leading-snug">
+                A note on pricing
+              </h2>
+              <p className="text-warmstone-600 leading-relaxed">
+                CareBee is free to use for basic record keeping, and always will be. The paid plan
+                exists because AI features like document scanning, the entitlements engine, and drug
+                interaction checking cost us money every time they run. We have priced it as low as
+                we can at <span className="font-semibold text-warmstone-800">£4.99 a month</span>.
+                We know the people who need CareBee most are often the ones with the least to spare,
+                and we never want cost to be a barrier.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Final CTA */}
       <section className="px-4 md:px-8 py-24 bg-sage-50">

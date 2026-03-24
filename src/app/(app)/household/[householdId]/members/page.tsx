@@ -42,11 +42,7 @@ export default async function MembersPage({ params }: Props) {
 
   const [{ data: household }, { data: rawMembers }, { data: userMembership }] = await Promise.all([
     supabase.from("households").select("name").eq("id", householdId).single(),
-    // Service client bypasses RLS so profiles join returns data for all members
-    svcEarly
-      .from("household_members")
-      .select("*, profiles(full_name, email, avatar_url)")
-      .eq("household_id", householdId),
+    svcEarly.from("household_members").select("*").eq("household_id", householdId),
     supabase
       .from("household_members")
       .select("role")
@@ -57,11 +53,21 @@ export default async function MembersPage({ params }: Props) {
 
   if (!household) notFound();
 
+  // Fetch profiles separately so we don't depend on PostgREST FK inference
+  const userIds = (rawMembers ?? []).map((m) => m.user_id as string);
+  const { data: profileRows } = userIds.length
+    ? await svcEarly.from("profiles").select("id, full_name, email, avatar_url").in("id", userIds)
+    : { data: [] };
+  const profileMap = new Map((profileRows ?? []).map((p) => [p.id, p]));
+
   const userRole = (userMembership?.role ?? null) as MemberRole | null;
   const isOwner = userRole === "owner";
   const canEdit = userRole === "owner" || userRole === "editor";
 
-  const members = (rawMembers ?? []) as unknown as MemberWithProfile[];
+  const members = (rawMembers ?? []).map((m) => ({
+    ...m,
+    profiles: profileMap.get(m.user_id as string) ?? null,
+  })) as unknown as MemberWithProfile[];
 
   let pendingInvites: PendingInviteRow[] = [];
   if (canEdit) {

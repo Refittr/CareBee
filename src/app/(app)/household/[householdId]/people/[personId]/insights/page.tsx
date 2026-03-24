@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
-  Lightbulb, RefreshCw, CheckCircle, X, ChevronDown, ChevronUp,
+  Lightbulb, RefreshCw, CheckCircle, X, ChevronDown, ChevronUp, Sparkles,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +12,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateTime } from "@/lib/utils/dates";
+import { hasAIAccess } from "@/lib/utils/access";
+import { UpgradeModal } from "@/components/ui/UpgradeModal";
 import type { HealthInsight } from "@/lib/types/database";
 
 const categoryLabels: Record<string, string> = {
@@ -47,6 +49,7 @@ export default function InsightsPage() {
   const [generating, setGenerating] = useState(false);
   const [showDismissed, setShowDismissed] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [personName, setPersonName] = useState("");
 
   const canCheckNow = !lastChecked || Date.now() - new Date(lastChecked).getTime() > ONE_HOUR_MS;
@@ -98,8 +101,9 @@ export default function InsightsPage() {
       // Check premium
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase.from("profiles").select("account_type").eq("id", user.id).maybeSingle();
-        const premium = profile?.account_type === "admin" || profile?.account_type === "tester";
+        const { data: profile } = await supabase.from("profiles").select("account_type, plan, trial_ends_at").eq("id", user.id).maybeSingle();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const premium = profile ? hasAIAccess(profile as any) : false;
         setIsPremium(premium);
         if (premium) {
           await loadFromDB();
@@ -133,13 +137,22 @@ export default function InsightsPage() {
 
   if (!isPremium) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-4 max-w-sm mx-auto">
-        <Lightbulb size={48} className="text-warmstone-300" strokeWidth={1.5} />
-        <h2 className="text-xl font-bold text-warmstone-900">Health Insights is a premium feature</h2>
-        <p className="text-sm text-warmstone-600 leading-relaxed">
-          Upgrade to CareBee to get personalised health insights, NICE guideline checks, and care gap detection for everyone in your household.
-        </p>
-      </div>
+      <>
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-4 max-w-sm mx-auto">
+          <Lightbulb size={48} className="text-warmstone-300" strokeWidth={1.5} />
+          <h2 className="text-xl font-bold text-warmstone-900">Health Insights is a CareBee Family feature</h2>
+          <p className="text-sm text-warmstone-600 leading-relaxed">
+            Get personalised health insights, NICE guideline checks, and care gap detection for everyone in your household.
+          </p>
+          <button
+            onClick={() => setShowUpgrade(true)}
+            className="inline-flex items-center gap-2 bg-honey-400 text-warmstone-white font-bold hover:bg-honey-600 transition-colors rounded-lg px-5 py-2.5 text-sm min-h-[44px]"
+          >
+            <Sparkles size={15} /> See what&apos;s included
+          </button>
+        </div>
+        <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      </>
     );
   }
 
@@ -278,6 +291,8 @@ export default function InsightsPage() {
           )}
         </div>
       )}
+
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

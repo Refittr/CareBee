@@ -1,5 +1,6 @@
 export type MemberRole = "owner" | "editor" | "viewer" | "emergency_only";
 export type AccountType = "standard" | "tester" | "admin";
+export type PlanType = "free" | "family" | "custom";
 export type AppointmentStatus = "upcoming" | "completed" | "cancelled" | "missed";
 export type DocumentType =
   | "discharge_summary"
@@ -20,6 +21,9 @@ export interface Profile {
   email: string;
   avatar_url: string | null;
   account_type: AccountType;
+  plan: PlanType;
+  is_subscribed: boolean;
+  trial_ends_at: string | null;
   created_at: string;
   updated_at: string;
 }

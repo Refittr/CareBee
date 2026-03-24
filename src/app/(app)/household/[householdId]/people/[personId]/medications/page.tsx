@@ -16,6 +16,8 @@ import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { MedicationForm } from "@/components/forms/MedicationForm";
 import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateUK } from "@/lib/utils/dates";
+import { useAIAccess } from "@/lib/utils/access";
+import { UpgradeModal } from "@/components/ui/UpgradeModal";
 import type { Medication, MedicationChange, Condition, DrugInteraction } from "@/lib/types/database";
 
 export default function MedicationsPage() {
@@ -23,6 +25,9 @@ export default function MedicationsPage() {
   const { householdId, personId } = params;
   const supabase = createClient();
   const { addToast } = useAppToast();
+
+  const { hasAccess } = useAIAccess();
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const [medications, setMedications] = useState<Medication[]>([]);
   const [changes, setChanges] = useState<MedicationChange[]>([]);
@@ -296,7 +301,7 @@ export default function MedicationsPage() {
                 </p>
               )}
               <button
-                onClick={triggerInteractionCheck}
+                onClick={() => hasAccess === false ? setShowUpgrade(true) : triggerInteractionCheck()}
                 disabled={checkingInteractions}
                 className="text-xs text-warmstone-500 hover:text-warmstone-800 min-h-[36px] px-2 flex items-center gap-1"
               >
@@ -354,6 +359,8 @@ export default function MedicationsPage() {
       </Modal>
 
       <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Remove medication" description={`Are you sure you want to remove "${deleteTarget?.name}"? This cannot be undone.`} loading={deleting} />
+
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

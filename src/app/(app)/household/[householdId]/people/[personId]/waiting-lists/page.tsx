@@ -17,6 +17,8 @@ import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { Input, Textarea, Select } from "@/components/ui/Input";
 import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateUK } from "@/lib/utils/dates";
+import { useAIAccess } from "@/lib/utils/access";
+import { UpgradeModal } from "@/components/ui/UpgradeModal";
 import type { WaitingList, WaitStatus } from "@/lib/types/database";
 
 type BadgeVariant = "active" | "warning" | "error" | "neutral";
@@ -56,6 +58,9 @@ export default function WaitingListsPage() {
   const router = useRouter();
   const supabase = createClient();
   const { addToast } = useAppToast();
+
+  const { hasAccess } = useAIAccess();
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const [entries, setEntries] = useState<WaitingList[]>([]);
   const [loading, setLoading] = useState(true);
@@ -231,7 +236,7 @@ export default function WaitingListsPage() {
           {active.length > 0 && (
             <Button
               variant="secondary"
-              onClick={runEstimate}
+              onClick={() => hasAccess === false ? setShowUpgrade(true) : runEstimate()}
               disabled={estimating}
               className="gap-2"
             >
@@ -434,6 +439,8 @@ export default function WaitingListsPage() {
         confirmLabel="Remove"
         loading={deleting}
       />
+
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

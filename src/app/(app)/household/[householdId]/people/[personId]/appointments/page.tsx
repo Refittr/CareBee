@@ -18,6 +18,8 @@ import { Input, Textarea, Select } from "@/components/ui/Input";
 import { AppointmentForm } from "@/components/forms/AppointmentForm";
 import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateTime, formatDateUK } from "@/lib/utils/dates";
+import { useAIAccess } from "@/lib/utils/access";
+import { UpgradeModal } from "@/components/ui/UpgradeModal";
 import type { Appointment } from "@/lib/types/database";
 
 type BadgeVariant = "info" | "active" | "neutral" | "error";
@@ -290,6 +292,9 @@ export default function AppointmentsPage() {
   const { addToast } = useAppToast();
   const router = useRouter();
 
+  const { hasAccess } = useAIAccess();
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [prepIds, setPrepIds] = useState<Record<string, boolean>>({});
   const [debriefs, setDebriefs] = useState<Record<string, DebriefRecord>>({});
@@ -375,7 +380,7 @@ export default function AppointmentsPage() {
             {/* Prep button for upcoming */}
             {isUpcoming && (
               <button
-                onClick={() => setPrepTarget(appt)}
+                onClick={() => hasAccess === false && !hasPrep ? setShowUpgrade(true) : setPrepTarget(appt)}
                 className={`mt-3 flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-md min-h-[36px] transition-colors ${hasPrep ? "text-sage-700 bg-sage-50 hover:bg-sage-100" : "text-honey-800 bg-honey-50 hover:bg-honey-100"}`}
               >
                 <ClipboardList size={14} />
@@ -402,7 +407,7 @@ export default function AppointmentsPage() {
                   )}
                 </div>
               ) : (
-                <button onClick={() => setDebriefTarget(appt)} className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-honey-800 bg-honey-50 hover:bg-honey-100 px-3 py-1.5 rounded-md min-h-[36px] transition-colors">
+                <button onClick={() => hasAccess === false ? setShowUpgrade(true) : setDebriefTarget(appt)} className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-honey-800 bg-honey-50 hover:bg-honey-100 px-3 py-1.5 rounded-md min-h-[36px] transition-colors">
                   <Sparkles size={13} /> Record debrief
                 </button>
               )
@@ -426,7 +431,7 @@ export default function AppointmentsPage() {
             {appt.title} was on {formatDateUK(appt.appointment_date)}. How did it go?
           </p>
           <div className="flex items-center gap-2 shrink-0">
-            <Button size="sm" onClick={() => setDebriefTarget(appt)}>Debrief now</Button>
+            <Button size="sm" onClick={() => hasAccess === false ? setShowUpgrade(true) : setDebriefTarget(appt)}>Debrief now</Button>
             <button onClick={() => setDismissedPrompts((p) => new Set([...p, appt.id]))} className="text-warmstone-400 hover:text-warmstone-800 min-h-[36px] min-w-[36px] flex items-center justify-center"><X size={16} /></button>
           </div>
         </div>
@@ -465,6 +470,7 @@ export default function AppointmentsPage() {
       <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Remove appointment" description={`Are you sure you want to remove "${deleteTarget?.title}"?`} loading={deleting} />
       {prepTarget && <PrepModal appt={prepTarget} householdId={householdId} personId={personId} onClose={() => { setPrepTarget(null); load(); }} />}
       {debriefTarget && <DebriefModal appt={debriefTarget} householdId={householdId} personId={personId} existing={debriefs[debriefTarget.id] ?? null} onClose={() => setDebriefTarget(null)} onSaved={() => { setDebriefTarget(null); load(); }} />}
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

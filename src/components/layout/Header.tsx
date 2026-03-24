@@ -28,7 +28,7 @@ export function Header({ title, showBack, backHref, actions }: HeaderProps) {
       {showBack && (
         <button
           onClick={handleBack}
-          className="text-warmstone-600 hover:text-warmstone-900 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2"
+          className="flex items-center justify-center min-h-[44px] min-w-[44px] -ml-1 rounded-lg border border-warmstone-200 bg-warmstone-white text-warmstone-700 hover:bg-warmstone-50 hover:border-warmstone-300 hover:text-warmstone-900 active:bg-warmstone-100 transition-colors"
           aria-label="Go back"
         >
           <ArrowLeft size={20} />

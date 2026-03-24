@@ -17,6 +17,8 @@ import { Modal, ConfirmModal } from "@/components/ui/Modal";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateUK } from "@/lib/utils/dates";
+import { useAIAccess } from "@/lib/utils/access";
+import { UpgradeModal } from "@/components/ui/UpgradeModal";
 import type { Entitlement, EntitlementCurrentStatus } from "@/lib/types/database";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -79,6 +81,9 @@ export default function EntitlementsPage() {
   const router = useRouter();
   const supabase = createClient();
   const { addToast } = useAppToast();
+
+  const { hasAccess } = useAIAccess();
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const [entitlements, setEntitlements] = useState<Entitlement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -349,7 +354,7 @@ export default function EntitlementsPage() {
             <p className="text-xs text-warmstone-400 mt-0.5">Last checked: {formatDateUK(lastChecked)}</p>
           )}
         </div>
-        <Button size="sm" variant="ghost" loading={checking} onClick={runCheck}>
+        <Button size="sm" variant="ghost" loading={checking} onClick={() => hasAccess === false ? setShowUpgrade(true) : runCheck()}>
           <RefreshCw size={14} /> Check eligibility
         </Button>
       </div>
@@ -538,6 +543,8 @@ export default function EntitlementsPage() {
           </div>
         </div>
       </Modal>
+
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }
