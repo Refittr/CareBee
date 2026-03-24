@@ -54,11 +54,11 @@ export function UpgradeModal({ open, onClose }: UpgradeModalProps) {
             onClose();
           }}
         >
-          Upgrade to CareBee Family
+          Upgrade to CareBee Plus
         </Button>
 
         <p className="text-xs text-warmstone-400 text-center leading-relaxed">
-          We keep AI costs honest — your subscription goes directly towards the compute that powers these checks. We don&apos;t believe in charging for things you can do yourself; AI is where it genuinely saves you time.
+          We keep AI costs honest - your subscription goes directly towards the compute that powers these checks. We don&apos;t believe in charging for things you can do yourself; AI is where it genuinely saves you time.
         </p>
 
         <button
