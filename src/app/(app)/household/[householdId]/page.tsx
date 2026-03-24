@@ -98,7 +98,7 @@ export default async function HouseholdPage({ params }: Props) {
             <span className="text-xs text-warmstone-400">{upcomingAppointments.length} scheduled</span>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap">
-            {upcomingAppointments.map((appt, i) => {
+            {upcomingAppointments.map((appt) => {
               const person = peopleMap.get(appt.person_id);
               const d = new Date(appt.appointment_date);
               const day = d.toLocaleDateString("en-GB", { day: "numeric" });
@@ -106,39 +106,34 @@ export default async function HouseholdPage({ params }: Props) {
               const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
               const isToday = d.toDateString() === new Date().toDateString();
               const isTomorrow = d.toDateString() === new Date(Date.now() + 86400000).toDateString();
-              const dayLabel = isToday ? "Today" : isTomorrow ? "Tomorrow" : null;
-
-              const palette = [
-                { card: "bg-honey-50 border-honey-200 hover:border-honey-300", dateBg: "bg-honey-400", dateText: "text-warmstone-white", meta: "text-honey-700" },
-                { card: "bg-sage-50 border-sage-200 hover:border-sage-300", dateBg: "bg-sage-500", dateText: "text-warmstone-white", meta: "text-sage-700" },
-                { card: "bg-blue-50 border-blue-200 hover:border-blue-300", dateBg: "bg-blue-500", dateText: "text-white", meta: "text-blue-700" },
-                { card: "bg-rose-50 border-rose-200 hover:border-rose-300", dateBg: "bg-rose-400", dateText: "text-white", meta: "text-rose-700" },
-              ] as const;
-              const colors = isToday
-                ? { card: "bg-honey-400 border-honey-500 hover:border-honey-600", dateBg: "bg-honey-600", dateText: "text-warmstone-white", meta: "text-honey-100" }
-                : palette[i % palette.length];
 
               return (
                 <Link
                   key={appt.id}
                   href={`/household/${householdId}/people/${appt.person_id}/appointments`}
-                  className={`flex-none w-[148px] border rounded-xl overflow-hidden hover:shadow-md transition-all flex flex-col ${colors.card}`}
+                  className="flex-none w-[148px] bg-warmstone-white border border-warmstone-100 rounded-xl overflow-hidden hover:shadow-md hover:border-warmstone-200 transition-all flex flex-col"
                 >
-                  <div className={`${colors.dateBg} px-3 py-2.5 flex items-center justify-between gap-2`}>
-                    <span className={`text-lg font-black leading-none ${colors.dateText}`}>{day}</span>
-                    <span className={`text-xs font-bold uppercase tracking-wide ${colors.dateText} opacity-80`}>{month}</span>
-                  </div>
-                  <div className="px-3 py-2.5 flex flex-col gap-1 min-w-0">
-                    <p className={`text-[11px] font-bold ${colors.meta}`}>
-                      {dayLabel ? `${dayLabel} · ${time}` : time}
-                    </p>
-                    <p className={`text-sm font-bold leading-snug line-clamp-2 ${isToday ? "text-warmstone-white" : "text-warmstone-900"}`}>{appt.title}</p>
-                    {person && (
-                      <p className={`text-xs truncate ${isToday ? "text-honey-100" : "text-warmstone-500"}`}>{person.first_name}</p>
-                    )}
-                    {(appt.department || appt.location) && (
-                      <p className={`text-xs truncate ${isToday ? "text-honey-100" : "text-warmstone-400"}`}>{appt.department ?? appt.location}</p>
-                    )}
+                  <div className="h-1 bg-honey-400 w-full" />
+                  <div className="px-3 pt-3 pb-3 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <Calendar size={16} className="text-honey-500" />
+                      {isToday && (
+                        <span className="text-[10px] font-bold uppercase tracking-wide bg-honey-100 text-honey-700 px-1.5 py-0.5 rounded-full">Today</span>
+                      )}
+                      {isTomorrow && !isToday && (
+                        <span className="text-[10px] font-bold uppercase tracking-wide bg-warmstone-100 text-warmstone-600 px-1.5 py-0.5 rounded-full">Tomorrow</span>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <p className="text-xs font-semibold text-honey-600">{day} {month} · {time}</p>
+                      <p className="text-sm font-bold text-warmstone-900 leading-snug line-clamp-2">{appt.title}</p>
+                      {person && (
+                        <p className="text-xs text-warmstone-400 truncate">{person.first_name}</p>
+                      )}
+                      {(appt.department || appt.location) && (
+                        <p className="text-xs text-warmstone-400 truncate">{appt.department ?? appt.location}</p>
+                      )}
+                    </div>
                   </div>
                 </Link>
               );

@@ -114,22 +114,21 @@ export default async function PersonOverviewPage({ params }: Props) {
           </div>
           {upcomingAppts.length > 0 ? (
             <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
-              {upcomingAppts.map((appt, i) => {
+              {upcomingAppts.map((appt) => {
                 const d = new Date(appt.appointment_date);
                 const day = d.toLocaleDateString("en-GB", { day: "numeric" });
                 const month = d.toLocaleDateString("en-GB", { month: "short" });
                 const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
                 const isToday = d.toDateString() === new Date().toDateString();
-                const palette = ["bg-honey-400", "bg-sage-500", "bg-blue-500", "bg-rose-400"] as const;
-                const headerBg = isToday ? "bg-honey-600" : palette[i % palette.length];
                 return (
-                  <div key={appt.id} className="flex-none w-[110px] rounded-lg overflow-hidden border border-warmstone-100 flex flex-col">
-                    <div className={`${headerBg} px-2 py-1.5 flex items-center justify-between`}>
-                      <span className="text-base font-black text-white leading-none">{day}</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wide text-white opacity-80">{month}</span>
-                    </div>
-                    <div className="px-2 py-2 flex flex-col gap-0.5">
-                      <p className="text-[10px] font-semibold text-warmstone-400">{time}</p>
+                  <div key={appt.id} className="flex-none w-[108px] bg-warmstone-white rounded-lg overflow-hidden border border-warmstone-100 flex flex-col">
+                    <div className="h-0.5 bg-honey-400 w-full" />
+                    <div className="px-2 pt-2 pb-2 flex flex-col gap-1">
+                      <div className="flex items-center justify-between">
+                        <Calendar size={12} className="text-honey-500" />
+                        {isToday && <span className="text-[9px] font-bold uppercase tracking-wide bg-honey-100 text-honey-700 px-1 py-0.5 rounded-full">Today</span>}
+                      </div>
+                      <p className="text-[10px] font-semibold text-honey-600">{day} {month} · {time}</p>
                       <p className="text-xs font-bold text-warmstone-900 leading-snug line-clamp-2">{appt.title}</p>
                       {(appt.department || appt.location) && (
                         <p className="text-[10px] text-warmstone-400 truncate">{appt.department ?? appt.location}</p>
