@@ -38,9 +38,12 @@ export default async function MembersPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const svcEarly = await createServiceClient();
+
   const [{ data: household }, { data: rawMembers }, { data: userMembership }] = await Promise.all([
     supabase.from("households").select("name").eq("id", householdId).single(),
-    supabase
+    // Service client bypasses RLS so profiles join returns data for all members
+    svcEarly
       .from("household_members")
       .select("*, profiles(full_name, email, avatar_url)")
       .eq("household_id", householdId),
@@ -62,7 +65,7 @@ export default async function MembersPage({ params }: Props) {
 
   let pendingInvites: PendingInviteRow[] = [];
   if (canEdit) {
-    const svc = await createServiceClient();
+    const svc = svcEarly;
     const now = new Date().toISOString();
     const { data: rawInvites } = await svc
       .from("invitations")

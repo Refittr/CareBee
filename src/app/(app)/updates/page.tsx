@@ -88,7 +88,7 @@ export default function UpdatesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl">
+    <div className="px-4 py-6 md:px-8 max-w-2xl flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-warmstone-900">Weekly updates</h1>

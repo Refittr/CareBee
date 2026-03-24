@@ -125,7 +125,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl">
+    <div className="px-4 py-6 md:px-8 max-w-2xl flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-bold text-warmstone-900">Settings</h1>
         <p className="text-sm text-warmstone-600 mt-0.5">Manage your account and notification preferences</p>
