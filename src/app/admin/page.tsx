@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import { Users, Home, FileText, TestTube, UserCheck, UserPlus, TrendingUp, Calendar } from "lucide-react";
+import { Users, Home, FileText, UserCheck, UserPlus, TrendingUp, Calendar } from "lucide-react";
+import { DashboardRecentActivity } from "./DashboardRecentActivity";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Admin Dashboard | CareBee" };
@@ -86,12 +87,12 @@ export default async function AdminDashboardPage() {
     })
   );
 
-  // Recent activity
-  const { data: recentActivity } = await svc
+  // Recent activity — first page (10 items), capped at 30 total
+  const { data: recentActivity, count: activityTotal } = await svc
     .from("admin_activity_log")
-    .select("id, user_id, action, entity_type, created_at")
+    .select("id, user_id, action, entity_type, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
-    .limit(20);
+    .range(0, 9);
 
   const activityWithUsers = await Promise.all(
     (recentActivity ?? []).map(async (log) => {
@@ -119,17 +120,6 @@ export default async function AdminDashboardPage() {
     const hours = Math.floor(mins / 60);
     if (hours < 24) return `${hours}h ago`;
     return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  }
-
-  function actionLabel(action: string) {
-    const map: Record<string, string> = {
-      user_signup: "signed up",
-      household_created: "created a household",
-      person_added: "added a person",
-      document_uploaded: "uploaded a document",
-      ai_scan_performed: "performed an AI scan",
-    };
-    return map[action] ?? action;
   }
 
   return (
@@ -201,29 +191,10 @@ export default async function AdminDashboardPage() {
           <h2 className="text-sm font-bold text-warmstone-700 uppercase tracking-wide mb-3">
             Recent activity
           </h2>
-          <div className="bg-warmstone-white border border-warmstone-200 rounded-lg overflow-hidden">
-            {activityWithUsers.length === 0 ? (
-              <p className="px-4 py-6 text-center text-warmstone-400 text-sm">
-                No activity logged yet. Activity is recorded as users interact with the app.
-              </p>
-            ) : (
-              <div className="divide-y divide-warmstone-50">
-                {activityWithUsers.map((log) => (
-                  <div key={log.id} className="px-4 py-3 hover:bg-warmstone-50">
-                    <p className="text-sm text-warmstone-900">
-                      <span className="font-medium">{log.user_name ?? log.user_email ?? "Unknown user"}</span>
-                      {" "}
-                      <span className="text-warmstone-600">{actionLabel(log.action)}</span>
-                    </p>
-                    {log.entity_type && (
-                      <p className="text-xs text-warmstone-400 mt-0.5 capitalize">{log.entity_type.replace(/_/g, " ")}</p>
-                    )}
-                    <p className="text-xs text-warmstone-400 mt-0.5">{formatRelative(log.created_at)}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <DashboardRecentActivity
+            initialActivity={activityWithUsers}
+            initialTotal={Math.min(activityTotal ?? 0, 30)}
+          />
         </div>
       </div>
     </div>

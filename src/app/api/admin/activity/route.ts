@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const page = parseInt(searchParams.get("page") ?? "1", 10);
   const actionFilter = searchParams.get("action") ?? "";
-  const perPage = 50;
+  const perPage = Math.min(parseInt(searchParams.get("perPage") ?? "50", 10), 50);
   const from = (page - 1) * perPage;
   const to = from + perPage - 1;
 
