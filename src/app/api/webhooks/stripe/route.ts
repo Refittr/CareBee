@@ -208,9 +208,11 @@ export async function POST(request: NextRequest) {
       // -----------------------------------------------------------------------
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
-        const subscriptionId = typeof invoice.subscription === "string"
-          ? invoice.subscription
-          : (invoice.subscription as Stripe.Subscription | null)?.id ?? null;
+        const subscriptionId = invoice.parent?.type === "subscription_details"
+          ? (typeof invoice.parent.subscription_details?.subscription === "string"
+            ? invoice.parent.subscription_details.subscription
+            : (invoice.parent.subscription_details?.subscription as Stripe.Subscription | null)?.id ?? null)
+          : null;
         if (!subscriptionId) break;
 
         const householdId = await findHouseholdBySubId(svc, subscriptionId);
@@ -241,9 +243,11 @@ export async function POST(request: NextRequest) {
       // -----------------------------------------------------------------------
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        const subscriptionId = typeof invoice.subscription === "string"
-          ? invoice.subscription
-          : (invoice.subscription as Stripe.Subscription | null)?.id ?? null;
+        const subscriptionId = invoice.parent?.type === "subscription_details"
+          ? (typeof invoice.parent.subscription_details?.subscription === "string"
+            ? invoice.parent.subscription_details.subscription
+            : (invoice.parent.subscription_details?.subscription as Stripe.Subscription | null)?.id ?? null)
+          : null;
         if (!subscriptionId) break;
 
         const householdId = await findHouseholdBySubId(svc, subscriptionId);
