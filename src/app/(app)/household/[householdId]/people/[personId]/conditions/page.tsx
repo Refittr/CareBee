@@ -193,7 +193,7 @@ export default function ConditionsPage() {
       />
 
       <ScanModal open={scanOpen} onClose={() => { setScanOpen(false); void load(); }} householdId={householdId} personId={personId} />
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <UpgradeModal householdId={householdId} open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

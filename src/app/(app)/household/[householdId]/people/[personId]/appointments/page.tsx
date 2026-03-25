@@ -484,7 +484,7 @@ export default function AppointmentsPage() {
       {prepTarget && <PrepModal appt={prepTarget} householdId={householdId} personId={personId} onClose={() => { setPrepTarget(null); load(); }} />}
       {debriefTarget && <DebriefModal appt={debriefTarget} householdId={householdId} personId={personId} existing={debriefs[debriefTarget.id] ?? null} onClose={() => setDebriefTarget(null)} onSaved={() => { setDebriefTarget(null); load(); }} />}
       <ScanModal open={scanOpen} onClose={() => { setScanOpen(false); void load(); }} householdId={householdId} personId={personId} />
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <UpgradeModal householdId={householdId} open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

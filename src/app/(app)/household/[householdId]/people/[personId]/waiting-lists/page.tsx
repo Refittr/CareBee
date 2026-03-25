@@ -467,7 +467,7 @@ export default function WaitingListsPage() {
         loading={deleting}
       />
 
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <UpgradeModal householdId={householdId} open={showUpgrade} onClose={() => setShowUpgrade(false)} />
       <ScanModal
         open={scanOpen}
         onClose={() => { setScanOpen(false); load(); }}

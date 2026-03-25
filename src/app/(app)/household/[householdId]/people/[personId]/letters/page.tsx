@@ -305,7 +305,7 @@ function LettersPageInner() {
 
   return (
     <div className="flex flex-col gap-6">
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <UpgradeModal householdId={householdId} open={showUpgrade} onClose={() => setShowUpgrade(false)} />
       <div>
         <h2 className="font-bold text-warmstone-900 text-lg">Letters and documents</h2>
         <p className="text-sm text-warmstone-500 mt-0.5">

@@ -127,7 +127,7 @@ export default function AllergiesPage() {
       <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Remove allergy" description={`Are you sure you want to remove the allergy to "${deleteTarget?.name}"?`} loading={deleting} />
 
       <ScanModal open={scanOpen} onClose={() => { setScanOpen(false); void load(); }} householdId={householdId} personId={personId} />
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <UpgradeModal householdId={householdId} open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

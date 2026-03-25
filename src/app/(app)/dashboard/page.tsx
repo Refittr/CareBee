@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, Home, Users, FlaskConical, Heart } from "lucide-react";
+import { Plus, Home, Users, Heart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -48,15 +48,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-4xl">
-      <div className="flex items-start gap-3 bg-honey-50 border border-honey-200 rounded-lg px-4 py-3 mb-5 text-sm text-honey-900">
-        <FlaskConical size={16} className="text-honey-600 shrink-0 mt-0.5" />
-        <p>
-          <span className="font-semibold">Thank you for helping to test CareBee.</span>{" "}
-          If you spot any bugs, please use the{" "}
-          <Link href="/report-bug" className="font-semibold underline hover:text-honey-700">Report a bug</Link>{" "}
-          button in the bottom left, or write in the WhatsApp group.
-        </p>
-      </div>
+
       <Header title="Your care records" actions={<SignOutButton />} />
       <Breadcrumbs items={[{ label: "Your care records" }]} />
 

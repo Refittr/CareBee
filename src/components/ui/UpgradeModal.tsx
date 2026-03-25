@@ -8,6 +8,7 @@ import { Button } from "./Button";
 interface UpgradeModalProps {
   open: boolean;
   onClose: () => void;
+  householdId: string;
 }
 
 const FEATURES = [
@@ -19,7 +20,7 @@ const FEATURES = [
   { icon: <Sparkles size={16} />, label: "Appointment prep briefs & post-visit summaries" },
 ];
 
-export function UpgradeModal({ open, onClose }: UpgradeModalProps) {
+export function UpgradeModal({ open, onClose, householdId }: UpgradeModalProps) {
   const [loading, setLoading] = useState<"monthly" | "annual" | null>(null);
 
   async function startCheckout(plan: "monthly" | "annual") {
@@ -28,7 +29,7 @@ export function UpgradeModal({ open, onClose }: UpgradeModalProps) {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, householdId }),
       });
       const data = await res.json();
       if (data.url) {

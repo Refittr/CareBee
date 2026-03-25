@@ -568,7 +568,7 @@ export default function EntitlementsPage() {
         </div>
       </Modal>
 
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <UpgradeModal householdId={householdId} open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

@@ -11,9 +11,12 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { plan } = body as { plan?: "monthly" | "annual" };
+  const { plan, householdId } = body as { plan?: "monthly" | "annual"; householdId?: string };
   if (plan !== "monthly" && plan !== "annual") {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+  }
+  if (!householdId) {
+    return NextResponse.json({ error: "Missing householdId" }, { status: 400 });
   }
 
   const priceId = plan === "monthly"
@@ -47,8 +50,9 @@ export async function POST(request: NextRequest) {
     success_url: `${origin}/settings?status=success`,
     cancel_url: `${origin}/settings`,
     allow_promotion_codes: true,
+    metadata: { supabase_user_id: user.id, household_id: householdId },
     subscription_data: {
-      metadata: { supabase_user_id: user.id },
+      metadata: { supabase_user_id: user.id, household_id: householdId },
     },
   });
 

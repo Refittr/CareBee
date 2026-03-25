@@ -376,7 +376,7 @@ export default function MedicationsPage() {
       <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Remove medication" description={`Are you sure you want to remove "${deleteTarget?.name}"? This cannot be undone.`} loading={deleting} />
 
       <ScanModal open={scanOpen} onClose={() => { setScanOpen(false); void afterMedSave(); }} householdId={householdId} personId={personId} />
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <UpgradeModal householdId={householdId} open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

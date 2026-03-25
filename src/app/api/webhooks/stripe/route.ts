@@ -4,62 +4,49 @@ import { stripe } from "@/lib/stripe";
 import type Stripe from "stripe";
 import type { PlanType } from "@/lib/types/database";
 
-function getPeriodEnd(subscription: Stripe.Subscription): string | null {
-  const item = subscription.items.data[0];
-  if (item?.current_period_end) {
-    return new Date(item.current_period_end * 1000).toISOString();
-  }
-  return null;
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function toIso(unixTs: number | null | undefined): string | null {
+  if (!unixTs) return null;
+  return new Date(unixTs * 1000).toISOString();
 }
 
-async function applySubscriptionUpdate(
-  svc: Awaited<ReturnType<typeof createServiceClient>>,
-  subscription: Stripe.Subscription,
-  userId: string
-) {
-  const priceId = subscription.items.data[0]?.price.id ?? null;
-  const periodEnd = getPeriodEnd(subscription);
-  const isActive = subscription.status === "active" || subscription.status === "trialing";
-
-  // Update legacy profile fields (used for billing UI display)
-  await svc.from("profiles").update({
-    is_subscribed: isActive,
-    subscription_status: subscription.status,
-    subscription_price_id: priceId,
-    subscription_current_period_end: periodEnd,
-    plan: (isActive ? "plus" : "family") as PlanType,
-  }).eq("id", userId);
-
-  // Update all households owned by this user so feature gating reflects the subscription
-  const householdStatus = isActive ? "active" : subscription.status === "past_due" ? "past_due" : "free";
-  const { data: ownedHouseholds } = await svc
-    .from("household_members")
-    .select("household_id")
-    .eq("user_id", userId)
-    .eq("role", "owner");
-
-  if (ownedHouseholds && ownedHouseholds.length > 0) {
-    const ids = ownedHouseholds.map((m) => m.household_id as string);
-    await svc.from("households").update({
-      subscription_status: householdStatus,
-      subscription_id: subscription.id,
-      subscription_started_at: isActive ? new Date(subscription.start_date * 1000).toISOString() : null,
-      subscription_ends_at: periodEnd,
-    }).in("id", ids);
-  }
+function log(event: string, subId: string | null, householdId: string | null, action: string) {
+  console.log(`[Stripe Webhook] ${event} | Sub: ${subId ?? "—"} | Household: ${householdId ?? "—"} | ${action}`);
 }
 
-async function resolveUserIdBySubscription(
+async function findHouseholdBySubId(
   svc: Awaited<ReturnType<typeof createServiceClient>>,
   subscriptionId: string
 ): Promise<string | null> {
   const { data } = await svc
-    .from("profiles")
+    .from("households")
     .select("id")
-    .eq("stripe_subscription_id", subscriptionId)
+    .eq("subscription_id", subscriptionId)
     .maybeSingle();
   return data?.id ?? null;
 }
+
+/** Derive the status to store on the household from a Stripe subscription. */
+function resolveHouseholdStatus(subscription: Stripe.Subscription): string {
+  if (subscription.cancel_at_period_end) return "cancelled";
+  switch (subscription.status) {
+    case "active":
+    case "trialing":
+      return "active";
+    case "past_due":
+    case "unpaid":
+      return "past_due";
+    default:
+      return "free";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Webhook handler
+// ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -73,7 +60,7 @@ export async function POST(request: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err) {
-    console.error("[stripe webhook] Signature verification failed:", err);
+    console.error("[Stripe Webhook] Signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -81,6 +68,8 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
+
+      // -----------------------------------------------------------------------
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode !== "subscription") break;
@@ -91,79 +80,189 @@ export async function POST(request: NextRequest) {
         if (!subscriptionId) break;
 
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const userId = subscription.metadata?.supabase_user_id
-          ?? session.metadata?.supabase_user_id;
+
+        const userId = subscription.metadata?.supabase_user_id ?? session.metadata?.supabase_user_id;
+        const householdId = subscription.metadata?.household_id ?? session.metadata?.household_id;
 
         if (!userId) {
-          console.error("[stripe webhook] No supabase_user_id in metadata", session.id);
+          console.error("[Stripe Webhook] checkout.session.completed: no supabase_user_id in metadata", session.id);
           break;
         }
 
         const customerId = typeof session.customer === "string"
           ? session.customer
-          : (session.customer as Stripe.Customer | null)?.id;
+          : (session.customer as Stripe.Customer | null)?.id ?? null;
 
+        // Store Stripe IDs on profile
         await svc.from("profiles").update({
           stripe_customer_id: customerId ?? undefined,
           stripe_subscription_id: subscriptionId,
+          is_subscribed: true,
+          subscription_status: subscription.status,
+          subscription_price_id: subscription.items.data[0]?.price.id ?? null,
+          subscription_current_period_end: toIso(subscription.items.data[0]?.current_period_end),
+          plan: "plus" as PlanType,
         }).eq("id", userId);
 
-        await applySubscriptionUpdate(svc, subscription, userId);
-        break;
-      }
-
-      case "customer.subscription.updated": {
-        const subscription = event.data.object as Stripe.Subscription;
-        const userId = subscription.metadata?.supabase_user_id
-          ?? await resolveUserIdBySubscription(svc, subscription.id);
-        if (!userId) break;
-        await applySubscriptionUpdate(svc, subscription, userId);
-        break;
-      }
-
-      case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
-        const userId = subscription.metadata?.supabase_user_id
-          ?? await resolveUserIdBySubscription(svc, subscription.id);
-        if (!userId) break;
-
-        await svc.from("profiles").update({
-          is_subscribed: false,
-          subscription_status: "canceled",
-          plan: "family" as PlanType,
-        }).eq("id", userId);
-
-        // Update owned households to free
-        const { data: ownedHouseholds } = await svc
-          .from("household_members")
-          .select("household_id")
-          .eq("user_id", userId)
-          .eq("role", "owner");
-        if (ownedHouseholds && ownedHouseholds.length > 0) {
-          const ids = ownedHouseholds.map((m) => m.household_id as string);
-          await svc.from("households").update({ subscription_status: "free" }).in("id", ids);
+        // Update the specific household
+        if (householdId) {
+          await svc.from("households").update({
+            subscription_status: "active",
+            subscription_id: subscriptionId,
+            subscription_started_at: toIso(subscription.start_date),
+            subscription_ends_at: toIso(subscription.items.data[0]?.current_period_end),
+          }).eq("id", householdId);
+          log("checkout.session.completed", subscriptionId, householdId, "Set status to active");
+        } else {
+          // Fallback: update all owned households if no household_id in metadata
+          const { data: owned } = await svc
+            .from("household_members")
+            .select("household_id")
+            .eq("user_id", userId)
+            .eq("role", "owner");
+          if (owned && owned.length > 0) {
+            const ids = owned.map((m) => m.household_id as string);
+            await svc.from("households").update({
+              subscription_status: "active",
+              subscription_id: subscriptionId,
+              subscription_started_at: toIso(subscription.start_date),
+              subscription_ends_at: toIso(subscription.items.data[0]?.current_period_end),
+            }).in("id", ids);
+            log("checkout.session.completed", subscriptionId, ids.join(","), "Set status to active (fallback: all owned)");
+          }
         }
         break;
       }
 
-      case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
-        const subscriptionId = invoice.parent?.type === "subscription_details"
-          ? (typeof invoice.parent.subscription_details?.subscription === "string"
-            ? invoice.parent.subscription_details.subscription
-            : invoice.parent.subscription_details?.subscription?.id)
-          : null;
-        if (!subscriptionId) break;
+      // -----------------------------------------------------------------------
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const householdId = await findHouseholdBySubId(svc, subscription.id)
+          ?? (await (async () => {
+            // Fallback via user metadata
+            const userId = subscription.metadata?.supabase_user_id;
+            if (!userId) return null;
+            const { data } = await svc.from("household_members").select("household_id").eq("user_id", userId).eq("role", "owner").maybeSingle();
+            return data?.household_id ?? null;
+          })());
 
-        await svc.from("profiles").update({
-          subscription_status: "past_due",
-        }).eq("stripe_subscription_id", subscriptionId);
+        const householdStatus = resolveHouseholdStatus(subscription);
+        const periodEnd = toIso(subscription.items.data[0]?.current_period_end);
+        const cancelAt = toIso(subscription.cancel_at ?? undefined);
+
+        const action = subscription.cancel_at_period_end
+          ? `Set status to cancelled (ends ${cancelAt})`
+          : `Set status to ${householdStatus}`;
+
+        log("customer.subscription.updated", subscription.id, householdId, action);
+
+        const updatePayload: Record<string, unknown> = {
+          subscription_status: householdStatus,
+          subscription_ends_at: subscription.cancel_at_period_end ? cancelAt : periodEnd,
+        };
+
+        if (householdId) {
+          await svc.from("households").update(updatePayload).eq("id", householdId);
+        }
+
+        // Keep profile in sync
+        const userId = subscription.metadata?.supabase_user_id;
+        if (userId) {
+          const isActive = subscription.status === "active" || subscription.status === "trialing";
+          await svc.from("profiles").update({
+            is_subscribed: isActive && !subscription.cancel_at_period_end,
+            subscription_status: subscription.status,
+            subscription_current_period_end: periodEnd,
+            plan: (isActive ? "plus" : "family") as PlanType,
+          }).eq("id", userId);
+        }
         break;
       }
+
+      // -----------------------------------------------------------------------
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const householdId = await findHouseholdBySubId(svc, subscription.id);
+
+        log("customer.subscription.deleted", subscription.id, householdId, "Set status to free");
+
+        if (householdId) {
+          await svc.from("households").update({
+            subscription_status: "free",
+            subscription_ends_at: new Date().toISOString(),
+            // Keep subscription_id and subscription_started_at for records
+          }).eq("id", householdId);
+        }
+
+        const userId = subscription.metadata?.supabase_user_id;
+        if (userId) {
+          await svc.from("profiles").update({
+            is_subscribed: false,
+            subscription_status: "canceled",
+            plan: "family" as PlanType,
+          }).eq("id", userId);
+        }
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscriptionId = typeof invoice.subscription === "string"
+          ? invoice.subscription
+          : (invoice.subscription as Stripe.Subscription | null)?.id ?? null;
+        if (!subscriptionId) break;
+
+        const householdId = await findHouseholdBySubId(svc, subscriptionId);
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const periodEnd = toIso(subscription.items.data[0]?.current_period_end);
+
+        log("invoice.payment_succeeded", subscriptionId, householdId, `Set status to active, ends ${periodEnd}`);
+
+        if (householdId) {
+          await svc.from("households").update({
+            subscription_status: "active",
+            subscription_ends_at: periodEnd,
+          }).eq("id", householdId);
+        }
+
+        const userId = subscription.metadata?.supabase_user_id;
+        if (userId) {
+          await svc.from("profiles").update({
+            is_subscribed: true,
+            subscription_status: "active",
+            subscription_current_period_end: periodEnd,
+            plan: "plus" as PlanType,
+          }).eq("id", userId);
+        }
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscriptionId = typeof invoice.subscription === "string"
+          ? invoice.subscription
+          : (invoice.subscription as Stripe.Subscription | null)?.id ?? null;
+        if (!subscriptionId) break;
+
+        const householdId = await findHouseholdBySubId(svc, subscriptionId);
+        log("invoice.payment_failed", subscriptionId, householdId, "Set status to past_due");
+
+        if (householdId) {
+          await svc.from("households").update({ subscription_status: "past_due" }).eq("id", householdId);
+        }
+
+        // Also update profile for billing UI
+        await svc.from("profiles").update({ subscription_status: "past_due" }).eq("stripe_subscription_id", subscriptionId);
+        break;
+      }
+
     }
   } catch (err) {
-    console.error("[stripe webhook] Error handling event:", event.type, err);
-    return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
+    console.error("[Stripe Webhook] Error handling event:", event.type, err);
+    // Return 200 so Stripe does not keep retrying for bugs on our side
+    return NextResponse.json({ received: true, error: "Handler error" });
   }
 
   return NextResponse.json({ received: true });

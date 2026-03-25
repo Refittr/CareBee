@@ -153,7 +153,7 @@ export default function InsightsPage() {
             <Sparkles size={15} /> See what&apos;s included
           </button>
         </div>
-        <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+        <UpgradeModal householdId={householdId} open={showUpgrade} onClose={() => setShowUpgrade(false)} />
       </>
     );
   }
@@ -294,7 +294,7 @@ export default function InsightsPage() {
         </div>
       )}
 
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <UpgradeModal householdId={householdId} open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

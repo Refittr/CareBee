@@ -10,6 +10,7 @@ interface ProfileForPermissions {
 interface HouseholdForPermissions {
   subscription_status: string;
   trial_ends_at?: string | null;
+  subscription_ends_at?: string | null;
 }
 
 /**
@@ -27,6 +28,15 @@ export function hasCareRecordPremiumAccess(
   if (household.subscription_status === "active") {
     return true;
   }
+  // Past due: Stripe is retrying payment, keep access
+  if (household.subscription_status === "past_due") {
+    return true;
+  }
+  // Cancelled but still within the paid period
+  if (household.subscription_status === "cancelled" && household.subscription_ends_at) {
+    return new Date(household.subscription_ends_at) > new Date();
+  }
+  // Active trial
   if (
     household.subscription_status === "trial" &&
     household.trial_ends_at &&

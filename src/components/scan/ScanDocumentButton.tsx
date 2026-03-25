@@ -48,7 +48,7 @@ export function ScanDocumentButton({ householdId, personId }: ScanDocumentButton
         householdId={householdId}
         personId={personId}
       />
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <UpgradeModal householdId={householdId} open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </>
   );
 }

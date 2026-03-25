@@ -34,6 +34,7 @@ interface HouseholdMembership {
 interface PlanInfo {
   household_sub_status: string | null;
   household_trial_ends_at: string | null;
+  household_subscription_ends_at: string | null;
   is_subscribed: boolean;
   subscription_current_period_end: string | null;
   subscription_status: string | null;
@@ -63,6 +64,7 @@ function SettingsContent() {
   const [savingName, setSavingName] = useState(false);
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
   const [accountType, setAccountType] = useState<string | null>(null);
+  const [ownedHouseholdId, setOwnedHouseholdId] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<"monthly" | "annual" | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
@@ -96,20 +98,24 @@ function SettingsContent() {
 
     let householdSubStatus: string | null = null;
     let householdTrialEndsAt: string | null = null;
+    let householdSubscriptionEndsAt: string | null = null;
     if (ownedMembership) {
+      setOwnedHouseholdId(ownedMembership.household_id);
       const { data: hh } = await supabase
         .from("households")
-        .select("subscription_status, trial_ends_at")
+        .select("subscription_status, trial_ends_at, subscription_ends_at")
         .eq("id", ownedMembership.household_id)
         .maybeSingle();
       householdSubStatus = hh?.subscription_status ?? null;
       householdTrialEndsAt = hh?.trial_ends_at ?? null;
+      householdSubscriptionEndsAt = (hh as { subscription_ends_at?: string | null } | null)?.subscription_ends_at ?? null;
     }
 
     if (profile) {
       setPlanInfo({
         household_sub_status: householdSubStatus,
         household_trial_ends_at: householdTrialEndsAt,
+        household_subscription_ends_at: householdSubscriptionEndsAt,
         profile_trial_ends_at: profile.trial_ends_at ?? null,
         is_subscribed: profile.is_subscribed ?? false,
         subscription_status: profile.subscription_status ?? null,
@@ -211,7 +217,7 @@ function SettingsContent() {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, householdId: ownedHouseholdId }),
       });
       const data = await res.json();
       if (data.url) {
@@ -317,6 +323,19 @@ function SettingsContent() {
               </div>
               <p className="text-sm text-warmstone-500">You have full access to all CareBee features. No subscription needed.</p>
             </Card>
+          ) : planInfo?.household_sub_status === "past_due" ? (
+            <Card className="flex flex-col gap-3 p-4 border-red-200">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-honey-500" />
+                <span className="font-semibold text-warmstone-900">CareBee Plus</span>
+                <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">Payment failed</span>
+              </div>
+              <p className="text-sm text-red-700">Your last payment did not go through. Please update your payment method to keep access.</p>
+              <Button size="sm" variant="secondary" className="gap-1.5 w-fit" onClick={openPortal} loading={portalLoading}>
+                <CreditCard size={14} />
+                Update payment method
+              </Button>
+            </Card>
           ) : (planInfo?.household_sub_status === "active" || planInfo?.is_subscribed) ? (
             <Card className="flex flex-col gap-3 p-4">
               <div className="flex items-center gap-2">
@@ -326,20 +345,29 @@ function SettingsContent() {
               </div>
               {planInfo.subscription_current_period_end && (
                 <p className="text-xs text-warmstone-500">
-                  {planInfo.subscription_status === "canceled"
-                    ? `Access until ${new Date(planInfo.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
-                    : `Renews ${new Date(planInfo.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`}
+                  Renews {new Date(planInfo.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
                 </p>
               )}
-              <Button
-                size="sm"
-                variant="secondary"
-                className="gap-1.5 w-fit"
-                onClick={openPortal}
-                loading={portalLoading}
-              >
+              <Button size="sm" variant="secondary" className="gap-1.5 w-fit" onClick={openPortal} loading={portalLoading}>
                 <CreditCard size={14} />
                 Manage billing
+              </Button>
+            </Card>
+          ) : planInfo?.household_sub_status === "cancelled" ? (
+            <Card className="flex flex-col gap-3 p-4">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-warmstone-400" />
+                <span className="font-semibold text-warmstone-900">CareBee Plus</span>
+                <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-warmstone-100 text-warmstone-600">Cancelled</span>
+              </div>
+              {planInfo.household_subscription_ends_at && (
+                <p className="text-sm text-warmstone-600">
+                  You still have full access until {new Date(planInfo.household_subscription_ends_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.
+                </p>
+              )}
+              <Button size="sm" variant="secondary" className="gap-1.5 w-fit" onClick={openPortal} loading={portalLoading}>
+                <CreditCard size={14} />
+                Resubscribe
               </Button>
             </Card>
           ) : (() => {
