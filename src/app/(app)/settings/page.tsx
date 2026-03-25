@@ -37,6 +37,7 @@ interface PlanInfo {
   is_subscribed: boolean;
   subscription_current_period_end: string | null;
   subscription_status: string | null;
+  profile_trial_ends_at: string | null;
 }
 
 export default function SettingsPage() {
@@ -73,7 +74,7 @@ function SettingsContent() {
     if (!user) { setLoading(false); return; }
 
     const [{ data: profile }, { data: members }] = await Promise.all([
-      supabase.from("profiles").select("email, full_name, account_type, is_subscribed, subscription_status, subscription_current_period_end").eq("id", user.id).single(),
+      supabase.from("profiles").select("email, full_name, account_type, is_subscribed, trial_ends_at, subscription_status, subscription_current_period_end").eq("id", user.id).single(),
       supabase.from("household_members")
         .select("household_id, weekly_digest_enabled, weekly_digest_day, last_digest_sent_at")
         .eq("user_id", user.id)
@@ -109,6 +110,7 @@ function SettingsContent() {
       setPlanInfo({
         household_sub_status: householdSubStatus,
         household_trial_ends_at: householdTrialEndsAt,
+        profile_trial_ends_at: profile.trial_ends_at ?? null,
         is_subscribed: profile.is_subscribed ?? false,
         subscription_status: profile.subscription_status ?? null,
         subscription_current_period_end: profile.subscription_current_period_end ?? null,
@@ -309,7 +311,7 @@ function SettingsContent() {
               </div>
               <p className="text-sm text-warmstone-500">You have full access to all CareBee features. No subscription needed.</p>
             </Card>
-          ) : planInfo?.household_sub_status === "active" ? (
+          ) : (planInfo?.household_sub_status === "active" || planInfo?.is_subscribed) ? (
             <Card className="flex flex-col gap-3 p-4">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-honey-500" />
@@ -335,11 +337,12 @@ function SettingsContent() {
               </Button>
             </Card>
           ) : (() => {
-            const trialActive = planInfo?.household_sub_status === "trial"
-              && planInfo.household_trial_ends_at
-              && new Date(planInfo.household_trial_ends_at) > new Date();
+            // Use household trial date if available, fall back to profile trial date
+            const trialEndsAt = planInfo?.household_trial_ends_at ?? planInfo?.profile_trial_ends_at ?? null;
+            const householdIsTrial = planInfo?.household_sub_status === "trial";
+            const trialActive = householdIsTrial && trialEndsAt && new Date(trialEndsAt) > new Date();
             const daysLeft = trialActive
-              ? Math.max(0, Math.ceil((new Date(planInfo!.household_trial_ends_at!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+              ? Math.max(0, Math.ceil((new Date(trialEndsAt!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
               : 0;
             return (
               <Card className="flex flex-col gap-4 p-4">
