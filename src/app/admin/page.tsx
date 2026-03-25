@@ -79,11 +79,13 @@ export default async function AdminDashboardPage() {
 
   const signupsWithHouseholds = await Promise.all(
     (recentSignups ?? []).map(async (p) => {
-      const { count } = await svc
+      const { data: memberships } = await svc
         .from("household_members")
-        .select("*", { count: "exact", head: true })
+        .select("role")
         .eq("user_id", p.id);
-      return { ...p, household_count: count ?? 0 };
+      const roles = (memberships ?? []).map((m) => m.role as string);
+      const isViewOnly = roles.length > 0 && roles.every((r) => r === "viewer" || r === "emergency_only");
+      return { ...p, household_count: roles.length, is_view_only: isViewOnly };
     })
   );
 
@@ -158,7 +160,12 @@ export default async function AdminDashboardPage() {
                 {signupsWithHouseholds.map((p) => (
                   <tr key={p.id} className="border-b border-warmstone-50 hover:bg-warmstone-50 last:border-0">
                     <td className="px-4 py-2.5">
-                      <p className="font-medium text-warmstone-900 truncate max-w-[140px]">{p.full_name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium text-warmstone-900 truncate max-w-[130px]">{p.full_name}</p>
+                        {p.is_view_only && (
+                          <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-warmstone-100 text-warmstone-500 border border-warmstone-200">VO</span>
+                        )}
+                      </div>
                       <p className="text-xs text-warmstone-400 truncate max-w-[140px]">{p.email}</p>
                     </td>
                     <td className="px-4 py-2.5 hidden md:table-cell">
