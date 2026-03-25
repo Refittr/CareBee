@@ -17,6 +17,8 @@ import { formatDateUK } from "@/lib/utils/dates";
 import { formatDocumentType } from "@/lib/utils/formatting";
 import type { Document, DocumentType } from "@/lib/types/database";
 import { useCanEdit } from "@/lib/context/role";
+import { useAIAccess } from "@/lib/utils/access";
+import { UpgradeModal } from "@/components/ui/UpgradeModal";
 
 export default function DocumentsPage() {
   const params = useParams<{ householdId: string; personId: string }>();
@@ -25,6 +27,7 @@ export default function DocumentsPage() {
   const { addToast } = useAppToast();
 
   const canEdit = useCanEdit();
+  const { hasAccess } = useAIAccess(householdId);
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
@@ -32,8 +35,17 @@ export default function DocumentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  function handleScanClick() {
+    if (hasAccess === false) {
+      setShowUpgrade(true);
+    } else {
+      setScanOpen(true);
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -89,8 +101,8 @@ export default function DocumentsPage() {
       {canEdit && (
         <div className="flex flex-col sm:flex-row gap-3">
           <button
-            onClick={() => setScanOpen(true)}
-            className="flex-1 flex items-start gap-3 bg-sage-500 hover:bg-sage-600 text-warmstone-white rounded-xl p-4 transition-colors text-left"
+            onClick={handleScanClick}
+            className="flex-1 flex items-start gap-3 bg-sage-400 hover:bg-sage-600 text-warmstone-white rounded-xl p-4 transition-colors text-left"
           >
             <Sparkles size={20} className="shrink-0 mt-0.5" />
             <div>
@@ -122,7 +134,7 @@ export default function DocumentsPage() {
           </div>
           {canEdit && (
             <>
-              <Button onClick={() => setScanOpen(true)} variant="secondary" className="mt-1 gap-2">
+              <Button onClick={handleScanClick} variant="secondary" className="mt-1 gap-2">
                 <Sparkles size={16} />
                 Scan your first document
               </Button>
@@ -180,6 +192,7 @@ export default function DocumentsPage() {
         householdId={householdId}
         personId={personId}
       />
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

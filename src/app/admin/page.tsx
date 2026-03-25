@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import { Users, Home, FileText, UserCheck, UserPlus, TrendingUp, Calendar } from "lucide-react";
+import { Users, Home, FileText, UserCheck, UserPlus, TrendingUp, Calendar, CreditCard, Clock, AlertCircle, UserMinus, PoundSterling } from "lucide-react";
 import { DashboardRecentActivity } from "./DashboardRecentActivity";
 import type { Metadata } from "next";
 
@@ -10,29 +10,25 @@ function StatCard({
   label,
   value,
   highlight,
+  iconColor,
 }: {
   icon: React.ElementType;
   label: string;
   value: number | string;
   highlight?: boolean;
+  iconColor?: string;
 }) {
   return (
     <div
       className={`bg-warmstone-white border rounded-lg p-4 flex flex-col gap-2 ${
-        highlight
-          ? "border-honey-300 bg-honey-50"
-          : "border-warmstone-200"
+        highlight ? "border-honey-300 bg-honey-50" : "border-warmstone-200"
       }`}
     >
-      <div className="flex items-center gap-2 text-warmstone-500">
+      <div className={`flex items-center gap-2 ${iconColor ?? "text-warmstone-500"}`}>
         <Icon size={15} />
-        <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+        <span className="text-xs font-medium uppercase tracking-wide text-warmstone-500">{label}</span>
       </div>
-      <p
-        className={`text-3xl font-bold ${
-          highlight ? "text-honey-600" : "text-warmstone-900"
-        }`}
-      >
+      <p className={`text-3xl font-bold ${highlight ? "text-honey-600" : "text-warmstone-900"}`}>
         {value}
       </p>
     </div>
@@ -49,6 +45,7 @@ export default async function AdminDashboardPage() {
   weekStart.setDate(now.getDate() - 7);
   const monthStart = new Date(now);
   monthStart.setDate(now.getDate() - 30);
+  const nowIso = now.toISOString();
 
   const [
     { count: totalUsers },
@@ -59,6 +56,12 @@ export default async function AdminDashboardPage() {
     { count: totalPeople },
     { count: totalDocuments },
     { count: activeTesters },
+    // Subscription stats
+    { count: activeSubscribers },
+    { count: inTrial },
+    { count: trialExpired },
+    { count: freePlan },
+    { count: cancelled },
   ] = await Promise.all([
     svc.from("profiles").select("*", { count: "exact", head: true }),
     svc.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", todayStart.toISOString()),
@@ -68,7 +71,19 @@ export default async function AdminDashboardPage() {
     svc.from("people").select("*", { count: "exact", head: true }),
     svc.from("documents").select("*", { count: "exact", head: true }),
     svc.from("profiles").select("*", { count: "exact", head: true }).eq("account_type", "tester"),
+    svc.from("households").select("*", { count: "exact", head: true }).eq("subscription_status", "active"),
+    svc.from("households").select("*", { count: "exact", head: true }).eq("subscription_status", "trial").gt("trial_ends_at", nowIso),
+    svc.from("households").select("*", { count: "exact", head: true }).eq("subscription_status", "trial").lte("trial_ends_at", nowIso),
+    svc.from("households").select("*", { count: "exact", head: true }).eq("subscription_status", "free"),
+    svc.from("households").select("*", { count: "exact", head: true }).eq("subscription_status", "cancelled"),
   ]);
+
+  const activeCount = activeSubscribers ?? 0;
+  const expiredCount = (trialExpired ?? 0) + (freePlan ?? 0);
+  const cancelledCount = cancelled ?? 0;
+  const denominator = activeCount + expiredCount + cancelledCount;
+  const conversionRate = denominator > 0 ? `${((activeCount / denominator) * 100).toFixed(1)}%` : "0%";
+  const estimatedMrr = `£${(activeCount * 4.99).toFixed(2)}`;
 
   // Recent signups
   const { data: recentSignups } = await svc
@@ -89,7 +104,7 @@ export default async function AdminDashboardPage() {
     })
   );
 
-  // Recent activity — first page (10 items), capped at 30 total
+  // Recent activity
   const { data: recentActivity, count: activityTotal } = await svc
     .from("admin_activity_log")
     .select("id, user_id, action, entity_type, created_at", { count: "exact" })
@@ -128,8 +143,8 @@ export default async function AdminDashboardPage() {
     <div className="p-6 max-w-6xl">
       <h1 className="text-xl font-bold text-warmstone-900 mb-6">Dashboard</h1>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+      {/* User stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
         <StatCard icon={Users} label="Total users" value={totalUsers ?? 0} />
         <StatCard icon={UserPlus} label="Today" value={todayUsers ?? 0} highlight />
         <StatCard icon={TrendingUp} label="This week" value={weekUsers ?? 0} />
@@ -140,12 +155,20 @@ export default async function AdminDashboardPage() {
         <StatCard icon={UserCheck} label="Active testers" value={activeTesters ?? 0} />
       </div>
 
+      {/* Subscription stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+        <StatCard icon={CreditCard} label="Subscribers" value={activeCount} iconColor="text-sage-500" />
+        <StatCard icon={Clock} label="In trial" value={inTrial ?? 0} iconColor="text-honey-500" />
+        <StatCard icon={AlertCircle} label="Trial expired" value={expiredCount} iconColor="text-warmstone-400" />
+        <StatCard icon={UserMinus} label="Churned" value={cancelledCount} iconColor="text-error" />
+        <StatCard icon={TrendingUp} label="Conversion" value={conversionRate} iconColor="text-sage-500" />
+        <StatCard icon={PoundSterling} label="Est. MRR" value={estimatedMrr} iconColor="text-honey-500" />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent signups */}
         <div>
-          <h2 className="text-sm font-bold text-warmstone-700 uppercase tracking-wide mb-3">
-            Recent signups
-          </h2>
+          <h2 className="text-sm font-bold text-warmstone-700 uppercase tracking-wide mb-3">Recent signups</h2>
           <div className="bg-warmstone-white border border-warmstone-200 rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -173,19 +196,13 @@ export default async function AdminDashboardPage() {
                         {p.account_type as string}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-warmstone-500">
-                      {formatRelative(p.created_at)}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-warmstone-600 font-medium text-xs">
-                      {p.household_count}
-                    </td>
+                    <td className="px-4 py-2.5 text-xs text-warmstone-500">{formatRelative(p.created_at)}</td>
+                    <td className="px-4 py-2.5 text-right text-warmstone-600 font-medium text-xs">{p.household_count}</td>
                   </tr>
                 ))}
                 {signupsWithHouseholds.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-warmstone-400 text-sm">
-                      No users yet.
-                    </td>
+                    <td colSpan={4} className="px-4 py-6 text-center text-warmstone-400 text-sm">No users yet.</td>
                   </tr>
                 )}
               </tbody>
@@ -195,9 +212,7 @@ export default async function AdminDashboardPage() {
 
         {/* Recent activity */}
         <div>
-          <h2 className="text-sm font-bold text-warmstone-700 uppercase tracking-wide mb-3">
-            Recent activity
-          </h2>
+          <h2 className="text-sm font-bold text-warmstone-700 uppercase tracking-wide mb-3">Recent activity</h2>
           <DashboardRecentActivity
             initialActivity={activityWithUsers}
             initialTotal={Math.min(activityTotal ?? 0, 30)}

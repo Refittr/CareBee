@@ -9,7 +9,7 @@ export default async function AdminHouseholdsPage() {
 
   const { data: households, count } = await svc
     .from("households")
-    .select("id, name, created_by, created_at", { count: "exact" })
+    .select("id, name, created_by, created_at, subscription_status, trial_ends_at, subscription_started_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(0, 49);
 
@@ -31,12 +31,18 @@ export default async function AdminHouseholdsPage() {
             .eq("id", h.created_by)
             .maybeSingle(),
         ]);
+
+      const daysLeft = h.subscription_status === "trial" && h.trial_ends_at
+        ? Math.max(0, Math.ceil((new Date(h.trial_ends_at).getTime() - Date.now()) / 86400000))
+        : null;
+
       return {
         ...h,
         member_count: memberCount ?? 0,
         people_count: peopleCount ?? 0,
         owner_name: owner?.full_name ?? null,
         owner_email: owner?.email ?? null,
+        trial_days_left: daysLeft,
       };
     })
   );

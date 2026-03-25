@@ -6,7 +6,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
  * Returns { svc } on success, or a NextResponse 401/403 on failure.
  */
 export async function requireAdmin(): Promise<
-  | { ok: true; svc: Awaited<ReturnType<typeof createServiceClient>> }
+  | { ok: true; svc: Awaited<ReturnType<typeof createServiceClient>>; userId: string }
   | { ok: false; response: NextResponse }
 > {
   const supabase = await createClient();
@@ -36,5 +36,5 @@ export async function requireAdmin(): Promise<
     };
   }
 
-  return { ok: true, svc };
+  return { ok: true, svc, userId: user.id };
 }

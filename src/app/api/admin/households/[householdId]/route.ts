@@ -15,7 +15,7 @@ export async function GET(
     await Promise.all([
       svc
         .from("households")
-        .select("id, name, created_at")
+        .select("id, name, created_at, created_by, subscription_status, trial_ends_at, subscription_started_at, subscription_ends_at, subscription_id")
         .eq("id", householdId)
         .maybeSingle(),
       svc
@@ -32,36 +32,32 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Enrich members with profile data
   const membersWithProfiles = await Promise.all(
     (members ?? []).map(async (m) => {
       const { data: profile } = await svc
         .from("profiles")
-        .select("full_name, email")
+        .select("full_name, email, stripe_customer_id")
         .eq("id", m.user_id)
         .maybeSingle();
-      return { ...m, full_name: profile?.full_name, email: profile?.email };
+      return {
+        ...m,
+        full_name: profile?.full_name ?? null,
+        email: profile?.email ?? null,
+        stripe_customer_id: profile?.stripe_customer_id ?? null,
+      };
     })
   );
 
-  // Get counts per person
+  const owner = membersWithProfiles.find((m) => m.role === "owner");
+  const stripeCustomerId = owner?.stripe_customer_id ?? null;
+
   const peopleWithCounts = await Promise.all(
     (people ?? []).map(async (p) => {
       const [{ count: condCount }, { count: medCount }, { count: docCount }] =
         await Promise.all([
-          svc
-            .from("conditions")
-            .select("*", { count: "exact", head: true })
-            .eq("person_id", p.id),
-          svc
-            .from("medications")
-            .select("*", { count: "exact", head: true })
-            .eq("person_id", p.id)
-            .eq("is_active", true),
-          svc
-            .from("documents")
-            .select("*", { count: "exact", head: true })
-            .eq("person_id", p.id),
+          svc.from("conditions").select("*", { count: "exact", head: true }).eq("person_id", p.id),
+          svc.from("medications").select("*", { count: "exact", head: true }).eq("person_id", p.id).eq("is_active", true),
+          svc.from("documents").select("*", { count: "exact", head: true }).eq("person_id", p.id),
         ]);
       return {
         ...p,
@@ -73,7 +69,7 @@ export async function GET(
   );
 
   return NextResponse.json({
-    household,
+    household: { ...household, stripe_customer_id: stripeCustomerId },
     members: membersWithProfiles,
     people: peopleWithCounts,
   });

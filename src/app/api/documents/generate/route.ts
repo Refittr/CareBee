@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { calculateAge } from "@/lib/utils/dates";
 import { trackApiCall } from "@/lib/analytics-server";
+import { hasCareRecordPremiumAccess } from "@/lib/permissions";
 
 const SYSTEM_PROMPT = `You are a letter and document writer for CareBee, a UK family health and care record app. You write letters, applications, and supporting statements for UK families navigating health, care, and benefits systems.
 
@@ -74,6 +75,15 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (!membership) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const [{ data: profile }, { data: household }] = await Promise.all([
+    svc.from("profiles").select("account_type").eq("id", user.id).maybeSingle(),
+    svc.from("households").select("subscription_status, trial_ends_at").eq("id", household_id).maybeSingle(),
+  ]);
+
+  if (!profile || !household || !hasCareRecordPremiumAccess(household, profile)) {
+    return NextResponse.json({ error: "This feature requires a Plus subscription." }, { status: 403 });
+  }
 
   const [{ data: person }, { data: conditions }, { data: medications }, { data: allergies }, { data: appointments }, { data: careNotes }] =
     await Promise.all([

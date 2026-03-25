@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Search, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import type { AccountType } from "@/lib/types/database";
+import type { UserSubStatus } from "@/app/api/admin/users/route";
 
 interface AdminUser {
   id: string;
@@ -13,6 +14,37 @@ interface AdminUser {
   updated_at: string;
   household_count: number;
   people_count: number;
+  subscription_status: UserSubStatus;
+  subscription_days_left: number | null;
+}
+
+const subBadgeStyle: Record<UserSubStatus, string> = {
+  active: "bg-sage-100 text-sage-700 border border-sage-300",
+  trial_active: "bg-honey-100 text-honey-700 border border-honey-300",
+  trial_expired: "bg-warmstone-100 text-warmstone-500 border border-warmstone-200",
+  past_due: "bg-red-100 text-red-700 border border-red-300",
+  cancelled: "bg-warmstone-100 text-warmstone-400 border border-warmstone-200",
+  free: "bg-warmstone-100 text-warmstone-500 border border-warmstone-200",
+  none: "bg-warmstone-50 text-warmstone-400 border border-warmstone-100",
+};
+
+const subBadgeLabel: Record<UserSubStatus, string> = {
+  active: "Plus",
+  trial_active: "Trial",
+  trial_expired: "Expired",
+  past_due: "Past due",
+  cancelled: "Cancelled",
+  free: "Free",
+  none: "—",
+};
+
+function SubBadge({ status, daysLeft }: { status: UserSubStatus; daysLeft: number | null }) {
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${subBadgeStyle[status]}`}>
+      {subBadgeLabel[status]}
+      {status === "trial_active" && daysLeft !== null && ` · ${daysLeft}d`}
+    </span>
+  );
 }
 
 const accountTypeBadge: Record<AccountType, string> = {
@@ -149,20 +181,32 @@ function ActionsDropdown({
   );
 }
 
+const subFilterOptions: { value: string; label: string }[] = [
+  { value: "", label: "All users" },
+  { value: "plus", label: "Plus subscribers" },
+  { value: "trial", label: "In trial" },
+  { value: "trial_expired", label: "Trial expired" },
+  { value: "free", label: "Free" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "none", label: "No care record" },
+];
+
 export function UsersClient({ initialUsers, initialTotal }: { initialUsers: AdminUser[]; initialTotal: number }) {
   const [users, setUsers] = useState<AdminUser[]>(initialUsers);
   const [total, setTotal] = useState(initialTotal);
   const [search, setSearch] = useState("");
+  const [subFilter, setSubFilter] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
   const perPage = 50;
   const totalPages = Math.ceil(total / perPage);
 
-  const fetchUsers = useCallback(async (q: string, p: number) => {
+  const fetchUsers = useCallback(async (q: string, p: number, sub: string) => {
     setLoading(true);
     const params = new URLSearchParams({ page: String(p) });
     if (q) params.set("search", q);
+    if (sub) params.set("subscription", sub);
     const res = await fetch(`/api/admin/users?${params}`);
     const data = await res.json();
     setUsers(data.users ?? []);
@@ -173,12 +217,18 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     setPage(1);
-    await fetchUsers(search, 1);
+    await fetchUsers(search, 1, subFilter);
+  }
+
+  async function handleSubFilter(sub: string) {
+    setSubFilter(sub);
+    setPage(1);
+    await fetchUsers(search, 1, sub);
   }
 
   async function handlePage(p: number) {
     setPage(p);
-    await fetchUsers(search, p);
+    await fetchUsers(search, p, subFilter);
   }
 
   async function handleChangeType(userId: string, type: AccountType) {
@@ -202,24 +252,35 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
 
   return (
     <div>
-      <form onSubmit={handleSearch} className="flex gap-2 mb-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-warmstone-400" />
-          <input
-            type="text"
-            placeholder="Search by name or email"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-warmstone-200 rounded-md bg-warmstone-white text-warmstone-900 placeholder:text-warmstone-400 focus:outline-none focus:ring-2 focus:ring-honey-200 focus:border-honey-400"
-          />
-        </div>
-        <button
-          type="submit"
-          className="px-4 py-2 text-sm font-bold bg-honey-400 text-warmstone-white rounded-md hover:bg-honey-600 transition-colors"
+      <div className="flex flex-wrap gap-2 mb-4">
+        <form onSubmit={handleSearch} className="flex gap-2 flex-1 min-w-0">
+          <div className="relative flex-1 max-w-sm">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-warmstone-400" />
+            <input
+              type="text"
+              placeholder="Search by name or email"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm border border-warmstone-200 rounded-md bg-warmstone-white text-warmstone-900 placeholder:text-warmstone-400 focus:outline-none focus:ring-2 focus:ring-honey-200 focus:border-honey-400"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-4 py-2 text-sm font-bold bg-honey-400 text-warmstone-white rounded-md hover:bg-honey-600 transition-colors"
+          >
+            Search
+          </button>
+        </form>
+        <select
+          value={subFilter}
+          onChange={(e) => handleSubFilter(e.target.value)}
+          className="px-3 py-2 text-sm border border-warmstone-200 rounded-md bg-warmstone-white text-warmstone-700 focus:outline-none focus:ring-2 focus:ring-honey-200 focus:border-honey-400"
         >
-          Search
-        </button>
-      </form>
+          {subFilterOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
 
       <div className="bg-warmstone-white border border-warmstone-200 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -228,6 +289,7 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
               <tr className="border-b border-warmstone-200 bg-warmstone-50">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500">Name</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500">Type</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500 hidden lg:table-cell">Subscription</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500 hidden md:table-cell">Signed up</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-warmstone-500">HH</th>
                 <th className="px-4 py-3" />
@@ -245,6 +307,9 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
                       {u.account_type}
                     </span>
                   </td>
+                  <td className="px-4 py-3 hidden lg:table-cell">
+                    <SubBadge status={u.subscription_status} daysLeft={u.subscription_days_left} />
+                  </td>
                   <td className="px-4 py-3 text-xs text-warmstone-500 hidden md:table-cell">
                     {formatDate(u.created_at)}
                   </td>
@@ -258,7 +323,7 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
               ))}
               {users.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-warmstone-400">
+                  <td colSpan={6} className="px-4 py-8 text-center text-warmstone-400">
                     No users found.
                   </td>
                 </tr>

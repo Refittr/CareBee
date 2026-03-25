@@ -32,11 +32,11 @@ interface HouseholdMembership {
 }
 
 interface PlanInfo {
-  plan: string;
+  household_sub_status: string | null;
+  household_trial_ends_at: string | null;
   is_subscribed: boolean;
-  trial_ends_at: string | null;
-  subscription_status: string | null;
   subscription_current_period_end: string | null;
+  subscription_status: string | null;
 }
 
 export default function SettingsPage() {
@@ -73,7 +73,7 @@ function SettingsContent() {
     if (!user) { setLoading(false); return; }
 
     const [{ data: profile }, { data: members }] = await Promise.all([
-      supabase.from("profiles").select("email, full_name, account_type, plan, is_subscribed, trial_ends_at, subscription_status, subscription_current_period_end").eq("id", user.id).single(),
+      supabase.from("profiles").select("email, full_name, account_type, is_subscribed, subscription_status, subscription_current_period_end").eq("id", user.id).single(),
       supabase.from("household_members")
         .select("household_id, weekly_digest_enabled, weekly_digest_day, last_digest_sent_at")
         .eq("user_id", user.id)
@@ -84,11 +84,32 @@ function SettingsContent() {
     setFullName(profile?.full_name ?? "");
     setFullNameSaved(profile?.full_name ?? "");
     setAccountType(profile?.account_type ?? null);
+
+    // Fetch owned household subscription status
+    const { data: ownedMembership } = await supabase
+      .from("household_members")
+      .select("household_id")
+      .eq("user_id", user.id)
+      .eq("role", "owner")
+      .maybeSingle();
+
+    let householdSubStatus: string | null = null;
+    let householdTrialEndsAt: string | null = null;
+    if (ownedMembership) {
+      const { data: hh } = await supabase
+        .from("households")
+        .select("subscription_status, trial_ends_at")
+        .eq("id", ownedMembership.household_id)
+        .maybeSingle();
+      householdSubStatus = hh?.subscription_status ?? null;
+      householdTrialEndsAt = hh?.trial_ends_at ?? null;
+    }
+
     if (profile) {
       setPlanInfo({
-        plan: profile.plan ?? "family",
+        household_sub_status: householdSubStatus,
+        household_trial_ends_at: householdTrialEndsAt,
         is_subscribed: profile.is_subscribed ?? false,
-        trial_ends_at: profile.trial_ends_at ?? null,
         subscription_status: profile.subscription_status ?? null,
         subscription_current_period_end: profile.subscription_current_period_end ?? null,
       });
@@ -288,7 +309,7 @@ function SettingsContent() {
               </div>
               <p className="text-sm text-warmstone-500">You have full access to all CareBee features. No subscription needed.</p>
             </Card>
-          ) : planInfo?.is_subscribed ? (
+          ) : planInfo?.household_sub_status === "active" ? (
             <Card className="flex flex-col gap-3 p-4">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-honey-500" />
@@ -314,9 +335,11 @@ function SettingsContent() {
               </Button>
             </Card>
           ) : (() => {
-            const trialActive = planInfo?.trial_ends_at && new Date(planInfo.trial_ends_at) > new Date();
+            const trialActive = planInfo?.household_sub_status === "trial"
+              && planInfo.household_trial_ends_at
+              && new Date(planInfo.household_trial_ends_at) > new Date();
             const daysLeft = trialActive
-              ? Math.max(0, Math.ceil((new Date(planInfo!.trial_ends_at!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+              ? Math.max(0, Math.ceil((new Date(planInfo!.household_trial_ends_at!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
               : 0;
             return (
               <Card className="flex flex-col gap-4 p-4">

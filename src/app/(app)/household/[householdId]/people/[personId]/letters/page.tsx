@@ -15,6 +15,8 @@ import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { Input, Textarea } from "@/components/ui/Input";
 import { useAppToast } from "@/components/layout/AppShell";
 import { useCanEdit } from "@/lib/context/role";
+import { useAIAccess } from "@/lib/utils/access";
+import { UpgradeModal } from "@/components/ui/UpgradeModal";
 
 // ---- Template definitions --------------------------------------------------
 
@@ -153,6 +155,8 @@ function LettersPageInner() {
   const { addToast } = useAppToast();
 
   const canEdit = useCanEdit();
+  const { hasAccess } = useAIAccess(householdId);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const preselectedTemplate = searchParams.get("template") ?? null;
   const preselectedEntitlementId = searchParams.get("entitlement_id") ?? null;
 
@@ -301,6 +305,7 @@ function LettersPageInner() {
 
   return (
     <div className="flex flex-col gap-6">
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
       <div>
         <h2 className="font-bold text-warmstone-900 text-lg">Letters and documents</h2>
         <p className="text-sm text-warmstone-500 mt-0.5">
@@ -410,13 +415,21 @@ function LettersPageInner() {
             </>
           )}
 
-          {canEdit ? (
+          {!canEdit ? (
+            <Alert type="info" description="You have view-only access to this record. Generating and saving letters is not available." />
+          ) : hasAccess === false ? (
+            <>
+              <Alert type="info" description="Generating letters is a Plus feature. Upgrade this care record to use it." />
+              <Button onClick={() => setShowUpgrade(true)} variant="secondary">
+                <Sparkles size={16} />
+                Upgrade to Plus
+              </Button>
+            </>
+          ) : (
             <Button onClick={generate} loading={generating} disabled={!canGenerate}>
               <Sparkles size={16} />
               {generating ? "Generating..." : "Generate text"}
             </Button>
-          ) : (
-            <Alert type="info" description="You have view-only access to this record. Generating and saving letters is not available." />
           )}
 
           {generating && <SkeletonLoader variant="card" count={1} />}

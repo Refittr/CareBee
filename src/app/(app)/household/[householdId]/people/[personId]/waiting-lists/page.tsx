@@ -21,6 +21,7 @@ import { useAIAccess } from "@/lib/utils/access";
 import { trackFeatureUsage } from "@/lib/utils/analytics";
 import { useCanEdit } from "@/lib/context/role";
 import { UpgradeModal } from "@/components/ui/UpgradeModal";
+import { ScanModal } from "@/components/scan/ScanModal";
 import type { WaitingList, WaitStatus } from "@/lib/types/database";
 
 type BadgeVariant = "active" | "warning" | "error" | "neutral";
@@ -64,6 +65,7 @@ export default function WaitingListsPage() {
   const { hasAccess } = useAIAccess(householdId);
   const canEdit = useCanEdit();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
 
   const [entries, setEntries] = useState<WaitingList[]>([]);
   const [loading, setLoading] = useState(true);
@@ -251,6 +253,12 @@ export default function WaitingListsPage() {
             >
               <Sparkles size={16} />
               {estimating ? "Checking..." : "Check wait times"}
+            </Button>
+          )}
+          {canEdit && (
+            <Button variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)} className="gap-2">
+              <Sparkles size={16} />
+              Scan with AI
             </Button>
           )}
           {canEdit && (
@@ -460,6 +468,12 @@ export default function WaitingListsPage() {
       />
 
       <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
+      <ScanModal
+        open={scanOpen}
+        onClose={() => { setScanOpen(false); load(); }}
+        householdId={householdId}
+        personId={personId}
+      />
     </div>
   );
 }
