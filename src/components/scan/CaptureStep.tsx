@@ -210,8 +210,7 @@ export function CaptureStep({ onCapture, onCancel }: CaptureStepProps) {
             <input
               ref={addMoreInputRef}
               type="file"
-              accept="image/*"
-              capture="environment"
+              accept="image/jpeg,image/png,image/gif,image/webp"
               className="hidden"
               onChange={handleImageSelected}
             />
