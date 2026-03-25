@@ -123,7 +123,7 @@ export default function InvitePage() {
       <Breadcrumbs items={[
         { label: "Your care records", href: "/dashboard" },
         { label: "Care record", href: `/household/${householdId}` },
-        { label: "Members", href: `/household/${householdId}/members` },
+        { label: "Care circle", href: `/household/${householdId}/members` },
         { label: "Invite" },
       ]} />
 

@@ -154,7 +154,7 @@ export function MembersClient({
     <>
       {/* Page header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-warmstone-900 hidden md:block">Members</h1>
+        <h1 className="text-2xl font-bold text-warmstone-900 hidden md:block">Care circle</h1>
         {canEdit && (
           <Link
             href={`/household/${householdId}/invite`}
@@ -168,7 +168,7 @@ export function MembersClient({
 
       {/* Members section */}
       <section className="mb-8">
-        <h2 className="text-base font-bold text-warmstone-900 mb-3">Members</h2>
+        <h2 className="text-base font-bold text-warmstone-900 mb-3">Care circle</h2>
         <div className="flex flex-col gap-3">
           {members.map((member) => {
             const name = member.profiles?.full_name ?? "Unknown";

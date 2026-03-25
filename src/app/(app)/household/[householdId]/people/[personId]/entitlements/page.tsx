@@ -82,7 +82,7 @@ export default function EntitlementsPage() {
   const supabase = createClient();
   const { addToast } = useAppToast();
 
-  const { hasAccess } = useAIAccess();
+  const { hasAccess } = useAIAccess(householdId);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const [entitlements, setEntitlements] = useState<Entitlement[]>([]);

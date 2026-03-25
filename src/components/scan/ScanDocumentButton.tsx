@@ -14,7 +14,7 @@ interface ScanDocumentButtonProps {
 export function ScanDocumentButton({ householdId, personId }: ScanDocumentButtonProps) {
   const [open, setOpen] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const { hasAccess } = useAIAccess();
+  const { hasAccess } = useAIAccess(householdId);
 
   function handleClick() {
     if (hasAccess === false) {

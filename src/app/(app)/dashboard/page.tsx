@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, Home, Users, AlertTriangle, FlaskConical } from "lucide-react";
+import { Plus, Home, Users, FlaskConical, Heart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -73,9 +73,9 @@ export default async function DashboardPage() {
 
       {households.length === 0 ? (
         <EmptyState
-          icon={Home}
-          heading="No care records yet"
-          description="Create a care record to start tracking health and care information."
+          icon={Heart}
+          heading="Welcome to CareBee"
+          description="Create a care record to start tracking health and care information for someone you look after."
           ctaLabel="Create your first care record"
           ctaHref="/household/new"
         />

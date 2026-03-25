@@ -28,7 +28,7 @@ export default function MedicationsPage() {
   const supabase = createClient();
   const { addToast } = useAppToast();
 
-  const { hasAccess } = useAIAccess();
+  const { hasAccess } = useAIAccess(householdId);
   const canEdit = useCanEdit();
   const [showUpgrade, setShowUpgrade] = useState(false);
 

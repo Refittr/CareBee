@@ -85,11 +85,11 @@ export default async function MembersPage({ params }: Props) {
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-2xl">
-      <Header title="Members" showBack backHref={`/household/${householdId}`} />
+      <Header title="Care circle" showBack backHref={`/household/${householdId}`} />
       <Breadcrumbs items={[
         { label: "Your care records", href: "/dashboard" },
         { label: household.name, href: `/household/${householdId}` },
-        { label: "Members" },
+        { label: "Care circle" },
       ]} />
       <MembersClient
         members={members}

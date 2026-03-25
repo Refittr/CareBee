@@ -68,13 +68,13 @@ export default function NewHouseholdPage() {
       )}
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <Input
-          label="Care record name"
+          label="Who is this care record for?"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Mum's Care, Davies Family"
+          placeholder="e.g. Mum, Dad, Gran, David"
           required
           error={nameError ?? undefined}
-          hint="This is just a name to help you identify it. You can change it later."
+          hint="You can add their full details on the next step."
           autoFocus
         />
         <Button type="submit" loading={loading} fullWidth>

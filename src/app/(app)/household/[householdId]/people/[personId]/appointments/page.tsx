@@ -294,7 +294,7 @@ export default function AppointmentsPage() {
   const { addToast } = useAppToast();
   const router = useRouter();
 
-  const { hasAccess } = useAIAccess();
+  const { hasAccess } = useAIAccess(householdId);
   const canEdit = useCanEdit();
   const [showUpgrade, setShowUpgrade] = useState(false);
 

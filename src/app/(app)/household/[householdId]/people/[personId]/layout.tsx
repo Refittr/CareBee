@@ -7,6 +7,7 @@ import { formatNHSNumber } from "@/lib/utils/formatting";
 import { PersonActions } from "./PersonActions";
 import { PersonTabs } from "./PersonTabs";
 import { RoleProvider } from "@/lib/context/role";
+import { ViewerBanner } from "@/components/layout/ViewerBanner";
 import type { MemberRole } from "@/lib/types/database";
 
 type Props = {
@@ -73,6 +74,7 @@ export default async function PersonLayout({ children, params }: Props) {
 
       <div className="px-4 md:px-8 pt-4 pb-8">
         <RoleProvider role={role}>
+          <ViewerBanner />
           {children}
         </RoleProvider>
       </div>

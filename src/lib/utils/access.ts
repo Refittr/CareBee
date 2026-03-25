@@ -2,56 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { AccountType, PlanType } from "@/lib/types/database";
-
-interface ProfileForAIAccess {
-  account_type: AccountType;
-  plan: PlanType;
-  trial_ends_at?: string | null;
-  is_subscribed?: boolean;
-}
+import { hasCareRecordPremiumAccess } from "@/lib/permissions";
 
 /**
- * Returns true if the user should have access to AI features.
- * Single source of truth for AI feature gating.
+ * Returns true if the current care record has premium feature access.
+ * Checks household subscription status; admins/testers bypass.
  */
-export function hasAIAccess(profile: ProfileForAIAccess): boolean {
-  if (profile.account_type === "admin" || profile.account_type === "tester") {
-    return true;
-  }
-  if (profile.plan === "family" || profile.plan === "custom" || profile.plan === "plus") {
-    return true;
-  }
-  if (profile.is_subscribed) {
-    return true;
-  }
-  if (profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date()) {
-    return true;
-  }
-  return false;
-}
-
-/**
- * React hook that loads the current user's profile and returns
- * whether they have access to AI features. Returns null while loading.
- */
-export function useAIAccess(): { hasAccess: boolean | null } {
+export function useAIAccess(householdId: string): { hasAccess: boolean | null } {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
   useEffect(() => {
+    if (!householdId) return;
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { setHasAccess(false); return; }
-      supabase
-        .from("profiles")
-        .select("account_type, plan, trial_ends_at, is_subscribed")
-        .eq("id", user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          setHasAccess(data ? hasAIAccess(data as ProfileForAIAccess) : false);
-        });
+      Promise.all([
+        supabase.from("profiles").select("account_type").eq("id", user.id).maybeSingle(),
+        supabase.from("households").select("subscription_status, trial_ends_at").eq("id", householdId).maybeSingle(),
+      ]).then(([{ data: profile }, { data: household }]) => {
+        setHasAccess(
+          profile && household ? hasCareRecordPremiumAccess(household, profile) : false
+        );
+      });
     });
-  }, []);
+  }, [householdId]);
 
   return { hasAccess };
 }

@@ -43,10 +43,17 @@ export interface AdminActivityLog {
   created_at: string;
 }
 
+export type SubscriptionStatus = "free" | "trial" | "active" | "cancelled" | "past_due";
+
 export interface Household {
   id: string;
   name: string;
   created_by: string;
+  subscription_status: SubscriptionStatus;
+  subscription_id: string | null;
+  trial_ends_at: string | null;
+  subscription_started_at: string | null;
+  subscription_ends_at: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -26,7 +26,7 @@ export default function ConditionsPage() {
   const { householdId, personId } = params;
   const supabase = createClient();
   const { addToast } = useAppToast();
-  const { hasAccess } = useAIAccess();
+  const { hasAccess } = useAIAccess(householdId);
   const canEdit = useCanEdit();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);

@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateTime } from "@/lib/utils/dates";
-import { hasAIAccess } from "@/lib/utils/access";
+import { hasCareRecordPremiumAccess } from "@/lib/permissions";
 import { UpgradeModal } from "@/components/ui/UpgradeModal";
 import type { HealthInsight } from "@/lib/types/database";
 
@@ -101,9 +101,11 @@ export default function InsightsPage() {
       // Check premium
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase.from("profiles").select("account_type, plan, trial_ends_at").eq("id", user.id).maybeSingle();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const premium = profile ? hasAIAccess(profile as any) : false;
+        const [{ data: profile }, { data: household }] = await Promise.all([
+          supabase.from("profiles").select("account_type").eq("id", user.id).maybeSingle(),
+          supabase.from("households").select("subscription_status, trial_ends_at").eq("id", householdId).maybeSingle(),
+        ]);
+        const premium = profile && household ? hasCareRecordPremiumAccess(household, profile) : false;
         setIsPremium(premium);
         if (premium) {
           await loadFromDB();
@@ -140,9 +142,9 @@ export default function InsightsPage() {
       <>
         <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-4 max-w-sm mx-auto">
           <Lightbulb size={48} className="text-warmstone-300" strokeWidth={1.5} />
-          <h2 className="text-xl font-bold text-warmstone-900">Health Insights is a CareBee Plus feature</h2>
+          <h2 className="text-xl font-bold text-warmstone-900">Health Insights is a premium feature</h2>
           <p className="text-sm text-warmstone-600 leading-relaxed">
-            Get personalised health insights, NICE guideline checks, and care gap detection for everyone in your household.
+            Get personalised health insights, NICE guideline checks, and care gap detection. Upgrade this care record to unlock.
           </p>
           <button
             onClick={() => setShowUpgrade(true)}

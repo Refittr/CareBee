@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { trackApiCall } from "@/lib/analytics-server";
-import { hasPremiumAccess } from "@/lib/permissions";
+import { hasCareRecordPremiumAccess } from "@/lib/permissions";
 import type { HealthInsight, InsightPriority, InsightStatus, InsightType, InsightCategory } from "@/lib/types/database";
 
 const SYSTEM_PROMPT = `You are a health insights engine for CareBee, a UK family health and care record app. You are given a person's complete health record and your job is to identify useful insights, missing checks, trends, and care gaps.
@@ -135,13 +135,12 @@ export async function POST(request: NextRequest) {
   }
 
   // Check premium access
-  const { data: profile } = await svc
-    .from("profiles")
-    .select("account_type, plan, trial_ends_at, is_subscribed")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data: profile }, { data: household }] = await Promise.all([
+    svc.from("profiles").select("account_type").eq("id", user.id).maybeSingle(),
+    svc.from("households").select("subscription_status, trial_ends_at").eq("id", household_id).maybeSingle(),
+  ]);
 
-  if (!profile || !hasPremiumAccess(profile)) {
+  if (!profile || !household || !hasCareRecordPremiumAccess(household, profile)) {
     return NextResponse.json({ error: "Premium required" }, { status: 403 });
   }
 

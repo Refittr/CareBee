@@ -414,7 +414,7 @@ export default function ContactsPage() {
       {/* Family members */}
       {family.length > 0 && (
         <div>
-          <h3 className="font-bold text-warmstone-800 text-sm uppercase tracking-wide mb-3">Family, Household and Care Circle</h3>
+          <h3 className="font-bold text-warmstone-800 text-sm uppercase tracking-wide mb-3">Care circle</h3>
           <div className="flex flex-col gap-2">
             {family.map((m) => (
               <Card key={m.id} className="p-4">
