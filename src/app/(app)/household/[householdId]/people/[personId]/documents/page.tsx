@@ -27,6 +27,7 @@ export default function DocumentsPage() {
   const canEdit = useCanEdit();
 
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -41,8 +42,24 @@ export default function DocumentsPage() {
       .select("*")
       .eq("person_id", personId)
       .order("created_at", { ascending: false });
-    if (err) setError(err.message);
-    else setDocuments(data ?? []);
+    if (err) { setError(err.message); setLoading(false); return; }
+
+    const docs = data ?? [];
+    setDocuments(docs);
+
+    if (docs.length > 0) {
+      const { data: signed } = await supabase.storage
+        .from("documents")
+        .createSignedUrls(docs.map((d) => d.file_path), 3600);
+      if (signed) {
+        const urlMap: Record<string, string> = {};
+        signed.forEach((s, i) => {
+          if (s.signedUrl && docs[i]) urlMap[docs[i].id] = s.signedUrl;
+        });
+        setSignedUrls(urlMap);
+      }
+    }
+
     setLoading(false);
   }
 
@@ -56,11 +73,6 @@ export default function DocumentsPage() {
     if (err) addToast("Something went wrong. Please try again.", "error");
     else { addToast("Document removed.", "success"); setDeleteTarget(null); load(); }
     setDeleting(false);
-  }
-
-  function getPublicUrl(path: string) {
-    const { data } = supabase.storage.from("documents").getPublicUrl(path);
-    return data.publicUrl;
   }
 
   function isImage(mimeType: string | null) {
@@ -78,12 +90,12 @@ export default function DocumentsPage() {
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => setScanOpen(true)}
-            className="flex-1 flex items-start gap-3 bg-honey-400 hover:bg-honey-500 text-warmstone-white rounded-xl p-4 transition-colors text-left"
+            className="flex-1 flex items-start gap-3 bg-sage-500 hover:bg-sage-600 text-warmstone-white rounded-xl p-4 transition-colors text-left"
           >
             <Sparkles size={20} className="shrink-0 mt-0.5" />
             <div>
               <p className="font-bold text-sm">Scan document with AI</p>
-              <p className="text-xs text-honey-100 mt-0.5">Our AI reads your document and adds the details to your record automatically</p>
+              <p className="text-xs text-sage-100 mt-0.5">Our AI reads your document and adds the details to your record automatically</p>
             </div>
           </button>
           <button
@@ -110,7 +122,7 @@ export default function DocumentsPage() {
           </div>
           {canEdit && (
             <>
-              <Button onClick={() => setScanOpen(true)} className="mt-1 gap-2">
+              <Button onClick={() => setScanOpen(true)} variant="secondary" className="mt-1 gap-2">
                 <Sparkles size={16} />
                 Scan your first document
               </Button>
@@ -126,7 +138,7 @@ export default function DocumentsPage() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {documents.map((doc) => {
-            const url = getPublicUrl(doc.file_path);
+            const url = signedUrls[doc.id] ?? "";
             return (
               <Card key={doc.id} className="overflow-hidden">
                 <a href={url} target="_blank" rel="noopener noreferrer" className="block">

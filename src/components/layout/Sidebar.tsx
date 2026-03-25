@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LogOut, Shield, BookOpen, Settings, Mail } from "lucide-react";
+import { Home, LogOut, Shield, BookOpen, Settings, Mail, Bug } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -78,6 +78,13 @@ export function Sidebar() {
             Admin
           </Link>
         )}
+        <Link
+          href="/report-bug"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-warmstone-500 hover:bg-warmstone-50 hover:text-warmstone-900 transition-colors min-h-[44px]"
+        >
+          <Bug size={18} />
+          Report a bug
+        </Link>
         <button
           onClick={handleSignOut}
           className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-warmstone-600 hover:bg-warmstone-50 hover:text-warmstone-900 transition-colors w-full min-h-[44px]"

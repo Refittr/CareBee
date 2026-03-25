@@ -28,10 +28,10 @@ export function ScanDocumentButton({ householdId, personId }: ScanDocumentButton
     <>
       <button
         onClick={handleClick}
-        className="w-full flex items-center gap-3 bg-warmstone-50 hover:bg-warmstone-100 border border-warmstone-200 text-warmstone-900 rounded-xl p-4 transition-colors text-left cursor-pointer"
+        className="w-full flex items-center gap-3 bg-sage-50 hover:bg-sage-100 border border-sage-200 text-warmstone-900 rounded-xl p-4 transition-colors text-left cursor-pointer"
       >
-        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-honey-50 shrink-0">
-          <Sparkles size={18} className="text-honey-600" />
+        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-sage-100 shrink-0">
+          <Sparkles size={18} className="text-sage-600" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm leading-snug">Scan a document with AI</p>
