@@ -121,7 +121,7 @@ function SettingsContent() {
 
     const { error: err } = await supabase
       .from("household_members")
-      .update({ weekly_digest_enabled: enabled, updated_at: new Date().toISOString() })
+      .update({ weekly_digest_enabled: enabled })
       .eq("user_id", user.id)
       .eq("household_id", householdId);
 
@@ -143,7 +143,7 @@ function SettingsContent() {
 
     const { error: err } = await supabase
       .from("household_members")
-      .update({ weekly_digest_day: day, updated_at: new Date().toISOString() })
+      .update({ weekly_digest_day: day })
       .eq("user_id", user.id)
       .eq("household_id", householdId);
 
@@ -367,6 +367,10 @@ function SettingsContent() {
           <p className="text-sm text-warmstone-600 mt-0.5">
             Receive a weekly email summary of changes across your care records.
           </p>
+        </div>
+
+        <div className="flex items-center gap-2 bg-warmstone-100 border border-warmstone-200 rounded-lg px-3 py-2 text-xs font-semibold text-warmstone-500">
+          <span>🚧</span> Under construction: weekly emails are not sending yet.
         </div>
 
         {loading ? (

@@ -277,6 +277,7 @@ function LettersPageInner() {
       template_id: selectedTemplate !== "custom" ? selectedTemplate : null,
       custom_prompt: customPrompt.trim() || null,
       entitlement_context: entitlementContext ?? null,
+      sent: false,
     });
     if (err) {
       console.error("[saveToVault]", err.code, err.message, err.details);
