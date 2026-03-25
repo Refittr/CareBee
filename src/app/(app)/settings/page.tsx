@@ -351,8 +351,8 @@ function SettingsContent() {
                     disabled={checkoutLoading !== null}
                     onClick={() => startCheckout("annual")}
                   >
-                    Subscribe — £49.99 / year
-                    <span className="ml-1.5 text-xs font-normal text-white bg-white/20 rounded-full px-2 py-0.5">Save ~17%</span>
+                    Subscribe — £44.99 / year
+                    <span className="ml-1.5 text-xs font-normal text-white bg-white/20 rounded-full px-2 py-0.5">Save 25%</span>
                   </Button>
                 </div>
               </Card>

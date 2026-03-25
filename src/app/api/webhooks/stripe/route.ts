@@ -21,6 +21,7 @@ async function applySubscriptionUpdate(
   const periodEnd = getPeriodEnd(subscription);
   const isActive = subscription.status === "active" || subscription.status === "trialing";
 
+  // Update legacy profile fields (used for billing UI display)
   await svc.from("profiles").update({
     is_subscribed: isActive,
     subscription_status: subscription.status,
@@ -28,6 +29,24 @@ async function applySubscriptionUpdate(
     subscription_current_period_end: periodEnd,
     plan: (isActive ? "plus" : "family") as PlanType,
   }).eq("id", userId);
+
+  // Update all households owned by this user so feature gating reflects the subscription
+  const householdStatus = isActive ? "active" : subscription.status === "past_due" ? "past_due" : "free";
+  const { data: ownedHouseholds } = await svc
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", userId)
+    .eq("role", "owner");
+
+  if (ownedHouseholds && ownedHouseholds.length > 0) {
+    const ids = ownedHouseholds.map((m) => m.household_id as string);
+    await svc.from("households").update({
+      subscription_status: householdStatus,
+      subscription_id: subscription.id,
+      subscription_started_at: isActive ? new Date(subscription.start_date * 1000).toISOString() : null,
+      subscription_ends_at: periodEnd,
+    }).in("id", ids);
+  }
 }
 
 async function resolveUserIdBySubscription(
@@ -113,6 +132,17 @@ export async function POST(request: NextRequest) {
           subscription_status: "canceled",
           plan: "family" as PlanType,
         }).eq("id", userId);
+
+        // Update owned households to free
+        const { data: ownedHouseholds } = await svc
+          .from("household_members")
+          .select("household_id")
+          .eq("user_id", userId)
+          .eq("role", "owner");
+        if (ownedHouseholds && ownedHouseholds.length > 0) {
+          const ids = ownedHouseholds.map((m) => m.household_id as string);
+          await svc.from("households").update({ subscription_status: "free" }).in("id", ids);
+        }
         break;
       }
 

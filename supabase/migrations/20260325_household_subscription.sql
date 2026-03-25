@@ -30,7 +30,7 @@ BEGIN
   END IF;
 
   INSERT INTO public.households (name, created_by, subscription_status, trial_ends_at)
-  VALUES (household_name, v_user_id, 'trial', NOW() + INTERVAL '14 days')
+  VALUES (household_name, v_user_id, 'trial', NOW() + INTERVAL '30 days')
   RETURNING id INTO v_household_id;
 
   INSERT INTO public.household_members (household_id, user_id, role, accepted_at)
