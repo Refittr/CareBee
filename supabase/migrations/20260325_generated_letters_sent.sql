@@ -1,0 +1,2 @@
+ALTER TABLE public.generated_letters
+  ADD COLUMN IF NOT EXISTS sent BOOLEAN NOT NULL DEFAULT false;

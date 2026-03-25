@@ -362,6 +362,7 @@ export interface GeneratedLetter {
   template_id: string | null;
   custom_prompt: string | null;
   entitlement_context: string | null;
+  sent: boolean;
   created_at: string;
   updated_at: string;
 }

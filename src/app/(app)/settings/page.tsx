@@ -61,6 +61,7 @@ function SettingsContent() {
   const [fullNameSaved, setFullNameSaved] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
+  const [accountType, setAccountType] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<"monthly" | "annual" | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
@@ -72,7 +73,7 @@ function SettingsContent() {
     if (!user) { setLoading(false); return; }
 
     const [{ data: profile }, { data: members }] = await Promise.all([
-      supabase.from("profiles").select("email, full_name, plan, is_subscribed, trial_ends_at, subscription_status, subscription_current_period_end").eq("id", user.id).single(),
+      supabase.from("profiles").select("email, full_name, account_type, plan, is_subscribed, trial_ends_at, subscription_status, subscription_current_period_end").eq("id", user.id).single(),
       supabase.from("household_members")
         .select("household_id, weekly_digest_enabled, weekly_digest_day, last_digest_sent_at")
         .eq("user_id", user.id)
@@ -82,6 +83,7 @@ function SettingsContent() {
     setEmail(profile?.email ?? null);
     setFullName(profile?.full_name ?? "");
     setFullNameSaved(profile?.full_name ?? "");
+    setAccountType(profile?.account_type ?? null);
     if (profile) {
       setPlanInfo({
         plan: profile.plan ?? "family",
@@ -261,92 +263,103 @@ function SettingsContent() {
         )}
       </section>
 
-      <section className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-base font-bold text-warmstone-900">Your plan</h2>
-          <p className="text-sm text-warmstone-600 mt-0.5">Manage your CareBee Plus subscription.</p>
-        </div>
-
-        {statusParam === "success" && (
-          <div className="flex items-center gap-2 text-sm text-sage-800 bg-sage-50 border border-sage-200 rounded-lg px-4 py-3">
-            <CheckCircle size={16} className="text-sage-500 shrink-0" />
-            <span>You&apos;re now subscribed to CareBee Plus. Enjoy unlimited AI features!</span>
+      {accountType !== "admin" && (
+        <section className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-base font-bold text-warmstone-900">Your plan</h2>
+            <p className="text-sm text-warmstone-600 mt-0.5">Manage your CareBee Plus subscription.</p>
           </div>
-        )}
 
-        {loading ? (
-          <SkeletonLoader count={1} />
-        ) : planInfo?.is_subscribed ? (
-          <Card className="flex flex-col gap-3 p-4">
-            <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-honey-500" />
-              <span className="font-semibold text-warmstone-900">CareBee Plus</span>
-              <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-sage-100 text-sage-800">Active</span>
+          {statusParam === "success" && (
+            <div className="flex items-center gap-2 text-sm text-sage-800 bg-sage-50 border border-sage-200 rounded-lg px-4 py-3">
+              <CheckCircle size={16} className="text-sage-500 shrink-0" />
+              <span>You&apos;re now subscribed to CareBee Plus. Enjoy unlimited AI features!</span>
             </div>
-            {planInfo.subscription_current_period_end && (
-              <p className="text-xs text-warmstone-500">
-                {planInfo.subscription_status === "canceled"
-                  ? `Access until ${new Date(planInfo.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
-                  : `Renews ${new Date(planInfo.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`}
-              </p>
-            )}
-            <Button
-              size="sm"
-              variant="secondary"
-              className="gap-1.5 w-fit"
-              onClick={openPortal}
-              loading={portalLoading}
-            >
-              <CreditCard size={14} />
-              Manage billing
-            </Button>
-          </Card>
-        ) : (() => {
-          const trialActive = planInfo?.trial_ends_at && new Date(planInfo.trial_ends_at) > new Date();
-          const daysLeft = trialActive
-            ? Math.max(0, Math.ceil((new Date(planInfo!.trial_ends_at!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-            : 0;
-          return (
-            <Card className="flex flex-col gap-4 p-4">
-              {trialActive ? (
-                <div className="flex items-center gap-2">
-                  <Sparkles size={16} className="text-honey-500" />
-                  <span className="font-semibold text-warmstone-900">Free trial</span>
-                  <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-honey-100 text-honey-800">{daysLeft} day{daysLeft !== 1 ? "s" : ""} left</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Sparkles size={16} className="text-warmstone-400" />
-                  <span className="font-semibold text-warmstone-900">No active plan</span>
-                  <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-warmstone-100 text-warmstone-600">Trial ended</span>
-                </div>
-              )}
-              <p className="text-sm text-warmstone-600">Subscribe to keep your AI features after your trial ends.</p>
-              <div className="flex flex-col gap-2">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  loading={checkoutLoading === "monthly"}
-                  disabled={checkoutLoading !== null}
-                  onClick={() => startCheckout("monthly")}
-                >
-                  Subscribe — £4.99 / month
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  loading={checkoutLoading === "annual"}
-                  disabled={checkoutLoading !== null}
-                  onClick={() => startCheckout("annual")}
-                >
-                  Subscribe — £49.99 / year
-                  <span className="ml-1.5 text-xs font-normal text-white bg-white/20 rounded-full px-2 py-0.5">Save ~17%</span>
-                </Button>
+          )}
+
+          {loading ? (
+            <SkeletonLoader count={1} />
+          ) : accountType === "tester" ? (
+            <Card className="flex flex-col gap-2 p-4">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-sage-500" />
+                <span className="font-semibold text-warmstone-900">Tester account</span>
+                <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-sage-100 text-sage-800">Full access</span>
               </div>
+              <p className="text-sm text-warmstone-500">You have full access to all CareBee features. No subscription needed.</p>
             </Card>
-          );
-        })()}
-      </section>
+          ) : planInfo?.is_subscribed ? (
+            <Card className="flex flex-col gap-3 p-4">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-honey-500" />
+                <span className="font-semibold text-warmstone-900">CareBee Plus</span>
+                <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-sage-100 text-sage-800">Active</span>
+              </div>
+              {planInfo.subscription_current_period_end && (
+                <p className="text-xs text-warmstone-500">
+                  {planInfo.subscription_status === "canceled"
+                    ? `Access until ${new Date(planInfo.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+                    : `Renews ${new Date(planInfo.subscription_current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`}
+                </p>
+              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                className="gap-1.5 w-fit"
+                onClick={openPortal}
+                loading={portalLoading}
+              >
+                <CreditCard size={14} />
+                Manage billing
+              </Button>
+            </Card>
+          ) : (() => {
+            const trialActive = planInfo?.trial_ends_at && new Date(planInfo.trial_ends_at) > new Date();
+            const daysLeft = trialActive
+              ? Math.max(0, Math.ceil((new Date(planInfo!.trial_ends_at!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+              : 0;
+            return (
+              <Card className="flex flex-col gap-4 p-4">
+                {trialActive ? (
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={16} className="text-honey-500" />
+                    <span className="font-semibold text-warmstone-900">Free trial</span>
+                    <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-honey-100 text-honey-800">{daysLeft} day{daysLeft !== 1 ? "s" : ""} left</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={16} className="text-warmstone-400" />
+                    <span className="font-semibold text-warmstone-900">No active plan</span>
+                    <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-warmstone-100 text-warmstone-600">Trial ended</span>
+                  </div>
+                )}
+                <p className="text-sm text-warmstone-600">Subscribe to keep your AI features after your trial ends.</p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    loading={checkoutLoading === "monthly"}
+                    disabled={checkoutLoading !== null}
+                    onClick={() => startCheckout("monthly")}
+                  >
+                    Subscribe — £4.99 / month
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={checkoutLoading === "annual"}
+                    disabled={checkoutLoading !== null}
+                    onClick={() => startCheckout("annual")}
+                  >
+                    Subscribe — £49.99 / year
+                    <span className="ml-1.5 text-xs font-normal text-white bg-white/20 rounded-full px-2 py-0.5">Save ~17%</span>
+                  </Button>
+                </div>
+              </Card>
+            );
+          })()}
+        </section>
+      )}
 
       <section className="flex flex-col gap-4">
         <div>

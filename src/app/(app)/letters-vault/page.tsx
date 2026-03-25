@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, ChevronDown, ChevronUp, Copy, CheckCircle, Download, Trash2, RotateCcw } from "lucide-react";
+import { FileText, ChevronDown, ChevronUp, Copy, CheckCircle, Download, Trash2, RotateCcw, Send, Undo2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/Card";
@@ -54,15 +54,18 @@ function LetterCard({
   letter,
   onDelete,
   onRegenerate,
+  onToggleSent,
 }: {
   letter: LetterWithPerson;
   onDelete: (id: string) => void;
   onRegenerate: (letter: LetterWithPerson) => void;
+  onToggleSent: (id: string, sent: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [togglingСent, setToggingSent] = useState(false);
 
   function copy() {
     navigator.clipboard.writeText(letter.content).then(() => {
@@ -75,6 +78,12 @@ function LetterCard({
     setRegenerating(true);
     await onRegenerate(letter);
     setRegenerating(false);
+  }
+
+  async function handleToggleSent() {
+    setToggingSent(true);
+    await onToggleSent(letter.id, !letter.sent);
+    setToggingSent(false);
   }
 
   return (
@@ -119,6 +128,19 @@ function LetterCard({
                 Regenerate
               </button>
               <button
+                onClick={handleToggleSent}
+                disabled={togglingСent}
+                className={[
+                  "flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-md min-h-[40px] transition-colors disabled:opacity-60",
+                  letter.sent
+                    ? "text-warmstone-600 bg-warmstone-100 hover:bg-warmstone-200"
+                    : "text-sage-800 bg-sage-50 hover:bg-sage-100",
+                ].join(" ")}
+              >
+                {letter.sent ? <Undo2 size={14} /> : <Send size={14} />}
+                {letter.sent ? "Mark as unsent" : "Mark as sent"}
+              </button>
+              <button
                 onClick={() => setConfirmDelete(true)}
                 className="flex items-center gap-1.5 text-sm text-warmstone-400 hover:text-error px-3 py-2 rounded-md min-h-[40px] transition-colors ml-auto"
               >
@@ -143,6 +165,32 @@ function LetterCard({
   );
 }
 
+function LetterGroup({
+  letters,
+  onDelete,
+  onRegenerate,
+  onToggleSent,
+}: {
+  letters: LetterWithPerson[];
+  onDelete: (id: string) => void;
+  onRegenerate: (letter: LetterWithPerson) => void;
+  onToggleSent: (id: string, sent: boolean) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3 max-h-[480px] overflow-y-auto pr-1">
+      {letters.map((letter) => (
+        <LetterCard
+          key={letter.id}
+          letter={letter}
+          onDelete={onDelete}
+          onRegenerate={onRegenerate}
+          onToggleSent={onToggleSent}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function LettersVaultPage() {
   const supabase = createClient();
   const router = useRouter();
@@ -152,7 +200,6 @@ export default function LettersVaultPage() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    // Load all letters across all the user's households
     const { data: memberships } = await supabase
       .from("household_members")
       .select("household_id")
@@ -199,6 +246,15 @@ export default function LettersVaultPage() {
     addToast("Letter deleted.", "success");
   }
 
+  async function handleToggleSent(id: string, sent: boolean) {
+    const { error } = await supabase
+      .from("generated_letters")
+      .update({ sent })
+      .eq("id", id);
+    if (error) { addToast("Could not update. Please try again.", "error"); return; }
+    setLetters((prev) => prev.map((l) => l.id === id ? { ...l, sent } : l));
+  }
+
   async function handleRegenerate(letter: LetterWithPerson) {
     try {
       const res = await fetch("/api/documents/generate", {
@@ -230,12 +286,23 @@ export default function LettersVaultPage() {
     }
   }
 
-  // Group by household
-  const grouped = letters.reduce<Record<string, { name: string; letters: LetterWithPerson[] }>>((acc, l) => {
+  const unsent = letters.filter((l) => !l.sent);
+  const sent = letters.filter((l) => l.sent);
+
+  // Group unsent by household
+  const unsentGrouped = unsent.reduce<Record<string, { name: string; letters: LetterWithPerson[] }>>((acc, l) => {
     if (!acc[l.household_id]) acc[l.household_id] = { name: l.household_name, letters: [] };
     acc[l.household_id].letters.push(l);
     return acc;
   }, {});
+
+  const sentGrouped = sent.reduce<Record<string, { name: string; letters: LetterWithPerson[] }>>((acc, l) => {
+    if (!acc[l.household_id]) acc[l.household_id] = { name: l.household_name, letters: [] };
+    acc[l.household_id].letters.push(l);
+    return acc;
+  }, {});
+
+  const multiHousehold = new Set(letters.map((l) => l.household_id)).size > 1;
 
   return (
     <div className="flex flex-col gap-0 min-h-screen">
@@ -264,23 +331,59 @@ export default function LettersVaultPage() {
           </div>
         )}
 
-        {!loading && Object.entries(grouped).map(([householdId, group]) => (
-          <div key={householdId}>
-            {Object.keys(grouped).length > 1 && (
-              <p className="text-xs font-bold text-warmstone-400 uppercase tracking-wide mb-3">{group.name}</p>
+        {!loading && letters.length > 0 && (
+          <>
+            {/* Unsent letters */}
+            {unsent.length > 0 && (
+              <div className="flex flex-col gap-4">
+                {Object.entries(unsentGrouped).map(([householdId, group]) => (
+                  <div key={householdId}>
+                    {multiHousehold && (
+                      <p className="text-xs font-bold text-warmstone-400 uppercase tracking-wide mb-3">{group.name}</p>
+                    )}
+                    <LetterGroup
+                      letters={group.letters.slice(0, 5)}
+                      onDelete={handleDelete}
+                      onRegenerate={handleRegenerate}
+                      onToggleSent={handleToggleSent}
+                    />
+                    {group.letters.length > 5 && (
+                      <p className="text-xs text-warmstone-400 mt-2 text-center">Scroll to see all {group.letters.length} letters</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
-            <div className="flex flex-col gap-3">
-              {group.letters.map((letter) => (
-                <LetterCard
-                  key={letter.id}
-                  letter={letter}
-                  onDelete={handleDelete}
-                  onRegenerate={handleRegenerate}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
+
+            {/* Sent letters */}
+            {sent.length > 0 && (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-warmstone-200" />
+                  <span className="text-xs font-bold text-warmstone-400 uppercase tracking-wide flex items-center gap-1.5">
+                    <Send size={11} /> Sent
+                  </span>
+                  <div className="flex-1 h-px bg-warmstone-200" />
+                </div>
+                <div className="flex flex-col gap-4">
+                  {Object.entries(sentGrouped).map(([householdId, group]) => (
+                    <div key={householdId}>
+                      {multiHousehold && (
+                        <p className="text-xs font-bold text-warmstone-400 uppercase tracking-wide mb-3">{group.name}</p>
+                      )}
+                      <LetterGroup
+                        letters={group.letters.slice(0, 5)}
+                        onDelete={handleDelete}
+                        onRegenerate={handleRegenerate}
+                        onToggleSent={handleToggleSent}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
       </main>
     </div>
   );

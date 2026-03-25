@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import {
   FileText, ChevronDown, ChevronUp, Copy, CheckCircle,
-  Sparkles, X, Save,
+  Sparkles, X, Save, Download,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -125,6 +125,24 @@ const TEMPLATE_EXTRA_FIELDS: Record<string, { key: string; label: string; placeh
 };
 
 // ---- Main component --------------------------------------------------------
+
+function openPrintWindow(title: string, content: string) {
+  const lines = content
+    .split("\n")
+    .map((l) =>
+      l.trim() === ""
+        ? "<br/>"
+        : `<p style="margin:0 0 6px 0">${l.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`
+    )
+    .join("");
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${title.replace(/</g, "&lt;")}</title><style>body{font-family:Arial,sans-serif;font-size:12pt;line-height:1.6;margin:2.5cm;color:#111;}@media print{body{margin:2.5cm;}}</style></head><body>${lines}</body></html>`;
+  const win = window.open("", "_blank");
+  if (!win) { alert("Please allow pop-ups to download as PDF."); return; }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 400);
+}
 
 function LettersPageInner() {
   const params = useParams<{ householdId: string; personId: string }>();
@@ -422,6 +440,12 @@ function LettersPageInner() {
                     >
                       {copied ? <CheckCircle size={14} className="text-sage-500" /> : <Copy size={14} />}
                       {copied ? "Copied!" : "Copy text"}
+                    </button>
+                    <button
+                      onClick={() => openPrintWindow(generated.title, generated.content)}
+                      className="flex items-center gap-1.5 text-sm font-semibold text-warmstone-700 bg-warmstone-100 hover:bg-warmstone-200 px-3 py-2 rounded-md min-h-[40px] transition-colors"
+                    >
+                      <Download size={14} /> Download PDF
                     </button>
                     {canEdit && (
                       <Button
