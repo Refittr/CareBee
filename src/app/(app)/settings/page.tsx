@@ -135,7 +135,13 @@ function SettingsContent() {
     setLoading(false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (statusParam === "success") {
+      fetch("/api/stripe/sync", { method: "POST" }).finally(() => load());
+    } else {
+      load();
+    }
+  }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function toggleDigest(householdId: string, enabled: boolean) {
     setSaving(householdId);
