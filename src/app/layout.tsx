@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit, Nunito } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -45,6 +46,7 @@ export default function RootLayout({
       </head>
       <body className="bg-warmstone-white text-warmstone-800 font-sans antialiased min-h-full">
         {children}
+        <Analytics />
       </body>
     </html>
   );
