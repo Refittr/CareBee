@@ -261,7 +261,8 @@ function LettersPageInner() {
       entitlement_context: entitlementContext ?? null,
     });
     if (err) {
-      addToast("Could not save. Please try again.", "error");
+      console.error("[saveToVault]", err.code, err.message, err.details);
+      addToast(err.message ?? "Could not save. Please try again.", "error");
       setSaving(false);
       return;
     }
