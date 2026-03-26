@@ -126,8 +126,8 @@ export default function PrivacyPage() {
         </p>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
           Contact for data queries:{" "}
-          <a href="mailto:privacy@carebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
-            privacy@carebee.co.uk
+          <a href="mailto:privacy@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
+            privacy@mycarebee.co.uk
           </a>
           . We do not have a formal Data Protection Officer at this stage, but all data queries are
           handled by the founding team.
@@ -382,8 +382,8 @@ export default function PrivacyPage() {
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
           You have the following rights regarding your personal data. To exercise any of these,
           email{" "}
-          <a href="mailto:privacy@carebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
-            privacy@carebee.co.uk
+          <a href="mailto:privacy@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
+            privacy@mycarebee.co.uk
           </a>{" "}
           or use the data management tools within the app.
         </p>
@@ -447,8 +447,8 @@ export default function PrivacyPage() {
           We do not knowingly allow children under the age of 13 to create their own CareBee
           accounts. If you believe we have collected data from a child under 13 without appropriate
           consent, please contact{" "}
-          <a href="mailto:privacy@carebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
-            privacy@carebee.co.uk
+          <a href="mailto:privacy@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
+            privacy@mycarebee.co.uk
           </a>
           .
         </p>
@@ -538,8 +538,8 @@ export default function PrivacyPage() {
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
           For questions about this privacy policy, to exercise your data rights, or to report a
           concern, contact:{" "}
-          <a href="mailto:privacy@carebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
-            privacy@carebee.co.uk
+          <a href="mailto:privacy@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
+            privacy@mycarebee.co.uk
           </a>
         </p>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">

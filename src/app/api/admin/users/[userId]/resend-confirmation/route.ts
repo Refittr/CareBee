@@ -22,24 +22,33 @@ export async function POST(
     return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.mycarebee.co.uk";
+
   const { data, error } = await svc.auth.admin.generateLink({
     type: "magiclink",
     email: profile.email,
-    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/dashboard` },
+    options: { redirectTo: `${appUrl}/dashboard` },
   });
 
-  if (error || !data?.properties?.action_link) {
-    return NextResponse.json(
-      { error: error?.message ?? "Failed to generate confirmation link." },
-      { status: 500 }
-    );
+  if (error) {
+    console.error("[resend-confirmation] generateLink error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await sendConfirmationEmail({
-    to: profile.email,
-    name: profile.full_name ?? "there",
-    confirmLink: data.properties.action_link,
-  });
+  if (!data?.properties?.action_link) {
+    return NextResponse.json({ error: "Failed to generate confirmation link." }, { status: 500 });
+  }
+
+  try {
+    await sendConfirmationEmail({
+      to: profile.email,
+      name: profile.full_name ?? "there",
+      confirmLink: data.properties.action_link,
+    });
+  } catch (err) {
+    console.error("[resend-confirmation] Email send failed:", err);
+    return NextResponse.json({ error: "Link generated but email failed to send." }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

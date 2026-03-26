@@ -22,24 +22,33 @@ export async function POST(
     return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.mycarebee.co.uk";
+
   const { data, error } = await svc.auth.admin.generateLink({
     type: "recovery",
     email: profile.email,
-    options: { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/login` },
+    options: { redirectTo: `${appUrl}/login` },
   });
 
-  if (error || !data?.properties?.action_link) {
-    return NextResponse.json(
-      { error: error?.message ?? "Failed to generate reset link." },
-      { status: 500 }
-    );
+  if (error) {
+    console.error("[password-reset] generateLink error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await sendPasswordResetEmail({
-    to: profile.email,
-    name: profile.full_name ?? "there",
-    resetLink: data.properties.action_link,
-  });
+  if (!data?.properties?.action_link) {
+    return NextResponse.json({ error: "Failed to generate reset link." }, { status: 500 });
+  }
+
+  try {
+    await sendPasswordResetEmail({
+      to: profile.email,
+      name: profile.full_name ?? "there",
+      resetLink: data.properties.action_link,
+    });
+  } catch (err) {
+    console.error("[password-reset] Email send failed:", err);
+    return NextResponse.json({ error: "Link generated but email failed to send." }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

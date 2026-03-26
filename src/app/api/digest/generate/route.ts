@@ -142,7 +142,7 @@ async function sendEmail(to: string, subject: string, html: string, text: string
     return;
   }
 
-  const fromEmail = process.env.FROM_EMAIL ?? "updates@carebee.co.uk";
+  const fromEmail = process.env.FROM_EMAIL ?? "updates@mycarebee.co.uk";
   const fromName = process.env.FROM_NAME ?? "CareBee";
 
   const res = await fetch("https://api.brevo.com/v3/smtp/email", {
