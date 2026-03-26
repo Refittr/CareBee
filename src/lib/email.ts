@@ -113,6 +113,105 @@ export async function sendInviteEmail({
   });
 }
 
+export async function sendPasswordResetEmail({
+  to,
+  name,
+  resetLink,
+}: {
+  to: string;
+  name: string;
+  resetLink: string;
+}) {
+  await sendEmail({
+    to,
+    subject: "Reset your CareBee password",
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8f6f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f6f2;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+        <tr><td style="padding-bottom:24px;text-align:center;">
+          <span style="font-size:24px;font-weight:800;letter-spacing:-0.5px;">
+            <span style="color:#1c1917;">Care</span><span style="color:#E8A817;">Bee</span>
+          </span>
+        </td></tr>
+        <tr><td style="background:#fff;border:1px solid #e7e4df;border-radius:16px;padding:40px 32px;">
+          <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1c1917;">Reset your password</h1>
+          <p style="margin:0 0 24px;font-size:15px;color:#78716c;line-height:1.6;">Hi ${name}, click the button below to set a new password for your CareBee account.</p>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="${resetLink}" style="display:inline-block;background:#E8A817;color:#fff;font-weight:700;font-size:16px;text-decoration:none;padding:14px 32px;border-radius:8px;">
+                Reset password
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:24px 0 0;font-size:12px;color:#a8a29e;text-align:center;line-height:1.6;">
+            This link expires in 24 hours. If you did not request a password reset, you can ignore this email.<br>
+            If the button does not work, copy this link: <a href="${resetLink}" style="color:#a8a29e;">${resetLink}</a>
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+    `.trim(),
+    text: `Reset your CareBee password: ${resetLink}`,
+  });
+}
+
+export async function sendConfirmationEmail({
+  to,
+  name,
+  confirmLink,
+}: {
+  to: string;
+  name: string;
+  confirmLink: string;
+}) {
+  await sendEmail({
+    to,
+    subject: "Confirm your CareBee account",
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8f6f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f6f2;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+        <tr><td style="padding-bottom:24px;text-align:center;">
+          <span style="font-size:24px;font-weight:800;letter-spacing:-0.5px;">
+            <span style="color:#1c1917;">Care</span><span style="color:#E8A817;">Bee</span>
+          </span>
+        </td></tr>
+        <tr><td style="background:#fff;border:1px solid #e7e4df;border-radius:16px;padding:40px 32px;">
+          <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1c1917;">Confirm your account</h1>
+          <p style="margin:0 0 24px;font-size:15px;color:#78716c;line-height:1.6;">Hi ${name}, click the button below to confirm your CareBee account and get started.</p>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="${confirmLink}" style="display:inline-block;background:#E8A817;color:#fff;font-weight:700;font-size:16px;text-decoration:none;padding:14px 32px;border-radius:8px;">
+                Confirm account
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:24px 0 0;font-size:12px;color:#a8a29e;text-align:center;line-height:1.6;">
+            If the button does not work, copy this link: <a href="${confirmLink}" style="color:#a8a29e;">${confirmLink}</a>
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+    `.trim(),
+    text: `Confirm your CareBee account: ${confirmLink}`,
+  });
+}
+
 export async function sendContactEmail({
   name,
   email,

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Mail, AlertCircle, ChevronLeft } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
+import { ReportIssueButton } from "@/components/auth/ReportIssueButton";
 
 function ConfirmationContent() {
   const searchParams = useSearchParams();
@@ -37,6 +38,9 @@ function ConfirmationContent() {
 
       <p className="text-sm text-warmstone-600 text-center">
         Click the link in the email to confirm your account and get started.
+      </p>
+      <p className="text-center mt-4">
+        <ReportIssueButton defaultEmail={email ?? ""} source="signup confirmation page" />
       </p>
     </div>
   );

@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
+import { ReportIssueButton } from "@/components/auth/ReportIssueButton";
 
 export default function LoginPage() {
   return (
@@ -124,6 +125,9 @@ function LoginForm() {
           <Link href="/signup" className="text-honey-600 font-semibold hover:underline">
             Sign up
           </Link>
+        </p>
+        <p className="text-center mt-3">
+          <ReportIssueButton defaultEmail={email} source="login page" />
         </p>
       </div>
     </div>
