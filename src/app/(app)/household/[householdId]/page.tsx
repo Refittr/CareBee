@@ -9,6 +9,7 @@ import { getInitials } from "@/lib/utils/formatting";
 import { calculateAge } from "@/lib/utils/dates";
 import type { Metadata } from "next";
 import type { Person } from "@/lib/types/database";
+import { DeleteHouseholdButton } from "./DeleteHouseholdButton";
 
 type Props = { params: Promise<{ householdId: string }> };
 
@@ -53,6 +54,8 @@ export default async function HouseholdPage({ params }: Props) {
         .order("appointment_date", { ascending: true })
         .limit(10),
     ]);
+
+  const isOwner = (rawMembers ?? []).some((m) => m.user_id === user.id && m.role === "owner");
 
   const memberUserIds = (rawMembers ?? []).map((m) => m.user_id as string).filter(Boolean);
   const { data: memberProfiles } = memberUserIds.length
@@ -250,6 +253,12 @@ export default async function HouseholdPage({ params }: Props) {
           })}
         </div>
       </section>
+
+      {isOwner && (
+        <div className="mt-10 pt-6 border-t border-warmstone-100">
+          <DeleteHouseholdButton householdId={householdId} householdName={household.name} />
+        </div>
+      )}
     </div>
   );
 }
