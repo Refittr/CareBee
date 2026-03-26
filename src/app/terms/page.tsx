@@ -205,8 +205,8 @@ export default function TermsPage() {
         </p>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
           If you believe your account has been compromised, contact us at{" "}
-          <a href="mailto:hello@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
-            hello@mycarebee.co.uk
+          <a href="mailto:support@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
+            support@mycarebee.co.uk
           </a>{" "}
           immediately and change your password.
         </p>
@@ -343,8 +343,8 @@ export default function TermsPage() {
           Refunds are handled in accordance with your rights under the Consumer Contracts
           Regulations 2013 and other applicable UK consumer protection legislation. If you have a
           question about a charge, contact{" "}
-          <a href="mailto:hello@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
-            hello@mycarebee.co.uk
+          <a href="mailto:support@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
+            support@mycarebee.co.uk
           </a>
           .
         </p>
@@ -491,8 +491,8 @@ export default function TermsPage() {
         </h2>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
           For questions about these terms, contact:{" "}
-          <a href="mailto:hello@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
-            hello@mycarebee.co.uk
+          <a href="mailto:support@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">
+            support@mycarebee.co.uk
           </a>
         </p>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
