@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r NEXT_PUBLIC_ .env*)",
+      "Bash(find src:*)",
+      "Bash(grep -r sk_ /c/Users/CP/CAREBEE --include=*.ts --include=*.tsx --include=*.js)"
+    ]
+  }
+}

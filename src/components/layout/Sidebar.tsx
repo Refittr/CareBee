@@ -185,6 +185,13 @@ export function Sidebar() {
           </Link>
         )}
         <Link
+          href="/contact"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-warmstone-500 hover:bg-warmstone-50 hover:text-warmstone-900 transition-colors min-h-[44px]"
+        >
+          <Mail size={18} />
+          Contact us
+        </Link>
+        <Link
           href="/report-bug"
           className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-warmstone-500 hover:bg-warmstone-50 hover:text-warmstone-900 transition-colors min-h-[44px]"
         >

@@ -171,10 +171,7 @@ export async function POST(request: NextRequest) {
   const isCron = cronSecret === process.env.CRON_SECRET;
 
   if (!isAdmin && !isCron) {
-    // Allow admin users to trigger manually
-    const svc = await createServiceClient();
-    // (In production, add a proper admin check here)
-    console.log("[digest] Manual trigger - proceeding");
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
 
   const svc = await createServiceClient();
