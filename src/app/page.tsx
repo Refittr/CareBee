@@ -19,11 +19,11 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { FaqSection } from "@/components/landing/FaqSection";
 
 export const metadata: Metadata = {
-  title: "CareBee | Your care, in one place",
+  title: "CareBee | One record for everyone who cares",
   description:
     "One shared record for medications, appointments, conditions, and benefits. AI that reads your paperwork, finds missing benefits, and spots medication issues. Free for 30 days.",
   openGraph: {
-    title: "CareBee | Your care, in one place",
+    title: "CareBee | One record for everyone who cares",
     description:
       "One shared record for medications, appointments, conditions, and benefits. AI that reads your paperwork, finds missing benefits, and spots medication issues. Free for 30 days.",
     type: "website",
