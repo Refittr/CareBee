@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { sendNewSignupEmail } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -24,16 +25,18 @@ export async function GET(request: NextRequest) {
       if (!existing) {
         const trialStartedAt = new Date().toISOString();
         const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const fullName = data.user.user_metadata?.full_name ?? data.user.user_metadata?.name ?? null;
         await svc.from("profiles").insert({
           id: data.user.id,
           email: data.user.email ?? "",
-          full_name: data.user.user_metadata?.full_name ?? data.user.user_metadata?.name ?? null,
+          full_name: fullName,
           account_type: "standard",
           plan: "family",
           is_subscribed: false,
           trial_started_at: trialStartedAt,
           trial_ends_at: trialEndsAt,
         });
+        sendNewSignupEmail({ name: fullName, email: data.user.email ?? "" }).catch(() => {});
       }
 
       // If no explicit next destination, this is an email confirmation — show success page
