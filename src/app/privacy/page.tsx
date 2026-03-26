@@ -121,7 +121,7 @@ export default function PrivacyPage() {
           1. Who we are
         </h2>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
-          CareBee is operated by CareBee Ltd (registered address to be confirmed). We are registered
+          CareBee is operated by Refittr Ltd (registered address to be confirmed). We are registered
           with the Information Commissioner&apos;s Office (ICO registration number to be confirmed).
         </p>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
@@ -548,7 +548,7 @@ export default function PrivacyPage() {
 
         {/* Footer */}
         <div className="mt-16 pt-8 border-t border-warmstone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-warmstone-400">
-          <span>CareBee Ltd. Registered in England and Wales.</span>
+          <span>Refittr Ltd operating as CareBee. Registered in England and Wales.</span>
           <div className="flex items-center gap-4">
             <Link href="/privacy" className="hover:text-warmstone-600 transition-colors">
               Privacy Policy
