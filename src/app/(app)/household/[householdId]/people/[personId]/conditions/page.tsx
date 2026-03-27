@@ -19,6 +19,7 @@ import { useAIAccess } from "@/lib/utils/access";
 import { UpgradeModal } from "@/components/ui/UpgradeModal";
 import { useCanEdit } from "@/lib/context/role";
 import { ScanModal } from "@/components/scan/ScanModal";
+import { ScanNudge } from "@/components/scan/ScanNudge";
 import type { Condition } from "@/lib/types/database";
 
 export default function ConditionsPage() {
@@ -79,7 +80,7 @@ export default function ConditionsPage() {
         {canEdit && (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
-              <Sparkles size={16} /> Scan with AI
+              <Sparkles size={16} /> Scan in a document
             </Button>
             <Button size="sm" onClick={() => setAddOpen(true)}>
               <Plus size={16} /> Add
@@ -89,13 +90,18 @@ export default function ConditionsPage() {
       </div>
 
       {conditions.length === 0 ? (
-        <EmptyState
-          icon={HeartPulse}
-          heading="No conditions recorded"
-          description="Add your loved one's conditions and diagnoses so everything is in one place."
-          ctaLabel="Add a condition"
-          onCta={canEdit ? () => setAddOpen(true) : undefined}
-        />
+        <div className="flex flex-col gap-3">
+          {canEdit && (
+            <ScanNudge onScan={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)} />
+          )}
+          <EmptyState
+            icon={HeartPulse}
+            heading="No conditions recorded"
+            description="Add your loved one's conditions and diagnoses so everything is in one place."
+            ctaLabel="Add manually"
+            onCta={canEdit ? () => setAddOpen(true) : undefined}
+          />
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
           {conditions.map((condition) => {

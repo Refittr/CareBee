@@ -258,7 +258,7 @@ export default function WaitingListsPage() {
           {canEdit && (
             <Button variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)} className="gap-2">
               <Sparkles size={16} />
-              Scan with AI
+              Scan in a document
             </Button>
           )}
           {canEdit && (

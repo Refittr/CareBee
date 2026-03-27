@@ -124,7 +124,6 @@ export default async function AnalyticsPage() {
   // Fetch all needed data in parallel
   const [
     { data: apiLogs },
-    { data: featureLogs },
     { data: pageLogs },
     { data: errorLogs },
     { count: medCount },
@@ -135,7 +134,6 @@ export default async function AnalyticsPage() {
     { data: profileRows },
   ] = await Promise.all([
     svc.from("api_usage_log").select("user_id, feature, status, tokens_used, duration_ms, created_at").gte("created_at", monthAgo.toISOString()),
-    svc.from("feature_usage_log").select("feature, action, user_id, created_at").gte("created_at", monthAgo.toISOString()),
     svc.from("page_view_log").select("path, created_at").gte("created_at", monthAgo.toISOString()),
     svc.from("error_log").select("error_type, error_message, path, user_id, created_at").order("created_at", { ascending: false }).limit(30),
     svc.from("medications").select("id", { count: "exact", head: true }),
@@ -143,11 +141,10 @@ export default async function AnalyticsPage() {
     svc.from("documents").select("id", { count: "exact", head: true }),
     svc.from("people").select("id", { count: "exact", head: true }),
     svc.from("households").select("id", { count: "exact", head: true }),
-    svc.from("profiles").select("id, full_name, email, account_type"),
+    svc.from("profiles").select("id, full_name, email, account_type, created_at").order("created_at", { ascending: false }),
   ]);
 
   const api = apiLogs ?? [];
-  const features = featureLogs ?? [];
   const pages = pageLogs ?? [];
   const errors = errorLogs ?? [];
   const profiles = profileRows ?? [];
@@ -192,22 +189,13 @@ export default async function AnalyticsPage() {
       sub: v.errors > 0 ? `(${v.errors} err)` : undefined,
     }));
 
-  // ---- Feature usage (user actions) ----
-  const actionTotals: Record<string, { total: number; users: Set<string>; last: string }> = {};
-  for (const r of features) {
-    const key = `${r.feature}:${r.action}`;
-    if (!actionTotals[key]) actionTotals[key] = { total: 0, users: new Set(), last: r.created_at };
-    actionTotals[key].total++;
-    if (r.user_id) actionTotals[key].users.add(r.user_id);
-    if (r.created_at > actionTotals[key].last) actionTotals[key].last = r.created_at;
-  }
-  const actionRows = Object.entries(actionTotals)
-    .sort((a, b) => b[1].total - a[1].total)
-    .slice(0, 15)
-    .map(([key, v]) => {
-      const [feature, action] = key.split(":");
-      return { feature: FEATURE_LABELS[feature] ?? feature, action, total: v.total, users: v.users.size, last: v.last };
-    });
+  // ---- Recent signups ----
+  const recentSignups = profiles.slice(0, 15).map((p) => ({
+    name: p.full_name ?? "",
+    email: p.email ?? "",
+    accountType: (p.account_type ?? "standard") as string,
+    created_at: (p as { created_at: string }).created_at,
+  }));
 
   // ---- Most active users (from api_usage_log — all AI calls) ----
   const profileMap = new Map(profiles.map((p) => [p.id, p]));
@@ -270,10 +258,10 @@ export default async function AnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        <StatCard label="Feature actions today" value={formatNumber(features.filter((r) => r.created_at >= todayStart.toISOString()).length)} />
+        <StatCard label="Users with AI calls (30d)" value={new Set(api.map((r) => r.user_id).filter(Boolean)).size} />
         <StatCard label="Page views (30 days)" value={formatNumber(pages.length)} />
         <StatCard label="Errors logged (30 days)" value={errors.length} />
-        <StatCard label="Active users (30 days)" value={new Set(features.map((r) => r.user_id).filter(Boolean)).size} />
+        <StatCard label="Total signups" value={profiles.length} />
       </div>
 
       {/* Daily API chart + Feature breakdown side by side */}
@@ -295,31 +283,33 @@ export default async function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Feature usage table */}
+      {/* Recent signups */}
       <div className="bg-white border border-warmstone-100 rounded-xl p-6 mb-6">
-        <SectionHeading title="Feature usage" />
-        {actionRows.length === 0 ? (
-          <p className="text-sm text-warmstone-400">No feature interactions logged yet.</p>
+        <SectionHeading title="Recent signups" />
+        {recentSignups.length === 0 ? (
+          <p className="text-sm text-warmstone-400">No signups yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-warmstone-100">
-                  <th className="text-left py-2 pr-4 text-xs font-semibold text-warmstone-500 uppercase tracking-wide">Feature</th>
-                  <th className="text-left py-2 pr-4 text-xs font-semibold text-warmstone-500 uppercase tracking-wide">Action</th>
-                  <th className="text-right py-2 pr-4 text-xs font-semibold text-warmstone-500 uppercase tracking-wide">Total</th>
-                  <th className="text-right py-2 pr-4 text-xs font-semibold text-warmstone-500 uppercase tracking-wide">Unique users</th>
-                  <th className="text-right py-2 text-xs font-semibold text-warmstone-500 uppercase tracking-wide">Last used</th>
+                  <th className="text-left py-2 pr-4 text-xs font-semibold text-warmstone-500 uppercase tracking-wide">Name</th>
+                  <th className="text-left py-2 pr-4 text-xs font-semibold text-warmstone-500 uppercase tracking-wide">Email</th>
+                  <th className="text-left py-2 pr-4 text-xs font-semibold text-warmstone-500 uppercase tracking-wide">Type</th>
+                  <th className="text-right py-2 text-xs font-semibold text-warmstone-500 uppercase tracking-wide">Joined</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-warmstone-50">
-                {actionRows.map((row, i) => (
+                {recentSignups.map((u, i) => (
                   <tr key={i}>
-                    <td className="py-2.5 pr-4 font-medium text-warmstone-800">{row.feature}</td>
-                    <td className="py-2.5 pr-4 text-warmstone-500 font-mono text-xs">{row.action}</td>
-                    <td className="py-2.5 pr-4 text-right font-semibold text-warmstone-900">{row.total}</td>
-                    <td className="py-2.5 pr-4 text-right text-warmstone-600">{row.users}</td>
-                    <td className="py-2.5 text-right text-warmstone-400 text-xs">{relativeTime(row.last)}</td>
+                    <td className="py-2.5 pr-4 font-medium text-warmstone-800">{u.name || "-"}</td>
+                    <td className="py-2.5 pr-4 text-warmstone-500 text-xs">{u.email}</td>
+                    <td className="py-2.5 pr-4">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${u.accountType === "admin" ? "bg-honey-100 text-honey-700" : u.accountType === "tester" ? "bg-sage-100 text-sage-700" : "bg-warmstone-100 text-warmstone-600"}`}>
+                        {u.accountType}
+                      </span>
+                    </td>
+                    <td className="py-2.5 text-right text-warmstone-400 text-xs">{relativeTime(u.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

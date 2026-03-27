@@ -162,7 +162,7 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
       className="fixed inset-0 z-50 bg-warmstone-white flex flex-col"
       role="dialog"
       aria-modal="true"
-      aria-label="Scan a document"
+      aria-label="Scan in a document"
     >
       {step === "capture" && (
         <CaptureStep onCapture={handleCapture} onCancel={handleClose} />
@@ -173,7 +173,7 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
           {/* Minimal header during processing */}
           <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-warmstone-100">
             <ScanLine size={18} className="text-honey-400" />
-            <span className="font-bold text-warmstone-900">Scan a document</span>
+            <span className="font-bold text-warmstone-900">Scan in a document</span>
           </div>
           <ProcessingStep stage={step === "uploading" ? "uploading" : "reading"} />
         </>
@@ -198,7 +198,7 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
           <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-warmstone-100">
             <div className="flex items-center gap-2">
               <ScanLine size={18} className="text-honey-400" />
-              <span className="font-bold text-warmstone-900">Scan a document</span>
+              <span className="font-bold text-warmstone-900">Scan in a document</span>
             </div>
             <button onClick={handleClose} className="text-warmstone-400 hover:text-warmstone-700 transition-colors p-1" aria-label="Close">✕</button>
           </div>

@@ -20,6 +20,7 @@ import { useAIAccess } from "@/lib/utils/access";
 import { UpgradeModal } from "@/components/ui/UpgradeModal";
 import { useCanEdit } from "@/lib/context/role";
 import { ScanModal } from "@/components/scan/ScanModal";
+import { ScanNudge } from "@/components/scan/ScanNudge";
 import type { Medication, MedicationChange, Condition, DrugInteraction } from "@/lib/types/database";
 
 export default function MedicationsPage() {
@@ -185,7 +186,7 @@ export default function MedicationsPage() {
         {canEdit && (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
-              <Sparkles size={16} /> Scan with AI
+              <Sparkles size={16} /> Scan in a document
             </Button>
             <Button size="sm" onClick={() => setAddOpen(true)}>
               <Plus size={16} /> Add
@@ -195,13 +196,18 @@ export default function MedicationsPage() {
       </div>
 
       {medications.length === 0 ? (
-        <EmptyState
-          icon={Pill}
-          heading="No medications recorded"
-          description="Add medications so you have a complete list across all prescribers."
-          ctaLabel="Add a medication"
-          onCta={canEdit ? () => setAddOpen(true) : undefined}
-        />
+        <div className="flex flex-col gap-3">
+          {canEdit && (
+            <ScanNudge onScan={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)} />
+          )}
+          <EmptyState
+            icon={Pill}
+            heading="No medications recorded"
+            description="Add medications so you have a complete list across all prescribers."
+            ctaLabel="Add manually"
+            onCta={canEdit ? () => setAddOpen(true) : undefined}
+          />
+        </div>
       ) : (
         <>
           <div className="flex flex-col gap-3">

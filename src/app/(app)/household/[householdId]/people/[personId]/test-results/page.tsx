@@ -137,7 +137,7 @@ export default function TestResultsPage() {
         {canEdit && (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
-              <Sparkles size={16} /> Scan with AI
+              <Sparkles size={16} /> Scan in a document
             </Button>
             <Button size="sm" onClick={() => setAddOpen(true)}>
               <Plus size={16} /> Add

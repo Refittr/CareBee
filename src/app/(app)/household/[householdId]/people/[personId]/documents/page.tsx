@@ -106,8 +106,8 @@ export default function DocumentsPage() {
           >
             <Sparkles size={20} className="shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-sm">Scan document with AI</p>
-              <p className="text-xs text-sage-100 mt-0.5">Our AI reads your document and adds the details to your record automatically</p>
+              <p className="font-bold text-sm">Scan in a letter or document</p>
+              <p className="text-xs text-sage-100 mt-0.5">Our AI reads it and adds the details to your record for you</p>
             </div>
           </button>
           <button
@@ -136,7 +136,7 @@ export default function DocumentsPage() {
             <>
               <Button onClick={handleScanClick} variant="secondary" className="mt-1 gap-2">
                 <Sparkles size={16} />
-                Scan your first document
+                Scan in your first document
               </Button>
               <button
                 onClick={() => setUploadOpen(true)}

@@ -22,6 +22,7 @@ import { useAIAccess } from "@/lib/utils/access";
 import { UpgradeModal } from "@/components/ui/UpgradeModal";
 import { useCanEdit } from "@/lib/context/role";
 import { ScanModal } from "@/components/scan/ScanModal";
+import { ScanNudge } from "@/components/scan/ScanNudge";
 import type { Appointment } from "@/lib/types/database";
 
 type BadgeVariant = "info" | "active" | "neutral" | "error";
@@ -448,7 +449,7 @@ export default function AppointmentsPage() {
         {canEdit && (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
-              <Sparkles size={16} /> Scan with AI
+              <Sparkles size={16} /> Scan in a document
             </Button>
             <Button size="sm" onClick={() => setAddOpen(true)}><Plus size={16} /> Add</Button>
           </div>
@@ -456,7 +457,12 @@ export default function AppointmentsPage() {
       </div>
 
       {appointments.length === 0 ? (
-        <EmptyState icon={Calendar} heading="No appointments recorded" description="Keep track of every appointment across all hospitals and services." ctaLabel="Add an appointment" onCta={() => setAddOpen(true)} />
+        <div className="flex flex-col gap-3">
+          {canEdit && (
+            <ScanNudge onScan={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)} />
+          )}
+          <EmptyState icon={Calendar} heading="No appointments recorded" description="Keep track of every appointment across all hospitals and services." ctaLabel="Add manually" onCta={() => setAddOpen(true)} />
+        </div>
       ) : (
         <>
           {upcoming.length > 0 && (

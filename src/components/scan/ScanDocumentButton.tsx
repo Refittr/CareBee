@@ -34,9 +34,9 @@ export function ScanDocumentButton({ householdId, personId }: ScanDocumentButton
           <Sparkles size={18} className="text-sage-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-sm leading-snug">Scan a document with AI</p>
+          <p className="font-bold text-sm leading-snug">Scan in a letter or document</p>
           <p className="text-xs text-warmstone-500 mt-0.5 leading-snug">
-            Letters, prescriptions, test results and more. CareBee reads it and files the details automatically.
+            Letters, prescriptions, test results and more. We read it and add the details to the record for you.
           </p>
         </div>
         <ChevronRight size={16} className="shrink-0 text-warmstone-400" />
