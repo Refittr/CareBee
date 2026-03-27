@@ -370,9 +370,23 @@ function SettingsContent() {
                 Resubscribe
               </Button>
             </Card>
+          ) : !ownedHouseholdId ? (
+            <Card className="flex flex-col gap-4 p-4">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-honey-500" />
+                <span className="font-semibold text-warmstone-900">Free trial</span>
+                <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-honey-100 text-honey-800">30 days</span>
+              </div>
+              <p className="text-sm text-warmstone-600">Create your first care record to start your 30-day free trial. No payment needed.</p>
+              <Link href="/household/new">
+                <Button variant="primary" size="sm" className="gap-1.5 w-fit">
+                  Create a care record
+                  <ArrowRight size={14} />
+                </Button>
+              </Link>
+            </Card>
           ) : (() => {
-            // Use household trial date if available, fall back to profile trial date
-            const trialEndsAt = planInfo?.household_trial_ends_at ?? planInfo?.profile_trial_ends_at ?? null;
+            const trialEndsAt = planInfo?.household_trial_ends_at ?? null;
             const householdIsTrial = planInfo?.household_sub_status === "trial";
             const trialActive = householdIsTrial && trialEndsAt && new Date(trialEndsAt) > new Date();
             const daysLeft = trialActive
