@@ -241,9 +241,15 @@ export default async function AdminDashboardPage() {
 
       {/* All users table */}
       <div>
-        <h2 className="text-sm font-bold text-warmstone-700 uppercase tracking-wide mb-3">
-          All users ({totalUsers})
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold text-warmstone-700 uppercase tracking-wide">
+            All users ({totalUsers})
+          </h2>
+          <div className="flex items-center gap-3 text-xs text-warmstone-500">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-300 inline-block" /> No care record ({userRows.filter(u => u.households_owned === 0 && u.account_type !== "admin").length})</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-sage-400 inline-block" /> Active ({userRows.filter(u => u.households_owned > 0).length})</span>
+          </div>
+        </div>
         <div className="bg-warmstone-white border border-warmstone-200 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -252,49 +258,62 @@ export default async function AdminDashboardPage() {
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-warmstone-500">Name</th>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-warmstone-500 hidden md:table-cell">Type</th>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-warmstone-500">Joined</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-semibold text-warmstone-500">HH</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-warmstone-500 hidden md:table-cell">Status</th>
                   <th className="text-right px-4 py-2.5 text-xs font-semibold text-warmstone-500 hidden md:table-cell">People</th>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-warmstone-500 hidden lg:table-cell">AI used</th>
                   <th className="text-right px-4 py-2.5 text-xs font-semibold text-warmstone-500 hidden lg:table-cell">Last AI</th>
                 </tr>
               </thead>
               <tbody>
-                {userRows.map((u) => (
-                  <tr key={u.id} className="border-b border-warmstone-50 hover:bg-warmstone-50 last:border-0">
-                    <td className="px-4 py-2.5">
-                      <p className="font-medium text-warmstone-900 truncate max-w-[140px]">{u.full_name}</p>
-                      <p className="text-xs text-warmstone-400 truncate max-w-[160px]">{u.email}</p>
-                    </td>
-                    <td className="px-4 py-2.5 hidden md:table-cell">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accountTypeBadge[u.account_type] ?? accountTypeBadge.standard}`}>
-                        {u.account_type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-warmstone-500 whitespace-nowrap">{formatRelative(u.created_at)}</td>
-                    <td className="px-4 py-2.5 text-right text-warmstone-600 font-medium text-xs">{u.households_owned}</td>
-                    <td className="px-4 py-2.5 text-right text-warmstone-600 text-xs hidden md:table-cell">{u.people_count}</td>
-                    <td className="px-4 py-2.5 hidden lg:table-cell">
-                      {u.ai_calls === 0 ? (
-                        <span className="text-xs text-warmstone-300">None</span>
-                      ) : (
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="flex items-center gap-1 text-xs font-semibold text-sage-700">
-                            <Zap size={11} />
-                            {u.ai_calls}
+                {userRows.map((u) => {
+                  const noHousehold = u.households_owned === 0 && u.account_type !== "admin" && u.account_type !== "tester";
+                  return (
+                    <tr key={u.id} className={`border-b border-warmstone-50 last:border-0 ${noHousehold ? "bg-amber-50 hover:bg-amber-100" : "hover:bg-warmstone-50"}`}>
+                      <td className="px-4 py-2.5">
+                        <p className="font-medium text-warmstone-900 truncate max-w-[140px]">{u.full_name}</p>
+                        <p className="text-xs text-warmstone-400 truncate max-w-[160px]">{u.email}</p>
+                      </td>
+                      <td className="px-4 py-2.5 hidden md:table-cell">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${accountTypeBadge[u.account_type] ?? accountTypeBadge.standard}`}>
+                          {u.account_type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-warmstone-500 whitespace-nowrap">{formatRelative(u.created_at)}</td>
+                      <td className="px-4 py-2.5 hidden md:table-cell">
+                        {noHousehold ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 border border-amber-200 whitespace-nowrap">
+                            No care record, 30 days free
                           </span>
-                          {u.ai_features.map((f) => (
-                            <span key={f} className="text-[10px] px-1.5 py-0.5 rounded bg-sage-50 text-sage-600 border border-sage-100 font-medium">
-                              {FEATURE_SHORT[f] ?? f}
+                        ) : (
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-sage-50 text-sage-700 border border-sage-100">
+                            {u.people_count} {u.people_count === 1 ? "person" : "people"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-warmstone-600 text-xs hidden md:table-cell">{noHousehold ? <span className="text-warmstone-300">-</span> : u.people_count}</td>
+                      <td className="px-4 py-2.5 hidden lg:table-cell">
+                        {u.ai_calls === 0 ? (
+                          <span className="text-xs text-warmstone-300">None</span>
+                        ) : (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="flex items-center gap-1 text-xs font-semibold text-sage-700">
+                              <Zap size={11} />
+                              {u.ai_calls}
                             </span>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-warmstone-400 text-xs hidden lg:table-cell">
-                      {u.ai_last_used ? formatRelative(u.ai_last_used) : <span className="text-warmstone-200">-</span>}
-                    </td>
-                  </tr>
-                ))}
+                            {u.ai_features.map((f) => (
+                              <span key={f} className="text-[10px] px-1.5 py-0.5 rounded bg-sage-50 text-sage-600 border border-sage-100 font-medium">
+                                {FEATURE_SHORT[f] ?? f}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-warmstone-400 text-xs hidden lg:table-cell">
+                        {u.ai_last_used ? formatRelative(u.ai_last_used) : <span className="text-warmstone-200">-</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {userRows.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-warmstone-400 text-sm">No users yet.</td>
