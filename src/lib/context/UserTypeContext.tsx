@@ -45,6 +45,10 @@ export function UserTypeProvider({ children }: { children: React.ReactNode }) {
             (user.user_metadata?.full_name as string | undefined) ??
             (user.user_metadata?.name as string | undefined) ??
             "",
+          account_type: "standard" as const,
+          plan: "free" as const,
+          ai_uses_count: 0,
+          is_subscribed: false,
         }, { onConflict: "id" });
       }
 
