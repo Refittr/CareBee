@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { Bell, BellOff, CheckCircle, ArrowRight, Sparkles, CreditCard } from "lucide-react";
+import { Bell, BellOff, CheckCircle, ArrowRight, Sparkles, CreditCard, Lock } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -77,6 +77,10 @@ function SettingsContent() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [changePlanLoading, setChangePlanLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const statusParam = searchParams.get("status");
 
@@ -283,6 +287,22 @@ function SettingsContent() {
     }
   }
 
+  async function changePassword() {
+    setPasswordError(null);
+    if (newPassword.length < 8) { setPasswordError("Password must be at least 8 characters."); return; }
+    if (newPassword !== confirmPassword) { setPasswordError("Passwords do not match."); return; }
+    setChangingPassword(true);
+    const { error: err } = await supabase.auth.updateUser({ password: newPassword });
+    setChangingPassword(false);
+    if (err) {
+      setPasswordError(err.message);
+    } else {
+      setNewPassword("");
+      setConfirmPassword("");
+      addToast("Password updated.", "success");
+    }
+  }
+
   function formatLastSent(date: string | null): string {
     if (!date) return "Not sent yet";
     return `Last sent ${new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`;
@@ -330,6 +350,41 @@ function SettingsContent() {
             )}
           </Card>
         )}
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-base font-bold text-warmstone-900">Password</h2>
+          <p className="text-sm text-warmstone-600 mt-0.5">Change your account password.</p>
+        </div>
+        <Card className="flex flex-col gap-4 p-4">
+          <Input
+            label="New password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => { setNewPassword(e.target.value); setPasswordError(null); }}
+            placeholder="At least 8 characters"
+            autoComplete="new-password"
+          />
+          <Input
+            label="Confirm new password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(null); }}
+            placeholder="Repeat your new password"
+            autoComplete="new-password"
+            error={passwordError ?? undefined}
+          />
+          <Button
+            onClick={changePassword}
+            loading={changingPassword}
+            disabled={!newPassword || !confirmPassword}
+            size="sm"
+            className="gap-1.5 w-fit"
+          >
+            <Lock size={14} /> Update password
+          </Button>
+        </Card>
       </section>
 
       {accountType !== "admin" && (

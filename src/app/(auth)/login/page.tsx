@@ -98,7 +98,15 @@ function LoginForm() {
               required
               autoComplete="current-password"
             />
-            <Button type="submit" loading={loading} fullWidth className="mt-1">
+            <div className="flex justify-end -mt-1">
+              <Link
+                href="/forgot-password"
+                className="text-xs text-warmstone-400 hover:text-honey-600 transition-colors"
+              >
+                Forgot your password?
+              </Link>
+            </div>
+            <Button type="submit" loading={loading} fullWidth>
               Sign in
             </Button>
           </form>
