@@ -34,7 +34,7 @@ export async function GET(
 
   if (from) query = query.gte("record_date", from);
   if (to) query = query.lte("record_date", to);
-  if (shift) query = query.eq("shift", shift);
+  if (shift) query = query.eq("shift", shift as never);
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -57,7 +57,8 @@ export async function GET(
       ? `"${str.replace(/"/g, '""')}"` : str;
   };
 
-  const rows = (data ?? []).map((r: Record<string, unknown> & { profiles?: { full_name?: string } | null }) => [
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = (data ?? []).map((r: any) => [
     r.record_date, r.shift, r.profiles?.full_name ?? "",
     r.mood, r.mood_notes,
     r.personal_care, r.personal_care_notes,

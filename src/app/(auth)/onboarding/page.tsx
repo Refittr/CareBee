@@ -69,6 +69,10 @@ function OnboardingFork() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.replace("/login"); return; }
 
+    const selfCareTrial = choice === "self_care"
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+
     // Save user_type to profile — upsert so a missing profile row is created
     const { error: profileErr } = await supabase
       .from("profiles")
@@ -80,10 +84,11 @@ function OnboardingFork() {
           (user.user_metadata?.name as string | undefined) ??
           "",
         account_type: "standard" as const,
-        plan: "free" as const,
+        plan: choice === "self_care" ? "self_care_plus" as const : "free" as const,
         ai_uses_count: 0,
         is_subscribed: false,
         user_type: choice,
+        ...(selfCareTrial ? { trial_ends_at: selfCareTrial } : {}),
       }, { onConflict: "id" });
 
     if (profileErr) {
@@ -130,6 +135,14 @@ function OnboardingFork() {
       setError(householdErr?.message ?? "Something went wrong setting up your account. Please try again.");
       setLoading(false);
       return;
+    }
+
+    // Set trial on the newly created household
+    if (selfCareTrial) {
+      await supabase.from("households").update({
+        subscription_status: "trial",
+        trial_ends_at: selfCareTrial,
+      }).eq("id", householdId as string);
     }
 
     // Create person record using user's own name

@@ -38,12 +38,13 @@ export async function GET(
 
   if (from) query = query.gte("record_date", from);
   if (to) query = query.lte("record_date", to);
-  if (shift) query = query.eq("shift", shift);
+  if (shift) query = query.eq("shift", shift as never);
 
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const records = (data ?? []).map((r: Record<string, unknown> & { profiles?: { full_name?: string } | null }) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const records = (data ?? []).map((r: any) => ({
     ...r,
     recorded_by_name: r.profiles?.full_name ?? null,
     profiles: undefined,

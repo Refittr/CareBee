@@ -2,6 +2,8 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -10,6 +12,8 @@ import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
 import { logActivity } from "@/lib/logActivity";
+import { getCapabilities } from "@/lib/plan-utils";
+import type { AccountType, UserType, PlanType } from "@/lib/types/database";
 
 export default function NewPersonPageWrapper() {
   return (
@@ -29,6 +33,7 @@ function NewPersonPage() {
   const { addToast } = useAppToast();
 
   const [householdName, setHouseholdName] = useState<string | null>(null);
+  const [gated, setGated] = useState(false);
 
   const [fields, setFields] = useState({
     first_name: "",
@@ -51,6 +56,27 @@ function NewPersonPage() {
       .maybeSingle()
       .then(({ data }) => setHouseholdName(data?.name ?? null));
   }, [isOnboarding, householdId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    async function checkGate() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const [{ data: profile }, { data: hh }, { count }] = await Promise.all([
+        supabase.from("profiles").select("account_type, user_type, plan, is_subscribed, trial_ends_at").eq("id", user.id).single(),
+        supabase.from("households").select("subscription_status, trial_ends_at, subscription_ends_at").eq("id", householdId).maybeSingle(),
+        supabase.from("people").select("id", { count: "exact", head: true }).eq("household_id", householdId),
+      ]);
+      if (!profile) return;
+      const caps = getCapabilities(
+        { account_type: profile.account_type as AccountType, user_type: profile.user_type as UserType | null, plan: profile.plan as PlanType | null, is_subscribed: profile.is_subscribed, trial_ends_at: profile.trial_ends_at },
+        hh ? { subscription_status: hh.subscription_status, trial_ends_at: hh.trial_ends_at, subscription_ends_at: (hh as { subscription_ends_at?: string | null }).subscription_ends_at } : null,
+      );
+      if (caps.maxPeople !== null && (count ?? 0) >= caps.maxPeople) {
+        setGated(true);
+      }
+    }
+    checkGate();
+  }, [householdId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function validate() {
     const e: Partial<typeof fields> = {};
@@ -98,6 +124,24 @@ function NewPersonPage() {
   function setField(key: keyof typeof fields, value: string) {
     setFields((f) => ({ ...f, [key]: value }));
     setErrors((e) => ({ ...e, [key]: undefined }));
+  }
+
+  if (gated) {
+    return (
+      <div className="px-4 md:px-8 py-6 max-w-lg">
+        <Header title="Add someone you care for" showBack backHref={`/household/${householdId}`} />
+        <div className="mt-6 bg-honey-50 border border-honey-200 rounded-xl p-6 flex flex-col gap-3">
+          <p className="font-semibold text-warmstone-900">Upgrade required</p>
+          <p className="text-sm text-warmstone-700 leading-relaxed">
+            Your current plan includes one person per care record. Subscribe to CareBee Plus to add more people, invite carers, and access all features.
+          </p>
+          <Link href="/settings" className="inline-flex items-center gap-1.5 text-sm font-semibold text-honey-700 hover:text-honey-900 transition-colors">
+            View plans
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (

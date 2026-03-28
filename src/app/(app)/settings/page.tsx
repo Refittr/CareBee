@@ -81,6 +81,8 @@ function SettingsContent() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [showSwitchModal, setShowSwitchModal] = useState(false);
+  const [switchingToCareBee, setSwitchingToCareBee] = useState(false);
 
   const statusParam = searchParams.get("status");
 
@@ -90,7 +92,7 @@ function SettingsContent() {
     if (!user) { setLoading(false); return; }
 
     const [{ data: profile }, { data: members }] = await Promise.all([
-      supabase.from("profiles").select("email, full_name, account_type, is_subscribed, trial_ends_at, subscription_status, subscription_current_period_end, plan").eq("id", user.id).single(),
+      supabase.from("profiles").select("email, full_name, account_type, is_subscribed, trial_ends_at, subscription_status, subscription_current_period_end, plan, user_type, created_at").eq("id", user.id).single(),
       supabase.from("household_members")
         .select("household_id, weekly_digest_enabled, weekly_digest_day, last_digest_sent_at")
         .eq("user_id", user.id)
@@ -124,6 +126,27 @@ function SettingsContent() {
       householdSubStatus = hh?.subscription_status ?? null;
       householdTrialEndsAt = hh?.trial_ends_at ?? null;
       householdSubscriptionEndsAt = (hh as { subscription_ends_at?: string | null } | null)?.subscription_ends_at ?? null;
+    }
+
+    // BUG FIX: backfill self_care users who signed up before trial was set correctly
+    const profileAny = profile as { user_type?: string; plan?: string; trial_ends_at?: string | null; created_at?: string; is_subscribed?: boolean } | null;
+    if (
+      profileAny?.user_type === "self_care" &&
+      !profileAny?.is_subscribed &&
+      !profileAny?.trial_ends_at &&
+      (!profileAny?.plan || profileAny.plan === "free")
+    ) {
+      const base = profileAny.created_at ? new Date(profileAny.created_at) : new Date();
+      const trialEnd = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      await Promise.all([
+        supabase.from("profiles").update({ plan: "self_care_plus", trial_ends_at: trialEnd }).eq("id", user.id),
+        ownedMembership
+          ? supabase.from("households").update({ subscription_status: "trial", trial_ends_at: trialEnd }).eq("id", ownedMembership.household_id)
+          : Promise.resolve(),
+      ]);
+      householdSubStatus = "trial";
+      householdTrialEndsAt = trialEnd;
+      setCurrentPlan("self_care_plus");
     }
 
     if (profile) {
@@ -303,6 +326,24 @@ function SettingsContent() {
     }
   }
 
+  async function handleSwitchToCareBee() {
+    setSwitchingToCareBee(true);
+    try {
+      const res = await fetch("/api/account/switch-to-carebee", { method: "POST" });
+      const data = await res.json();
+      if (data.error) {
+        addToast(data.error, "error");
+      } else {
+        setShowSwitchModal(false);
+        addToast("Your account has been switched to CareBee Plus.", "success");
+        await load();
+      }
+    } catch {
+      addToast("Something went wrong. Please try again.", "error");
+    }
+    setSwitchingToCareBee(false);
+  }
+
   function formatLastSent(date: string | null): string {
     if (!date) return "Not sent yet";
     return `Last sent ${new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`;
@@ -474,6 +515,16 @@ function SettingsContent() {
                   </div>
                 );
               })()}
+              {userType === "self_care" && (
+                <div className="border-t border-warmstone-100 pt-3">
+                  <button
+                    onClick={() => setShowSwitchModal(true)}
+                    className="text-xs text-warmstone-500 hover:text-warmstone-800 underline transition-colors"
+                  >
+                    Switch to CareBee Plus (carer account)
+                  </button>
+                </div>
+              )}
             </Card>
           ) : planInfo?.household_sub_status === "cancelled" ? (
             <Card className="flex flex-col gap-3 p-4">
@@ -583,6 +634,14 @@ function SettingsContent() {
                     Early adopter rate. Lock in this price for as long as you subscribe before 1 July 2026.
                   </p>
                 )}
+                {userType === "self_care" && (
+                  <button
+                    onClick={() => setShowSwitchModal(true)}
+                    className="text-xs text-warmstone-500 hover:text-warmstone-800 underline transition-colors self-start"
+                  >
+                    Switch to CareBee Plus (carer account)
+                  </button>
+                )}
               </Card>
             );
           })()}
@@ -674,6 +733,37 @@ function SettingsContent() {
           <ArrowRight size={14} />
         </Link>
       </section>
+
+      {showSwitchModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/30" onClick={() => !switchingToCareBee && setShowSwitchModal(false)} />
+          <div className="relative bg-warmstone-white rounded-xl shadow-xl max-w-md w-full p-6 flex flex-col gap-4">
+            <h2 className="text-lg font-bold text-warmstone-900">Switch to CareBee Plus</h2>
+            <p className="text-sm text-warmstone-700 leading-relaxed">
+              Your account will be converted to a carer account with CareBee Plus. You will be able to add multiple people to your care record and invite family members and other carers.
+            </p>
+            <p className="text-sm text-warmstone-600 leading-relaxed">
+              Your current trial or subscription period carries over. If you were on a paid self-care plan, you will need to set up a new CareBee Plus subscription.
+            </p>
+            <div className="flex items-center gap-3 pt-2">
+              <Button
+                onClick={handleSwitchToCareBee}
+                loading={switchingToCareBee}
+                size="sm"
+              >
+                Switch account
+              </Button>
+              <button
+                onClick={() => setShowSwitchModal(false)}
+                disabled={switchingToCareBee}
+                className="text-sm text-warmstone-500 hover:text-warmstone-800 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

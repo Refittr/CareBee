@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Copy, Check, CheckCircle, Mail } from "lucide-react";
+import { Copy, Check, CheckCircle, Mail, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
+import { getCapabilities } from "@/lib/plan-utils";
+import type { AccountType, UserType, PlanType } from "@/lib/types/database";
 
 export default function InvitePage() {
   const params = useParams<{ householdId: string }>();
@@ -29,8 +31,9 @@ export default function InvitePage() {
   const [copied, setCopied] = useState(false);
   const [existingToken, setExistingToken] = useState<string | null>(null);
   const [existingLinkCopied, setExistingLinkCopied] = useState(false);
+  const [gated, setGated] = useState(false);
 
-  // Check role on mount; redirect non-editors/owners
+  // Check role and plan gate on mount
   useEffect(() => {
     async function checkRole() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -44,6 +47,19 @@ export default function InvitePage() {
       if (!member) { router.replace(`/household/${householdId}`); return; }
       if (member.role === "viewer" || member.role === "emergency_only") {
         router.replace(`/household/${householdId}`);
+        return;
+      }
+      // Plan gate: check if this user can invite members
+      const [{ data: profile }, { data: hh }] = await Promise.all([
+        supabase.from("profiles").select("account_type, user_type, plan, is_subscribed, trial_ends_at").eq("id", user.id).single(),
+        supabase.from("households").select("subscription_status, trial_ends_at, subscription_ends_at").eq("id", householdId).maybeSingle(),
+      ]);
+      if (profile) {
+        const caps = getCapabilities(
+          { account_type: profile.account_type as AccountType, user_type: profile.user_type as UserType | null, plan: profile.plan as PlanType | null, is_subscribed: profile.is_subscribed, trial_ends_at: profile.trial_ends_at },
+          hh ? { subscription_status: hh.subscription_status, trial_ends_at: hh.trial_ends_at, subscription_ends_at: (hh as { subscription_ends_at?: string | null }).subscription_ends_at } : null,
+        );
+        if (!caps.canInviteMembers) setGated(true);
       }
     }
     checkRole();
@@ -115,6 +131,24 @@ export default function InvitePage() {
     setEmailError(null);
     setExistingToken(null);
     setCopied(false);
+  }
+
+  if (gated) {
+    return (
+      <div className="px-4 md:px-8 py-6 max-w-lg">
+        <Header title="Invite someone" showBack backHref={`/household/${householdId}/members`} />
+        <div className="mt-6 bg-honey-50 border border-honey-200 rounded-xl p-6 flex flex-col gap-3">
+          <p className="font-semibold text-warmstone-900">Upgrade required</p>
+          <p className="text-sm text-warmstone-700 leading-relaxed">
+            Inviting carers and family members is a CareBee Plus feature. Subscribe to share this care record with your care circle.
+          </p>
+          <Link href="/settings" className="inline-flex items-center gap-1.5 text-sm font-semibold text-honey-700 hover:text-honey-900 transition-colors">
+            View plans
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
