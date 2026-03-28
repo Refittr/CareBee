@@ -101,21 +101,21 @@ export function PricingSection() {
         {/* Toggle */}
         <div className="mt-6 flex flex-col items-center gap-2">
           <div className="flex items-center gap-3">
-            <span className={`text-sm font-semibold w-16 text-right transition-colors ${!annual ? "text-honey-600" : "text-warmstone-400"}`}>
+            <span className={`text-sm font-semibold transition-colors ${!annual ? "text-honey-600" : "text-warmstone-400"}`}>
               Monthly
             </span>
             <button
               type="button"
-              onClick={() => setAnnual(!annual)}
+              onClick={() => setAnnual((v) => !v)}
               aria-pressed={annual}
               aria-label="Toggle annual billing"
-              className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-honey-400 ${annual ? "bg-honey-400" : "bg-warmstone-300"}`}
+              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-honey-400 ${annual ? "bg-honey-400" : "bg-warmstone-300"}`}
             >
               <span
-                className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${annual ? "translate-x-[22px]" : "translate-x-0.5"}`}
+                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 mt-0.5 ${annual ? "translate-x-5" : "translate-x-0.5"}`}
               />
             </button>
-            <span className={`text-sm font-semibold w-16 text-left transition-colors ${annual ? "text-honey-600" : "text-warmstone-400"}`}>
+            <span className={`text-sm font-semibold transition-colors ${annual ? "text-honey-600" : "text-warmstone-400"}`}>
               Annual
             </span>
           </div>
