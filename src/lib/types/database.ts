@@ -504,7 +504,7 @@ export type Database = {
       };
       people: {
         Row: Row & Person;
-        Insert: Row & OptionalNullables<Omit<Person, "id" | "created_at" | "updated_at" | "care_needs_assessment">> & { care_needs_assessment?: Record<string, unknown> };
+        Insert: Row & OptionalNullables<Omit<Person, "id" | "created_at" | "updated_at" | "care_needs_assessment" | "daily_care_enabled">> & { care_needs_assessment?: Record<string, unknown>; daily_care_enabled?: boolean };
         Update: Row & Partial<Omit<Person, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
