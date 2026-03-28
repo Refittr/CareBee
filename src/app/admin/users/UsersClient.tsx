@@ -18,6 +18,7 @@ interface AdminUser {
   subscription_days_left: number | null;
   last_sign_in_at: string | null;
   ai_count: number;
+  docs_scanned: number;
   last_ai_at: string | null;
 }
 
@@ -560,7 +561,8 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
                 <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500 hidden lg:table-cell">Last login</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-warmstone-500">HH</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-warmstone-500">People</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-warmstone-500 hidden lg:table-cell">AI uses</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-warmstone-500 hidden lg:table-cell">AI calls</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-warmstone-500 hidden xl:table-cell">Docs scanned</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500 hidden xl:table-cell">Last AI</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -601,6 +603,11 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
                       ? <span className="text-honey-700">{u.ai_count}</span>
                       : <span className="text-warmstone-300">—</span>}
                   </td>
+                  <td className="px-4 py-3 text-right text-xs font-medium hidden xl:table-cell">
+                    {u.docs_scanned > 0
+                      ? <span className="text-honey-700">{u.docs_scanned}</span>
+                      : <span className="text-warmstone-300">—</span>}
+                  </td>
                   <td className="px-4 py-3 text-xs text-warmstone-500 hidden xl:table-cell">
                     {u.last_ai_at ? formatDate(u.last_ai_at) : <span className="text-warmstone-300">—</span>}
                   </td>
@@ -621,7 +628,7 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
               ))}
               {users.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-warmstone-400">
+                  <td colSpan={11} className="px-4 py-8 text-center text-warmstone-400">
                     No users found.
                   </td>
                 </tr>

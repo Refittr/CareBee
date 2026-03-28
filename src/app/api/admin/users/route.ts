@@ -103,6 +103,12 @@ export async function GET(request: NextRequest) {
         .limit(1)
         .maybeSingle();
 
+      const { count: docsScanned } = await svc
+        .from("documents")
+        .select("*", { count: "exact", head: true })
+        .eq("uploaded_by", p.id)
+        .not("description", "is", null);
+
       return {
         ...p,
         household_count: householdIds.length,
@@ -111,6 +117,7 @@ export async function GET(request: NextRequest) {
         subscription_days_left: resolved.daysLeft,
         last_sign_in_at: authMap.get(p.id) ?? null,
         ai_count: aiCount ?? 0,
+        docs_scanned: docsScanned ?? 0,
         last_ai_at: lastAiRow?.created_at ?? null,
       };
     })

@@ -70,7 +70,7 @@ export default async function AdminUsersPage() {
               .in("household_id", householdIds)
           : { count: 0 };
 
-      // AI usage
+      // AI usage — logged calls
       const { count: aiCount } = await svc
         .from("api_usage_log")
         .select("*", { count: "exact", head: true })
@@ -84,6 +84,13 @@ export default async function AdminUsersPage() {
         .limit(1)
         .maybeSingle();
 
+      // Documents scanned via AI (proxy for pre-logging scans)
+      const { count: docsScanned } = await svc
+        .from("documents")
+        .select("*", { count: "exact", head: true })
+        .eq("uploaded_by", p.id)
+        .not("description", "is", null);
+
       return {
         ...p,
         account_type: (p.account_type as AccountType) ?? "standard",
@@ -93,6 +100,7 @@ export default async function AdminUsersPage() {
         subscription_days_left,
         last_sign_in_at: authMap.get(p.id) ?? null,
         ai_count: aiCount ?? 0,
+        docs_scanned: docsScanned ?? 0,
         last_ai_at: lastAiRow?.created_at ?? null,
       };
     })
