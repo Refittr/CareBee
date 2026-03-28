@@ -4,11 +4,12 @@ import { requireAdmin } from "@/app/api/admin/_lib/auth";
 export type UserSubStatus = "active" | "trial_active" | "trial_expired" | "past_due" | "cancelled" | "free" | "none";
 
 function resolveSubscriptionStatus(
-  ownedHouseholds: Array<{ subscription_status: string; trial_ends_at: string | null }>
+  ownedHouseholds: Array<{ subscription_status: string; trial_ends_at: string | null }>,
+  profileTrialEndsAt: string | null,
 ): { status: UserSubStatus; daysLeft: number | null } {
-  if (ownedHouseholds.length === 0) return { status: "none", daysLeft: null };
   const now = new Date();
 
+  // Check household-level subscription first (paid or past-due always wins)
   for (const h of ownedHouseholds) {
     if (h.subscription_status === "active") return { status: "active", daysLeft: null };
   }
@@ -16,17 +17,26 @@ function resolveSubscriptionStatus(
     if (h.subscription_status === "past_due") return { status: "past_due", daysLeft: null };
   }
   for (const h of ownedHouseholds) {
-    if (h.subscription_status === "trial" && h.trial_ends_at && new Date(h.trial_ends_at) > now) {
-      const daysLeft = Math.max(0, Math.ceil((new Date(h.trial_ends_at).getTime() - now.getTime()) / 86400000));
+    if (h.subscription_status === "cancelled") return { status: "cancelled", daysLeft: null };
+  }
+
+  // Trial: check household trial_ends_at first, fall back to profile trial_ends_at
+  const trialDates: (string | null)[] = [
+    ...ownedHouseholds.map((h) => h.trial_ends_at),
+    profileTrialEndsAt,
+  ];
+  for (const t of trialDates) {
+    if (!t) continue;
+    const end = new Date(t);
+    if (end > now) {
+      const daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
       return { status: "trial_active", daysLeft };
     }
   }
-  for (const h of ownedHouseholds) {
-    if (h.subscription_status === "trial") return { status: "trial_expired", daysLeft: null };
-  }
-  for (const h of ownedHouseholds) {
-    if (h.subscription_status === "cancelled") return { status: "cancelled", daysLeft: null };
-  }
+  // Trial dates exist but all expired
+  if (trialDates.some(Boolean)) return { status: "trial_expired", daysLeft: null };
+
+  if (ownedHouseholds.length === 0) return { status: "none", daysLeft: null };
   return { status: "free", daysLeft: null };
 }
 
@@ -45,7 +55,7 @@ export async function GET(request: NextRequest) {
 
   let query = svc
     .from("profiles")
-    .select("id, full_name, email, account_type, created_at, updated_at", { count: "exact" })
+    .select("id, full_name, email, account_type, created_at, updated_at, trial_ends_at", { count: "exact" })
     .order("created_at", { ascending: false });
 
   if (search) query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
@@ -62,29 +72,49 @@ export async function GET(request: NextRequest) {
         .eq("user_id", p.id)
         .eq("role", "owner");
 
+      const householdIds = (ownedMemberships ?? []).map((m) => m.household_id as string);
+
       let subStatus: UserSubStatus = "none";
       let subDaysLeft: number | null = null;
 
-      if (ownedMemberships && ownedMemberships.length > 0) {
-        const householdIds = ownedMemberships.map((m) => m.household_id as string);
+      if (householdIds.length > 0) {
         const { data: ownedHouseholds } = await svc
           .from("households")
           .select("subscription_status, trial_ends_at")
           .in("id", householdIds);
-        const resolved = resolveSubscriptionStatus(ownedHouseholds ?? []);
+        const resolved = resolveSubscriptionStatus(
+          ownedHouseholds ?? [],
+          (p as { trial_ends_at?: string | null }).trial_ends_at ?? null,
+        );
+        subStatus = resolved.status;
+        subDaysLeft = resolved.daysLeft;
+      } else {
+        // No owned households — fall back to profile trial only
+        const resolved = resolveSubscriptionStatus(
+          [],
+          (p as { trial_ends_at?: string | null }).trial_ends_at ?? null,
+        );
         subStatus = resolved.status;
         subDaysLeft = resolved.daysLeft;
       }
 
-      const { count: householdCount } = await svc
-        .from("household_members")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", p.id);
+      // Owned household count (not memberships on other people's records)
+      const householdCount = householdIds.length;
+
+      // People in all owned households
+      let peopleCount = 0;
+      if (householdIds.length > 0) {
+        const { count } = await svc
+          .from("people")
+          .select("*", { count: "exact", head: true })
+          .in("household_id", householdIds);
+        peopleCount = count ?? 0;
+      }
 
       return {
         ...p,
-        household_count: householdCount ?? 0,
-        people_count: 0,
+        household_count: householdCount,
+        people_count: peopleCount,
         subscription_status: subStatus,
         subscription_days_left: subDaysLeft,
       };

@@ -566,6 +566,7 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
                 <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500 hidden lg:table-cell">Subscription</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500 hidden md:table-cell">Signed up</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-warmstone-500">HH</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-warmstone-500">People</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -594,6 +595,9 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
                   <td className="px-4 py-3 text-right text-warmstone-600 font-medium text-xs">
                     {u.household_count}
                   </td>
+                  <td className="px-4 py-3 text-right text-warmstone-600 font-medium text-xs">
+                    {u.people_count}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <button
                       type="button"
@@ -611,7 +615,7 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
               ))}
               {users.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-warmstone-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-warmstone-400">
                     No users found.
                   </td>
                 </tr>
