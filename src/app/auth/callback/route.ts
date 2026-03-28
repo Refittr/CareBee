@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
           full_name: fullName,
           account_type: "standard",
           plan: "family",
+          ai_uses_count: 0,
           is_subscribed: false,
           trial_started_at: trialStartedAt,
           trial_ends_at: trialEndsAt,
