@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { ScanDocumentButton } from "@/components/scan/ScanDocumentButton";
 import { formatDateUK, formatDateTime } from "@/lib/utils/dates";
 import { getLabels } from "@/lib/labels";
+import { DailyCareEnableCard } from "./DailyCareEnableCard";
 import type { Metadata } from "next";
 import type { UserType } from "@/lib/types/database";
 
@@ -239,6 +240,14 @@ export default async function PersonOverviewPage({ params }: Props) {
           <p className="text-xs text-honey-600 font-semibold mt-3">View all {labels.personDocumentsHeading.toLowerCase()}</p>
         </Card>
       </Link>
+
+      <DailyCareEnableCard
+        personId={personId}
+        householdId={householdId}
+        firstName={person.first_name}
+        enabled={person.daily_care_enabled ?? false}
+        baseUrl={baseUrl}
+      />
     </div>
     </div>
   );

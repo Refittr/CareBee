@@ -70,7 +70,7 @@ export default async function PersonLayout({ children, params }: Props) {
           <PersonActions householdId={householdId} personId={personId} person={person} canEdit={role === "owner" || role === "editor"} />
         </div>
 
-        <PersonTabs baseUrl={baseUrl} />
+        <PersonTabs baseUrl={baseUrl} dailyCareEnabled={person.daily_care_enabled ?? false} />
       </div>
 
       <div className="px-4 md:px-8 pt-4 pb-8">

@@ -14,6 +14,7 @@ export function PersonEditForm({ person, onSaved }: { person: Person; onSaved: (
   const supabase = createClient();
   const router = useRouter();
   const { addToast } = useAppToast();
+  const [dailyCareEnabled, setDailyCareEnabled] = useState(person.daily_care_enabled ?? false);
   const [fields, setFields] = useState({
     first_name: person.first_name,
     last_name: person.last_name,
@@ -27,7 +28,25 @@ export function PersonEditForm({ person, onSaved }: { person: Person; onSaved: (
     notes: person.notes ?? "",
   });
   const [loading, setLoading] = useState(false);
+  const [togglingDailyCare, setTogglingDailyCare] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function toggleDailyCare() {
+    setTogglingDailyCare(true);
+    const next = !dailyCareEnabled;
+    const { error: err } = await supabase
+      .from("people")
+      .update({ daily_care_enabled: next })
+      .eq("id", person.id);
+    if (err) {
+      addToast(err.message, "error");
+    } else {
+      setDailyCareEnabled(next);
+      addToast(next ? "Daily care records enabled." : "Daily care records disabled.", "success");
+      router.refresh();
+    }
+    setTogglingDailyCare(false);
+  }
 
   function setField(key: keyof typeof fields, value: string) {
     setFields((f) => ({ ...f, [key]: value }));
@@ -88,6 +107,36 @@ export function PersonEditForm({ person, onSaved }: { person: Person; onSaved: (
         <Input label="Phone number" type="tel" value={fields.next_of_kin_phone} onChange={(e) => setField("next_of_kin_phone", e.target.value)} />
       </div>
       <Textarea label="Notes" value={fields.notes} onChange={(e) => setField("notes", e.target.value)} placeholder="Any other notes..." rows={3} />
+
+      <div className="border-t border-warmstone-100 pt-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-warmstone-800">Daily care records</p>
+            <p className="text-xs text-warmstone-500 mt-1 max-w-sm">
+              Turn on to keep a day-by-day log for this person. Useful when caring for someone
+              with complex needs, or where multiple carers are involved. A link will appear in
+              the tabs above when enabled.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={dailyCareEnabled}
+            onClick={toggleDailyCare}
+            disabled={togglingDailyCare}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50 ${
+              dailyCareEnabled ? "bg-honey-400" : "bg-warmstone-200"
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                dailyCareEnabled ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
       <div className="flex gap-3 justify-end pt-2">
         <Button type="submit" loading={loading}>Save changes</Button>
       </div>

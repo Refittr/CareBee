@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSelectedLayoutSegment } from "next/navigation";
 
-const tabs = [
+const STATIC_TABS = [
   { label: "Overview", segment: null },
   { label: "Conditions", segment: "conditions" },
   { label: "Medications", segment: "medications" },
@@ -19,8 +19,13 @@ const tabs = [
   { label: "Letters", segment: "letters" },
 ];
 
-export function PersonTabs({ baseUrl }: { baseUrl: string }) {
+export function PersonTabs({ baseUrl, dailyCareEnabled }: { baseUrl: string; dailyCareEnabled?: boolean }) {
   const segment = useSelectedLayoutSegment();
+
+  const tabs = [
+    ...STATIC_TABS,
+    ...(dailyCareEnabled ? [{ label: "Daily care", segment: "daily-care" }] : []),
+  ];
 
   return (
     <nav

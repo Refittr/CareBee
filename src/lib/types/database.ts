@@ -95,6 +95,42 @@ export interface Person {
   notes: string | null;
   avatar_url: string | null;
   care_needs_assessment: Record<string, unknown>;
+  daily_care_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type DailyCareShift = "morning" | "afternoon" | "evening" | "night" | "full_day";
+export type DailyCareMood = "happy" | "calm" | "anxious" | "confused" | "low" | "agitated" | "tired" | "other";
+export type DailyCareCompletion = "completed" | "partial" | "declined" | "not_applicable";
+export type DailyCarePortion = "all" | "most" | "some" | "none" | "not_applicable";
+export type DailyCareHydration = "good" | "adequate" | "poor" | "not_recorded";
+export type DailyCareMedication = "yes" | "no" | "partial" | "not_applicable";
+
+export interface DailyCareRecord {
+  id: string;
+  person_id: string;
+  household_id: string;
+  recorded_by: string;
+  recorded_by_name?: string | null;
+  record_date: string;
+  shift: DailyCareShift;
+  mood: DailyCareMood | null;
+  mood_notes: string | null;
+  personal_care: DailyCareCompletion | null;
+  personal_care_notes: string | null;
+  breakfast: DailyCarePortion | null;
+  lunch: DailyCarePortion | null;
+  dinner: DailyCarePortion | null;
+  hydration: DailyCareHydration | null;
+  meals_notes: string | null;
+  mobility_notes: string | null;
+  medication_given: DailyCareMedication | null;
+  medication_notes: string | null;
+  sleep_notes: string | null;
+  observations: string | null;
+  concerns: string | null;
+  follow_up_needed: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -704,6 +740,12 @@ export type Database = {
         Row: Row & CareNote;
         Insert: Row & OptionalNullables<Omit<CareNote, "id" | "created_at" | "updated_at">>;
         Update: Row & Partial<Omit<CareNote, "id" | "created_at" | "updated_at">>;
+        Relationships: never[];
+      };
+      daily_care_records: {
+        Row: Row & DailyCareRecord;
+        Insert: Row & OptionalNullables<Omit<DailyCareRecord, "id" | "created_at" | "updated_at" | "recorded_by_name" | "follow_up_needed">> & { follow_up_needed?: boolean };
+        Update: Row & Partial<Omit<DailyCareRecord, "id" | "created_at" | "recorded_by_name">>;
         Relationships: never[];
       };
       error_log: {

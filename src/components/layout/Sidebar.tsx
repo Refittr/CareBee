@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LogOut, Shield, BookOpen, Settings, Mail, Bug, ChevronDown, Plus, Check } from "lucide-react";
+import { Home, LogOut, Shield, BookOpen, Settings, Mail, Bug, ChevronDown, Plus, Check, ClipboardList } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -124,10 +124,14 @@ export function Sidebar() {
   const router = useRouter();
   const supabase = createClient();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [dailyCareEnabled, setDailyCareEnabled] = useState<boolean | null>(null);
   const { labels } = useUserType();
 
   const householdMatch = pathname.match(/^\/household\/([^/]+)/);
   const currentHouseholdId = householdMatch ? householdMatch[1] : null;
+
+  const personMatch = pathname.match(/^\/household\/[^/]+\/people\/([^/]+)/);
+  const currentPersonId = personMatch ? personMatch[1] : null;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -143,6 +147,18 @@ export function Sidebar() {
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!currentPersonId) { setDailyCareEnabled(null); return; }
+    supabase
+      .from("people")
+      .select("daily_care_enabled")
+      .eq("id", currentPersonId)
+      .maybeSingle()
+      .then(({ data }) => {
+        setDailyCareEnabled(data?.daily_care_enabled ?? false);
+      });
+  }, [currentPersonId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function handleSignOut() {
     await supabase.auth.signOut();
     router.push("/login");
@@ -153,8 +169,9 @@ export function Sidebar() {
     { href: "/dashboard", label: labels.dashboardNavLabel, icon: Home },
     { href: "/letters-vault", label: "Letters vault", icon: BookOpen },
     { href: "/updates", label: "Weekly updates", icon: Mail },
-    { href: "/settings", label: "Settings", icon: Settings },
   ];
+
+  const settingsItem = { href: "/settings", label: "Settings", icon: Settings };
 
   return (
     <aside className="hidden md:flex flex-col w-60 bg-warmstone-white border-r border-warmstone-100 min-h-screen shrink-0">
@@ -189,6 +206,40 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {currentPersonId && currentHouseholdId && (
+          <Link
+            href={`/household/${currentHouseholdId}/people/${currentPersonId}/daily-care`}
+            className={[
+              "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold transition-colors min-h-[44px]",
+              pathname.includes("/daily-care")
+                ? "bg-honey-50 text-honey-800"
+                : "text-warmstone-600 hover:bg-warmstone-50 hover:text-warmstone-900",
+            ].join(" ")}
+          >
+            <ClipboardList size={18} />
+            <span className="flex-1">Daily care</span>
+            {dailyCareEnabled !== null && (
+              <span className={`w-2 h-2 rounded-full shrink-0 ${dailyCareEnabled ? "bg-sage-400" : "bg-warmstone-300"}`} />
+            )}
+          </Link>
+        )}
+
+        {(() => {
+          const active = pathname.startsWith(settingsItem.href);
+          return (
+            <Link
+              href={settingsItem.href}
+              className={[
+                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold transition-colors min-h-[44px]",
+                active ? "bg-honey-50 text-honey-800" : "text-warmstone-600 hover:bg-warmstone-50 hover:text-warmstone-900",
+              ].join(" ")}
+            >
+              <settingsItem.icon size={18} />
+              {settingsItem.label}
+            </Link>
+          );
+        })()}
       </nav>
       <div className="px-3 py-4 border-t border-warmstone-100 flex flex-col gap-1">
         {isAdmin && (
