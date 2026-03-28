@@ -10,70 +10,90 @@ export default async function AdminUsersPage() {
 
   const { data: profiles, count } = await svc
     .from("profiles")
-    .select("id, full_name, email, account_type, created_at, updated_at", {
+    .select("id, full_name, email, account_type, created_at, trial_ends_at", {
       count: "exact",
     })
     .order("created_at", { ascending: false })
     .range(0, 49);
 
+  // Fetch last_sign_in_at for all users in one call
+  const { data: authData } = await svc.auth.admin.listUsers({ perPage: 200 });
+  const authMap = new Map(
+    (authData?.users ?? []).map((u) => [u.id, u.last_sign_in_at ?? null])
+  );
+
   const now = new Date();
 
   const withStats = await Promise.all(
     (profiles ?? []).map(async (p) => {
-      const [{ count: householdCount }, { data: ownedMemberships }] = await Promise.all([
-        svc.from("household_members").select("*", { count: "exact", head: true }).eq("user_id", p.id),
-        svc.from("household_members").select("household_id").eq("user_id", p.id).eq("role", "owner"),
-      ]);
+      // Fix: query households directly by created_by, not via household_members
+      const { data: ownedHouseholds } = await svc
+        .from("households")
+        .select("id, subscription_status, trial_ends_at")
+        .eq("created_by", p.id);
 
-      let subscription_status: string = "none";
+      const households = ownedHouseholds ?? [];
+      const householdIds = households.map((h) => h.id as string);
+      const profileTrialEndsAt = p.trial_ends_at ?? null;
+
+      let subscription_status: import("@/app/api/admin/users/route").UserSubStatus = "none";
       let subscription_days_left: number | null = null;
 
-      if (ownedMemberships && ownedMemberships.length > 0) {
-        const ids = ownedMemberships.map((m) => m.household_id as string);
-        const { data: hh } = await svc
-          .from("households")
-          .select("subscription_status, trial_ends_at")
-          .in("id", ids);
-
-        for (const h of hh ?? []) {
-          if (h.subscription_status === "active") { subscription_status = "active"; break; }
+      if (households.some((h) => h.subscription_status === "active")) {
+        subscription_status = "active";
+      } else if (households.some((h) => h.subscription_status === "past_due")) {
+        subscription_status = "past_due";
+      } else if (households.some((h) => h.subscription_status === "cancelled")) {
+        subscription_status = "cancelled";
+      } else {
+        const trialDates = [...households.map((h) => h.trial_ends_at), profileTrialEndsAt];
+        const activeTrialDate = trialDates.find((t) => t && new Date(t) > now);
+        if (activeTrialDate) {
+          subscription_status = "trial_active";
+          subscription_days_left = Math.max(
+            0,
+            Math.ceil((new Date(activeTrialDate).getTime() - now.getTime()) / 86400000)
+          );
+        } else if (trialDates.some(Boolean)) {
+          subscription_status = "trial_expired";
+        } else if (householdIds.length > 0) {
+          subscription_status = "free";
         }
-        if (subscription_status === "none") {
-          for (const h of hh ?? []) {
-            if (h.subscription_status === "past_due") { subscription_status = "past_due"; break; }
-          }
-        }
-        if (subscription_status === "none") {
-          for (const h of hh ?? []) {
-            if (h.subscription_status === "trial" && h.trial_ends_at && new Date(h.trial_ends_at) > now) {
-              subscription_status = "trial_active";
-              subscription_days_left = Math.max(0, Math.ceil((new Date(h.trial_ends_at).getTime() - now.getTime()) / 86400000));
-              break;
-            }
-          }
-        }
-        if (subscription_status === "none") {
-          for (const h of hh ?? []) {
-            if (h.subscription_status === "trial") { subscription_status = "trial_expired"; break; }
-          }
-        }
-        if (subscription_status === "none") {
-          for (const h of hh ?? []) {
-            if (h.subscription_status === "cancelled") { subscription_status = "cancelled"; break; }
-          }
-        }
-        if (subscription_status === "none") {
-          if ((hh ?? []).length > 0) subscription_status = "free";
-        }
+        // else stays "none"
       }
+
+      const { count: peopleCount } =
+        householdIds.length > 0
+          ? await svc
+              .from("people")
+              .select("*", { count: "exact", head: true })
+              .in("household_id", householdIds)
+          : { count: 0 };
+
+      // AI usage
+      const { count: aiCount } = await svc
+        .from("api_usage_log")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", p.id);
+
+      const { data: lastAiRow } = await svc
+        .from("api_usage_log")
+        .select("created_at")
+        .eq("user_id", p.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       return {
         ...p,
         account_type: (p.account_type as AccountType) ?? "standard",
-        household_count: householdCount ?? 0,
-        people_count: 0,
-        subscription_status: subscription_status as import("@/app/api/admin/users/route").UserSubStatus,
+        household_count: householdIds.length,
+        people_count: peopleCount ?? 0,
+        subscription_status,
         subscription_days_left,
+        last_sign_in_at: authMap.get(p.id) ?? null,
+        ai_count: aiCount ?? 0,
+        last_ai_at: lastAiRow?.created_at ?? null,
       };
     })
   );

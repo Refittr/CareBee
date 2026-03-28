@@ -16,6 +16,9 @@ interface AdminUser {
   people_count: number;
   subscription_status: UserSubStatus;
   subscription_days_left: number | null;
+  last_sign_in_at: string | null;
+  ai_count: number;
+  last_ai_at: string | null;
 }
 
 const subBadgeStyle: Record<UserSubStatus, string> = {
@@ -565,8 +568,11 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
                 <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500">Type</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500 hidden lg:table-cell">Subscription</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500 hidden md:table-cell">Signed up</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500 hidden lg:table-cell">Last login</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-warmstone-500">HH</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-warmstone-500">People</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-warmstone-500 hidden lg:table-cell">AI uses</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500 hidden xl:table-cell">Last AI</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -592,11 +598,22 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
                   <td className="px-4 py-3 text-xs text-warmstone-500 hidden md:table-cell">
                     {formatDate(u.created_at)}
                   </td>
+                  <td className="px-4 py-3 text-xs text-warmstone-500 hidden lg:table-cell">
+                    {u.last_sign_in_at ? formatDate(u.last_sign_in_at) : <span className="text-warmstone-300">Never</span>}
+                  </td>
                   <td className="px-4 py-3 text-right text-warmstone-600 font-medium text-xs">
                     {u.household_count}
                   </td>
                   <td className="px-4 py-3 text-right text-warmstone-600 font-medium text-xs">
                     {u.people_count}
+                  </td>
+                  <td className="px-4 py-3 text-right text-xs font-medium hidden lg:table-cell">
+                    {u.ai_count > 0
+                      ? <span className="text-honey-700">{u.ai_count}</span>
+                      : <span className="text-warmstone-300">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-warmstone-500 hidden xl:table-cell">
+                    {u.last_ai_at ? formatDate(u.last_ai_at) : <span className="text-warmstone-300">—</span>}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
@@ -615,7 +632,7 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
               ))}
               {users.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-warmstone-400">
+                  <td colSpan={10} className="px-4 py-8 text-center text-warmstone-400">
                     No users found.
                   </td>
                 </tr>
