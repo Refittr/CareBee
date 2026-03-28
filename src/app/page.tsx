@@ -11,6 +11,17 @@ import {
   QrCode,
   User,
   HeartHandshake,
+  Sparkles,
+  Calendar,
+  FileText,
+  Mail,
+  MessageSquare,
+  NotebookPen,
+  Lock,
+  Server,
+  CheckCircle,
+  Brain,
+  Heart,
 } from "lucide-react";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
@@ -95,6 +106,58 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* What is CareBee? */}
+      <section id="what-is-carebee" className="bg-warmstone-white px-4 md:px-8 py-20 border-t border-warmstone-100">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="font-display text-3xl md:text-4xl text-warmstone-900 text-center mb-6">
+            What is CareBee?
+          </h2>
+          <p className="text-warmstone-600 text-lg leading-relaxed text-center max-w-3xl mx-auto mb-10">
+            CareBee is an AI-powered health and care record app built for UK families. It gives you one place to keep
+            every condition, medication, appointment, document, and letter for yourself or the people you look after.
+            The AI reads your paperwork, checks for medication risks, finds benefits you may be missing, and flags
+            gaps in care before they become problems.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div className="bg-honey-50 border border-honey-200 rounded-xl p-5 text-center">
+              <div className="w-12 h-12 bg-honey-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <FileStack size={24} className="text-honey-600" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 mb-2">Everything in one place</h3>
+              <p className="text-sm text-warmstone-600 leading-relaxed">
+                Conditions, medications, allergies, appointments, test results, documents, daily care logs and care
+                notes. No more searching through folders and emails.
+              </p>
+            </div>
+            <div className="bg-honey-50 border border-honey-200 rounded-xl p-5 text-center">
+              <div className="w-12 h-12 bg-honey-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Brain size={24} className="text-honey-600" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 mb-2">AI that does the heavy lifting</h3>
+              <p className="text-sm text-warmstone-600 leading-relaxed">
+                Photograph a hospital letter and the AI extracts the information automatically. It checks for drug
+                interactions, flags care gaps, and finds support you may be entitled to.
+              </p>
+            </div>
+            <div className="bg-honey-50 border border-honey-200 rounded-xl p-5 text-center">
+              <div className="w-12 h-12 bg-honey-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Users size={24} className="text-honey-600" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 mb-2">Built for carers and families</h3>
+              <p className="text-sm text-warmstone-600 leading-relaxed">
+                Use it just for yourself, or look after multiple people and share access with siblings, partners, and
+                other carers. Everyone sees the same record, in real time.
+              </p>
+            </div>
+          </div>
+          <p className="text-center">
+            <a href="#features" className="text-honey-600 font-semibold text-sm hover:text-honey-800 transition-colors">
+              See everything CareBee does below
+            </a>
+          </p>
+        </div>
+      </section>
+
       {/* Pain Points */}
       <section id="pain-points" className="bg-warmstone-50 px-4 md:px-8 py-20">
         <div className="max-w-6xl mx-auto">
@@ -163,85 +226,260 @@ export default async function LandingPage() {
             what you actually need, built around how the NHS really works and the
             paperwork it produces.
           </p>
+
+          {/* Feature category: Health record */}
+          <h3 className="text-xs font-bold uppercase tracking-widest text-warmstone-400 mb-5">The record</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-14">
+            <div>
+              <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
+                <ClipboardList size={28} className="text-sage-400" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Complete health records</h3>
+              <p className="text-warmstone-600 text-sm leading-relaxed">
+                Conditions, medications, allergies, appointments, test results, and documents in one place.
+                Share with anyone who needs it and revoke access any time.
+              </p>
+            </div>
+
+            <div>
+              <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
+                <NotebookPen size={28} className="text-sage-400" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Care notes</h3>
+              <p className="text-warmstone-600 text-sm leading-relaxed">
+                A freeform notepad for anything that does not fit elsewhere. Pin important notes so they are
+                always visible. Categorise by topic. Share with everyone on the care team.
+              </p>
+            </div>
+
+            <div>
+              <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
+                <FileText size={28} className="text-sage-400" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Daily care records</h3>
+              <p className="text-warmstone-600 text-sm leading-relaxed">
+                Log each shift: mood, meals, mobility, medications given, any concerns. Flag something for
+                follow-up and it appears at the top of the next carer's screen. Essential when multiple people
+                are involved in someone's care.
+              </p>
+            </div>
+
+            <div>
+              <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
+                <MessageSquare size={28} className="text-sage-400" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Communications log</h3>
+              <p className="text-warmstone-600 text-sm leading-relaxed">
+                A record of every call, email, and letter with the NHS, social services, care agencies, and
+                the benefits office. Know exactly who said what and when.
+              </p>
+            </div>
+
+            <div>
+              <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
+                <Clock size={28} className="text-sage-400" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Waiting list tracking</h3>
+              <p className="text-warmstone-600 text-sm leading-relaxed">
+                Uses NHS referral-to-treatment data to show whether a wait is normal for the area and
+                specialty. Generates chase letters if it is not.
+              </p>
+            </div>
+
+            <div>
+              <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
+                <QrCode size={28} className="text-sage-400" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Emergency QR codes</h3>
+              <p className="text-warmstone-600 text-sm leading-relaxed">
+                Generate a QR code with critical health information. If something happens and the person cannot
+                speak, a paramedic scans it and sees conditions, medications, allergies, and next of kin.
+                Works without signal.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature category: AI */}
+          <h3 className="text-xs font-bold uppercase tracking-widest text-warmstone-400 mb-5">AI features</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-14">
+            <div>
+              <div className="bg-honey-50 w-14 h-14 rounded-xl flex items-center justify-center">
+                <ScanLine size={28} className="text-honey-500" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">AI document scanning</h3>
+              <p className="text-warmstone-600 text-sm leading-relaxed">
+                Photograph a hospital letter, discharge summary, prescription, or medication label. CareBee
+                extracts the key information, updates the record automatically, and tells you what to do next.
+              </p>
+            </div>
+
+            <div>
+              <div className="bg-honey-50 w-14 h-14 rounded-xl flex items-center justify-center">
+                <ShieldAlert size={28} className="text-honey-500" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Medication safety checks</h3>
+              <p className="text-warmstone-600 text-sm leading-relaxed">
+                CareBee checks for known drug interactions across every medication in the record. When
+                different specialists are prescribing without talking to each other, things get missed. CareBee
+                flags anything worth raising with a pharmacist or GP.
+              </p>
+            </div>
+
+            <div>
+              <div className="bg-honey-50 w-14 h-14 rounded-xl flex items-center justify-center">
+                <Sparkles size={28} className="text-honey-500" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Health insights and alerts</h3>
+              <p className="text-warmstone-600 text-sm leading-relaxed">
+                CareBee looks at the full record and flags care gaps: an HbA1c that may be overdue, a
+                screening the person is eligible for, a medication that has not had a review in over a year.
+                Based on NICE guidelines, in plain English.
+              </p>
+            </div>
+
+            <div>
+              <div className="bg-honey-50 w-14 h-14 rounded-xl flex items-center justify-center">
+                <PoundSterling size={28} className="text-honey-500" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Benefits and entitlements</h3>
+              <p className="text-warmstone-600 text-sm leading-relaxed">
+                Answer a few questions and CareBee checks what the person may be entitled to: Attendance
+                Allowance, Carer's Allowance, blue badges, PIP, and more. It explains the criteria, shows
+                which ones are met, and walks through how to apply.
+              </p>
+            </div>
+
+            <div>
+              <div className="bg-honey-50 w-14 h-14 rounded-xl flex items-center justify-center">
+                <Calendar size={28} className="text-honey-500" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Appointment preparation</h3>
+              <p className="text-warmstone-600 text-sm leading-relaxed">
+                Before every GP or consultant visit, CareBee generates a brief: what has changed since the
+                last appointment, what questions to raise, and what the clinician will likely want to know.
+              </p>
+            </div>
+
+            <div>
+              <div className="bg-honey-50 w-14 h-14 rounded-xl flex items-center justify-center">
+                <FileStack size={28} className="text-honey-500" />
+              </div>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Letter templates</h3>
+              <p className="text-warmstone-600 text-sm leading-relaxed">
+                Generate letters using the information already in the record. Employer letters explaining
+                caring responsibilities, Attendance Allowance supporting statements, blue badge applications,
+                PALS complaint letters, waiting list chase letters, and GP referral requests.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature category: Family */}
+          <h3 className="text-xs font-bold uppercase tracking-widest text-warmstone-400 mb-5">Family and care teams</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div>
               <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
-                <ClipboardList size={32} className="text-sage-400" />
+                <Users size={28} className="text-sage-400" />
               </div>
-              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">
-                Complete health records
-              </h3>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Family care circles</h3>
               <p className="text-warmstone-600 text-sm leading-relaxed">
-                Conditions, medications, allergies, appointments, and documents in one place.
-                Share with anyone who needs it, revoke access any time.
+                Invite siblings, partners, and other carers to the record. Assign roles: owner, editor, or
+                viewer. Everyone sees the same information in real time. Revoke access whenever you need to.
               </p>
             </div>
 
             <div>
               <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
-                <Users size={32} className="text-sage-400" />
+                <Mail size={28} className="text-sage-400" />
               </div>
-              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">
-                Works for you or your whole care team
-              </h3>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Weekly family digest</h3>
               <p className="text-warmstone-600 text-sm leading-relaxed">
-                Use CareBee solo for your own health, or create records for everyone you look
-                after and invite family to help. Each person has their own record, shared with
-                exactly the right people.
+                Every member of the care team gets a weekly email summary of what has changed in the record:
+                new medications, upcoming appointments, open follow-up flags, and new documents. Sent on the
+                day you choose.
               </p>
             </div>
 
             <div>
               <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
-                <ScanLine size={32} className="text-sage-400" />
+                <Heart size={28} className="text-sage-400" />
               </div>
-              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">
-                AI document scanning
-              </h3>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Use it just for yourself</h3>
               <p className="text-warmstone-600 text-sm leading-relaxed">
-                Photograph a hospital letter and CareBee extracts the key information, updates
-                the record, and tells you what to do next.
+                You do not have to be a carer to use CareBee. Many people use it to manage their own complex
+                health conditions, track test results over time, and make sure nothing falls through the
+                cracks with their own GP.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
 
-            <div>
-              <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
-                <PoundSterling size={32} className="text-sage-400" />
+      {/* How the AI works */}
+      <section className="bg-warmstone-50 px-4 md:px-8 py-20 border-t border-warmstone-100">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="font-display text-3xl md:text-4xl text-warmstone-900 text-center mb-4">
+            How the AI works
+          </h2>
+          <p className="text-warmstone-600 text-center max-w-2xl mx-auto mb-12">
+            CareBee uses Claude, made by Anthropic, one of the leading AI safety companies in the world.
+            Every AI feature is designed to support informed conversations with healthcare professionals,
+            not replace them.
+          </p>
+          <div className="flex flex-col gap-6">
+            <div className="bg-warmstone-white border border-warmstone-100 rounded-xl p-6 flex gap-5 items-start">
+              <div className="w-10 h-10 bg-honey-100 rounded-lg flex items-center justify-center shrink-0">
+                <ScanLine size={20} className="text-honey-600" />
               </div>
-              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">
-                Benefits and entitlements
-              </h3>
-              <p className="text-warmstone-600 text-sm leading-relaxed">
-                Answer a few questions and CareBee tells you what benefits, grants, and support
-                schemes you are likely eligible for. Stop leaving money on the table.
-              </p>
+              <div>
+                <h3 className="font-bold text-warmstone-900 mb-1">Document scanning</h3>
+                <p className="text-sm text-warmstone-600 leading-relaxed">
+                  You photograph a letter or document. The AI reads it, identifies conditions, medications,
+                  appointments, and test results, and asks you to confirm before saving anything to the record.
+                  You are always in control of what gets added.
+                </p>
+              </div>
             </div>
-
-            <div>
-              <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
-                <ShieldAlert size={32} className="text-sage-400" />
+            <div className="bg-warmstone-white border border-warmstone-100 rounded-xl p-6 flex gap-5 items-start">
+              <div className="w-10 h-10 bg-honey-100 rounded-lg flex items-center justify-center shrink-0">
+                <Sparkles size={20} className="text-honey-600" />
               </div>
-              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">
-                Medication safety checks
-              </h3>
-              <p className="text-warmstone-600 text-sm leading-relaxed">
-                CareBee checks for known drug interactions across every medication in the record
-                and flags anything worth raising with a pharmacist or GP.
-              </p>
+              <div>
+                <h3 className="font-bold text-warmstone-900 mb-1">Health insights</h3>
+                <p className="text-sm text-warmstone-600 leading-relaxed">
+                  The AI reviews the full health record against NICE clinical guidelines and flags things that
+                  may have been missed: a blood test that may be overdue, a screening programme the person is
+                  eligible for, a medication that has not had a review. It never diagnoses. Every insight is
+                  framed as something to raise with a GP or specialist.
+                </p>
+              </div>
             </div>
-
-            <div>
-              <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
-                <QrCode size={32} className="text-sage-400" />
+            <div className="bg-warmstone-white border border-warmstone-100 rounded-xl p-6 flex gap-5 items-start">
+              <div className="w-10 h-10 bg-honey-100 rounded-lg flex items-center justify-center shrink-0">
+                <PoundSterling size={20} className="text-honey-600" />
               </div>
-              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">
-                Emergency QR codes
-              </h3>
-              <p className="text-warmstone-600 text-sm leading-relaxed">
-                Generate a QR code with critical health information. If something happens and
-                you or the person you look after cannot speak, a paramedic scans it and sees
-                everything they need.
-              </p>
+              <div>
+                <h3 className="font-bold text-warmstone-900 mb-1">Benefits checking</h3>
+                <p className="text-sm text-warmstone-600 leading-relaxed">
+                  You answer questions about the person's situation. The AI checks eligibility against the
+                  criteria for each benefit, explains which criteria are met and which are not, and shows exactly
+                  how to apply. Attendance Allowance higher rate alone is worth over £5,700 per year. Most
+                  applications are rejected because the language is wrong, not because the person does not
+                  qualify. CareBee helps you get it right.
+                </p>
+              </div>
+            </div>
+            <div className="bg-warmstone-white border border-warmstone-100 rounded-xl p-6 flex gap-5 items-start">
+              <div className="w-10 h-10 bg-honey-100 rounded-lg flex items-center justify-center shrink-0">
+                <Lock size={20} className="text-honey-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-warmstone-900 mb-1">Your data is never used to train AI models</h3>
+                <p className="text-sm text-warmstone-600 leading-relaxed">
+                  When the AI analyses your record, it sends only the minimum information needed to generate the
+                  response. Anthropic does not use CareBee data to train its models. Your health information
+                  belongs to you.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -339,6 +577,119 @@ export default async function LandingPage() {
             >
               Join the testing group
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Data and security */}
+      <section className="px-4 md:px-8 py-20 bg-warmstone-50 border-t border-warmstone-100">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="font-display text-3xl md:text-4xl text-warmstone-900 text-center mb-4">
+            Where is your data stored and who can see it?
+          </h2>
+          <p className="text-warmstone-600 text-center max-w-2xl mx-auto mb-12">
+            Health information is some of the most sensitive data there is. Here is exactly how CareBee handles it.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-warmstone-white border border-warmstone-100 rounded-xl p-6 flex gap-4 items-start">
+              <Server size={20} className="text-sage-400 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-bold text-warmstone-900 mb-1">Stored in Europe</h3>
+                <p className="text-sm text-warmstone-600 leading-relaxed">
+                  All CareBee data is stored on Supabase infrastructure hosted in the European Union, within
+                  UK GDPR requirements. It never leaves EU-based servers.
+                </p>
+              </div>
+            </div>
+            <div className="bg-warmstone-white border border-warmstone-100 rounded-xl p-6 flex gap-4 items-start">
+              <Lock size={20} className="text-sage-400 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-bold text-warmstone-900 mb-1">Encrypted at rest and in transit</h3>
+                <p className="text-sm text-warmstone-600 leading-relaxed">
+                  All data is encrypted at rest and all connections use TLS. No one at CareBee reads your
+                  health records.
+                </p>
+              </div>
+            </div>
+            <div className="bg-warmstone-white border border-warmstone-100 rounded-xl p-6 flex gap-4 items-start">
+              <Users size={20} className="text-sage-400 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-bold text-warmstone-900 mb-1">You control who sees it</h3>
+                <p className="text-sm text-warmstone-600 leading-relaxed">
+                  Only you and the people you explicitly invite can access a care record. You can revoke access
+                  for any member of the care circle at any time.
+                </p>
+              </div>
+            </div>
+            <div className="bg-warmstone-white border border-warmstone-100 rounded-xl p-6 flex gap-4 items-start">
+              <CheckCircle size={20} className="text-sage-400 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-bold text-warmstone-900 mb-1">Delete everything, any time</h3>
+                <p className="text-sm text-warmstone-600 leading-relaxed">
+                  You can delete your account and all associated data at any time from settings. We do not
+                  retain data after deletion.
+                </p>
+              </div>
+            </div>
+          </div>
+          <p className="text-center text-sm text-warmstone-500">
+            Read our full{" "}
+            <Link href="/privacy" className="text-honey-600 font-semibold hover:text-honey-800 transition-colors">
+              Privacy Policy
+            </Link>
+            {" "}and{" "}
+            <Link href="/terms" className="text-honey-600 font-semibold hover:text-honey-800 transition-colors">
+              Terms of Service
+            </Link>
+            .
+          </p>
+        </div>
+      </section>
+
+      {/* About */}
+      <section id="about" className="px-4 md:px-8 py-20 bg-warmstone-white border-t border-warmstone-100">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="font-display text-3xl md:text-4xl text-warmstone-900 mb-8">
+            About CareBee
+          </h2>
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            <div className="flex-1">
+              <p className="text-warmstone-600 leading-relaxed mb-4">
+                CareBee was built by Claire Tasker, who spent years working in healthcare before becoming a
+                carer herself. The problem was not that people did not care enough. It was that the information
+                was scattered everywhere, nobody had a complete picture, and the admin alone was overwhelming.
+              </p>
+              <p className="text-warmstone-600 leading-relaxed mb-4">
+                Carers were walking into appointments without the right notes, missing out on thousands of
+                pounds in benefits they were entitled to, and spending hours chasing the same information
+                across different hospital systems, GP practices, and care agencies. Things were getting missed
+                not because of anyone's fault but because the system was never designed with families in mind.
+              </p>
+              <p className="text-warmstone-600 leading-relaxed mb-4">
+                CareBee is the tool Claire wished had existed. It is built specifically for the UK: NHS
+                letters, NICE guidelines, UK benefits, and UK healthcare pathways. It is designed to be used
+                by anyone, not just people who are comfortable with technology, and it is priced as low as
+                possible because the people who need it most are often the ones with the least to spare.
+              </p>
+              <p className="text-warmstone-600 leading-relaxed">
+                CareBee is an independent UK company. We are not backed by health insurers or pharmaceutical
+                companies. We make money from subscriptions, full stop.
+              </p>
+            </div>
+          </div>
+          <div className="mt-8 pt-8 border-t border-warmstone-100">
+            <p className="text-sm text-warmstone-500 mb-1 font-semibold">Get in touch</p>
+            <p className="text-sm text-warmstone-600">
+              Questions, feedback, or want to tell us what we are missing?{" "}
+              <Link href="/contact" className="text-honey-600 font-semibold hover:text-honey-800 transition-colors">
+                Contact us
+              </Link>
+              {" "}or email{" "}
+              <a href="mailto:hello@carebee.co.uk" className="text-honey-600 font-semibold hover:text-honey-800 transition-colors">
+                hello@carebee.co.uk
+              </a>
+              . We read everything.
+            </p>
           </div>
         </div>
       </section>

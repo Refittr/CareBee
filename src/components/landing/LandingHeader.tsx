@@ -27,6 +27,12 @@ export function LandingHeader() {
         <Link href="/" aria-label="CareBee home">
           <Logo size="md" />
         </Link>
+        <nav className="hidden md:flex items-center gap-6 mr-2">
+          <a href="#what-is-carebee" className="text-sm font-semibold text-warmstone-600 hover:text-warmstone-900 transition-colors">What is CareBee?</a>
+          <a href="#features" className="text-sm font-semibold text-warmstone-600 hover:text-warmstone-900 transition-colors">Features</a>
+          <a href="#pricing" className="text-sm font-semibold text-warmstone-600 hover:text-warmstone-900 transition-colors">Pricing</a>
+          <a href="#about" className="text-sm font-semibold text-warmstone-600 hover:text-warmstone-900 transition-colors">About</a>
+        </nav>
         <div className="flex items-center gap-3">
           <Link
             href="/login"
