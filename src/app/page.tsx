@@ -113,8 +113,8 @@ export default async function LandingPage() {
             What is CareBee?
           </h2>
           <p className="text-warmstone-600 text-lg leading-relaxed text-center max-w-3xl mx-auto mb-10">
-            CareBee is an AI-powered health and care record app built for UK families. It gives you one place to keep
-            every condition, medication, appointment, document, and letter for yourself or the people you look after.
+            CareBee is an AI-powered health and care record app for anyone who manages health, whether that is their
+            own or someone else's. One place to keep every condition, medication, appointment, document, and letter.
             The AI reads your paperwork, checks for medication risks, finds benefits you may be missing, and flags
             gaps in care before they become problems.
           </p>
@@ -222,7 +222,7 @@ export default async function LandingPage() {
             Everything in one place
           </h2>
           <p className="text-warmstone-600 text-center max-w-2xl mx-auto mb-12">
-            For you, your family, and everyone in your care team. CareBee brings together
+            For you, and everyone involved in your care or the care of someone you look after. CareBee brings together
             what you actually need, built around how the NHS really works and the
             paperwork it produces.
           </p>
@@ -373,14 +373,14 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          {/* Feature category: Family */}
-          <h3 className="text-xs font-bold uppercase tracking-widest text-warmstone-400 mb-5">Family and care teams</h3>
+          {/* Feature category: Sharing */}
+          <h3 className="text-xs font-bold uppercase tracking-widest text-warmstone-400 mb-5">Sharing and care teams</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div>
               <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
                 <Users size={28} className="text-sage-400" />
               </div>
-              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Family care circles</h3>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Shared care circles</h3>
               <p className="text-warmstone-600 text-sm leading-relaxed">
                 Invite siblings, partners, and other carers to the record. Assign roles: owner, editor, or
                 viewer. Everyone sees the same information in real time. Revoke access whenever you need to.
@@ -391,7 +391,7 @@ export default async function LandingPage() {
               <div className="bg-sage-50 w-14 h-14 rounded-xl flex items-center justify-center">
                 <Mail size={28} className="text-sage-400" />
               </div>
-              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Weekly family digest</h3>
+              <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">Weekly care digest</h3>
               <p className="text-warmstone-600 text-sm leading-relaxed">
                 Every member of the care team gets a weekly email summary of what has changed in the record:
                 new medications, upcoming appointments, open follow-up flags, and new documents. Sent on the
@@ -421,9 +421,8 @@ export default async function LandingPage() {
             How the AI works
           </h2>
           <p className="text-warmstone-600 text-center max-w-2xl mx-auto mb-12">
-            CareBee uses Claude, made by Anthropic, one of the leading AI safety companies in the world.
-            Every AI feature is designed to support informed conversations with healthcare professionals,
-            not replace them.
+            CareBee uses Claude, an AI made by Anthropic. Every AI feature is designed to support
+            informed conversations with healthcare professionals, not replace them.
           </p>
           <div className="flex flex-col gap-6">
             <div className="bg-warmstone-white border border-warmstone-100 rounded-xl p-6 flex gap-5 items-start">
@@ -505,8 +504,8 @@ export default async function LandingPage() {
               </div>
               <h3 className="font-bold text-warmstone-900 mb-2">Create an account</h3>
               <p className="text-warmstone-600 text-sm leading-relaxed max-w-xs">
-                Sign up free. No credit card. You get instant access to all CareBee Plus features
-                for 30 days.
+                Sign up free. No credit card. You get instant access to all CareBee Plus or
+                Self-Care Plus features for 30 days.
               </p>
             </div>
 
@@ -565,18 +564,6 @@ export default async function LandingPage() {
                 incorrect medication lists. This affects everyone, not just carers.
               </p>
             </div>
-          </div>
-          <div className="mt-16 text-center">
-            <p className="text-warmstone-600 max-w-xl mx-auto mb-6">
-              CareBee is in early testing. We are working with real people to build something
-              that actually helps. Want to help shape it?
-            </p>
-            <Link
-              href="/signup"
-              className="inline-flex items-center justify-center bg-sage-400 text-white font-bold rounded-md px-6 py-3 hover:bg-sage-600 transition-colors min-h-[44px]"
-            >
-              Join the testing group
-            </Link>
           </div>
         </div>
       </section>
@@ -655,25 +642,25 @@ export default async function LandingPage() {
           <div className="flex flex-col md:flex-row gap-8 items-start">
             <div className="flex-1">
               <p className="text-warmstone-600 leading-relaxed mb-4">
-                CareBee was built by Claire Tasker, who spent years working in healthcare before becoming a
-                carer herself. The problem was not that people did not care enough. It was that the information
-                was scattered everywhere, nobody had a complete picture, and the admin alone was overwhelming.
+                CareBee is built by a small UK team with backgrounds in healthcare, decades of experience
+                building software and complex systems, and first-hand experience of what it actually means
+                to care for someone. We have been in the appointments, dealt with the paperwork, navigated
+                the benefits system, and watched things fall through the cracks that should not have.
               </p>
               <p className="text-warmstone-600 leading-relaxed mb-4">
-                Carers were walking into appointments without the right notes, missing out on thousands of
-                pounds in benefits they were entitled to, and spending hours chasing the same information
-                across different hospital systems, GP practices, and care agencies. Things were getting missed
-                not because of anyone's fault but because the system was never designed with families in mind.
+                We built CareBee because the tools that existed were not good enough. Information was
+                scattered across folders, emails, and memory. Nobody in the care team had the full picture.
+                The admin was relentless. And the people bearing the brunt of it were already stretched.
               </p>
               <p className="text-warmstone-600 leading-relaxed mb-4">
-                CareBee is the tool Claire wished had existed. It is built specifically for the UK: NHS
-                letters, NICE guidelines, UK benefits, and UK healthcare pathways. It is designed to be used
-                by anyone, not just people who are comfortable with technology, and it is priced as low as
-                possible because the people who need it most are often the ones with the least to spare.
+                CareBee is built specifically for the UK: NHS letters, NICE guidelines, UK benefits, and UK
+                healthcare pathways. It is designed to be used by anyone, not just people who are comfortable
+                with technology, and it is priced as low as we can manage because the people who need it
+                most are often the ones with the least to spare.
               </p>
               <p className="text-warmstone-600 leading-relaxed">
-                CareBee is an independent UK company. We are not backed by health insurers or pharmaceutical
-                companies. We make money from subscriptions, full stop.
+                We are independent. We are not backed by health insurers or pharmaceutical companies.
+                We make money from subscriptions, full stop.
               </p>
             </div>
           </div>
@@ -685,8 +672,8 @@ export default async function LandingPage() {
                 Contact us
               </Link>
               {" "}or email{" "}
-              <a href="mailto:hello@carebee.co.uk" className="text-honey-600 font-semibold hover:text-honey-800 transition-colors">
-                hello@carebee.co.uk
+              <a href="mailto:support@carebee.co.uk" className="text-honey-600 font-semibold hover:text-honey-800 transition-colors">
+                support@carebee.co.uk
               </a>
               . We read everything.
             </p>
