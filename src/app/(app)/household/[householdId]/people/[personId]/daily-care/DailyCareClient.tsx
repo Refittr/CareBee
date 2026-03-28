@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Plus, Download, ClipboardList } from "lucide-react";
+import { Plus, Download, ClipboardList, EyeOff } from "lucide-react";
 import type { DailyCareRecord } from "@/lib/types/database";
 import { DailyCareCard } from "./DailyCareCard";
 import { DailyCareForm } from "./DailyCareForm";
@@ -12,11 +12,13 @@ interface Props {
   householdId: string;
   initialRecords: DailyCareRecord[];
   initialTotal: number;
+  readOnly?: boolean;
+  initialOpenFlags?: DailyCareRecord[];
 }
 
 const PER_PAGE = 20;
 
-export function DailyCareClient({ person, householdId, initialRecords, initialTotal }: Props) {
+export function DailyCareClient({ person, householdId, initialRecords, initialTotal, readOnly = false, initialOpenFlags = [] }: Props) {
   const [records, setRecords] = useState<DailyCareRecord[]>(initialRecords);
   const [total, setTotal] = useState(initialTotal);
   const [page, setPage] = useState(1);
@@ -31,6 +33,7 @@ export function DailyCareClient({ person, householdId, initialRecords, initialTo
 
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<DailyCareRecord | null>(null);
+  const [openFlags, setOpenFlags] = useState<DailyCareRecord[]>(initialOpenFlags);
 
   const baseUrl = `/api/households/${householdId}/people/${person.id}/daily-care`;
 
@@ -86,6 +89,12 @@ export function DailyCareClient({ person, householdId, initialRecords, initialTo
     setEditingRecord(null);
   }
 
+  function handleFlagDismissed(id: string) {
+    setOpenFlags((prev) => prev.filter((f) => f.id !== id));
+    // Also update the record in the list if it's visible
+    setRecords((prev) => prev.map((r) => r.id === id ? { ...r, follow_up_resolved: true } : r));
+  }
+
   const totalPages = Math.ceil(total / PER_PAGE);
 
   return (
@@ -96,13 +105,23 @@ export function DailyCareClient({ person, householdId, initialRecords, initialTo
           <h1 className="text-xl font-bold text-warmstone-900">Daily care records</h1>
           <HelpPopout />
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-bold bg-honey-400 text-warmstone-white rounded-md hover:bg-honey-600 transition-colors"
-        >
-          <Plus size={14} /> Add record
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-bold bg-honey-400 text-warmstone-white rounded-md hover:bg-honey-600 transition-colors"
+          >
+            <Plus size={14} /> Add record
+          </button>
+        )}
       </div>
+
+      {/* Read-only notice */}
+      {readOnly && (
+        <div className="flex items-center gap-2 mb-5 px-4 py-3 bg-warmstone-50 border border-warmstone-200 rounded-lg text-sm text-warmstone-600">
+          <EyeOff size={15} className="shrink-0 text-warmstone-400" />
+          Daily care is turned off. Records are read-only. Turn it back on in the person&apos;s settings to add new records.
+        </div>
+      )}
 
       {/* Filter bar */}
       <div className="flex flex-wrap gap-3 mb-6 items-center">
@@ -162,6 +181,7 @@ export function DailyCareClient({ person, householdId, initialRecords, initialTo
               record={record}
               householdId={householdId}
               personId={person.id}
+              readOnly={readOnly}
               onEdit={() => setEditingRecord(record)}
               onDeleted={() => handleDeleted(record.id)}
             />
@@ -202,6 +222,8 @@ export function DailyCareClient({ person, householdId, initialRecords, initialTo
           personId={person.id}
           personName={`${person.first_name} ${person.last_name}`}
           record={editingRecord ?? undefined}
+          openFlags={editingRecord ? [] : openFlags}
+          onFlagDismissed={handleFlagDismissed}
           onSaved={handleSaved}
           onCancel={() => { setShowForm(false); setEditingRecord(null); }}
         />

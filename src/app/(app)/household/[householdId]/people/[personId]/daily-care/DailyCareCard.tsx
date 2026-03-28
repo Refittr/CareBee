@@ -8,6 +8,7 @@ interface Props {
   record: DailyCareRecord;
   householdId: string;
   personId: string;
+  readOnly?: boolean;
   onEdit: () => void;
   onDeleted: () => void;
 }
@@ -108,7 +109,7 @@ function ValueRow({ name, value }: { name: string; value: string | null }) {
   );
 }
 
-export function DailyCareCard({ record, householdId, personId, onEdit, onDeleted }: Props) {
+export function DailyCareCard({ record, householdId, personId, readOnly = false, onEdit, onDeleted }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -258,40 +259,42 @@ export function DailyCareCard({ record, householdId, personId, onEdit, onDeleted
           )}
 
           {/* Actions */}
-          <div className="flex items-center gap-3 pt-2 border-t border-warmstone-100">
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="flex items-center gap-1.5 text-sm text-warmstone-600 hover:text-warmstone-900 transition-colors"
-            >
-              <Pencil size={13} /> Edit
-            </button>
-
-            {confirmDelete ? (
-              <div className="flex items-center gap-2 ml-auto">
-                <span className="text-xs text-warmstone-500">Delete this record?</span>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="text-xs font-semibold text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
-                >
-                  {deleting ? "Deleting..." : "Yes, delete"}
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  className="text-xs text-warmstone-500 hover:text-warmstone-800 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
+          {!readOnly && (
+            <div className="flex items-center gap-3 pt-2 border-t border-warmstone-100">
               <button
-                onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
-                className="flex items-center gap-1.5 text-sm text-warmstone-400 hover:text-red-600 transition-colors ml-auto"
+                onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                className="flex items-center gap-1.5 text-sm text-warmstone-600 hover:text-warmstone-900 transition-colors"
               >
-                <Trash2 size={13} /> Delete
+                <Pencil size={13} /> Edit
               </button>
-            )}
-          </div>
+
+              {confirmDelete ? (
+                <div className="flex items-center gap-2 ml-auto">
+                  <span className="text-xs text-warmstone-500">Delete this record?</span>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="text-xs font-semibold text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
+                  >
+                    {deleting ? "Deleting..." : "Yes, delete"}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="text-xs text-warmstone-500 hover:text-warmstone-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
+                  className="flex items-center gap-1.5 text-sm text-warmstone-400 hover:text-red-600 transition-colors ml-auto"
+                >
+                  <Trash2 size={13} /> Delete
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

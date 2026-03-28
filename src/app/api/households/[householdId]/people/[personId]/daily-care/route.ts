@@ -26,6 +26,7 @@ export async function GET(
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const shift = searchParams.get("shift");
+  const followUpOpen = searchParams.get("follow_up_open") === "true";
   const page = parseInt(searchParams.get("page") ?? "1", 10);
   const perPage = 20;
 
@@ -40,6 +41,7 @@ export async function GET(
   if (from) query = query.gte("record_date", from);
   if (to) query = query.lte("record_date", to);
   if (shift) query = query.eq("shift", shift as DailyCareShift);
+  if (followUpOpen) query = query.eq("follow_up_needed", true).eq("follow_up_resolved", false);
 
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

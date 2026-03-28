@@ -131,6 +131,7 @@ export interface DailyCareRecord {
   observations: string | null;
   concerns: string | null;
   follow_up_needed: boolean;
+  follow_up_resolved: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -744,7 +745,7 @@ export type Database = {
       };
       daily_care_records: {
         Row: Row & DailyCareRecord;
-        Insert: Row & OptionalNullables<Omit<DailyCareRecord, "id" | "created_at" | "updated_at" | "recorded_by_name" | "follow_up_needed">> & { follow_up_needed?: boolean };
+        Insert: Row & OptionalNullables<Omit<DailyCareRecord, "id" | "created_at" | "updated_at" | "recorded_by_name" | "follow_up_needed" | "follow_up_resolved">> & { follow_up_needed?: boolean; follow_up_resolved?: boolean };
         Update: Row & Partial<Omit<DailyCareRecord, "id" | "created_at" | "recorded_by_name">>;
         Relationships: never[];
       };

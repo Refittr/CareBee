@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { Plus, AlertTriangle, Calendar } from "lucide-react";
+import { Plus, AlertTriangle, Calendar, ClipboardList } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -40,7 +40,7 @@ export default async function HouseholdPage({ params }: Props) {
 
   const now = new Date().toISOString();
 
-  const [{ data: people }, { data: rawMembers }, { data: conditions }, { data: medications }, { data: allergies }, { data: interactions }, { data: upcomingAppointments }] =
+  const [{ data: people }, { data: rawMembers }, { data: conditions }, { data: medications }, { data: allergies }, { data: interactions }, { data: upcomingAppointments }, { data: openFollowUps }] =
     await Promise.all([
       supabase.from("people").select("*").eq("household_id", householdId),
       svc.from("household_members").select("*").eq("household_id", householdId),
@@ -56,6 +56,12 @@ export default async function HouseholdPage({ params }: Props) {
         .gte("appointment_date", now)
         .order("appointment_date", { ascending: true })
         .limit(10),
+      svc
+        .from("daily_care_records")
+        .select("person_id")
+        .eq("household_id", householdId)
+        .eq("follow_up_needed", true)
+        .eq("follow_up_resolved", false),
     ]);
 
   const isOwner = (rawMembers ?? []).some((m) => m.user_id === user.id && m.role === "owner");
@@ -83,6 +89,7 @@ export default async function HouseholdPage({ params }: Props) {
       interactionCount: personInteractions.length,
       hasSevereInteraction,
       hasModerateInteraction,
+      openFollowUpCount: openFollowUps?.filter((f) => f.person_id === personId).length ?? 0,
     };
   }
 
@@ -169,7 +176,7 @@ export default async function HouseholdPage({ params }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {people.map((person: Person) => {
               const age = calculateAge(person.date_of_birth);
-              const { conditionCount, medicationCount, hasAllergies, interactionCount, hasSevereInteraction } = getPersonStats(person.id);
+              const { conditionCount, medicationCount, hasAllergies, interactionCount, hasSevereInteraction, openFollowUpCount } = getPersonStats(person.id);
               return (
                 <Link
                   key={person.id}
@@ -200,6 +207,18 @@ export default async function HouseholdPage({ params }: Props) {
                         <div className={`flex items-center gap-1 mt-2 text-xs font-semibold ${hasSevereInteraction ? "text-error" : "text-honey-700"}`}>
                           <AlertTriangle size={12} />
                           {interactionCount} drug interaction{interactionCount !== 1 ? "s" : ""} flagged
+                        </div>
+                      )}
+                      {openFollowUpCount > 0 && (
+                        <div className="flex items-center gap-1 mt-1.5 text-xs font-semibold text-red-600">
+                          <AlertTriangle size={12} />
+                          {openFollowUpCount} follow-up{openFollowUpCount !== 1 ? "s" : ""} needed
+                        </div>
+                      )}
+                      {person.daily_care_enabled && openFollowUpCount === 0 && (
+                        <div className="flex items-center gap-1 mt-1.5 text-xs text-sage-600">
+                          <ClipboardList size={11} />
+                          Daily care on
                         </div>
                       )}
                     </div>

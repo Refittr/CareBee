@@ -36,6 +36,7 @@ async function buildPersonSection(svc: Awaited<ReturnType<typeof createServiceCl
     { data: waitingLists },
     { data: entitlements },
     { data: documents },
+    { data: openFollowUps },
   ] = await Promise.all([
     svc.from("conditions").select("name, is_active, created_at").eq("person_id", personId).gte("created_at", since),
     svc.from("medications").select("name, dosage, is_active, created_at").eq("person_id", personId).gte("created_at", since),
@@ -46,6 +47,7 @@ async function buildPersonSection(svc: Awaited<ReturnType<typeof createServiceCl
     svc.from("waiting_lists").select("department, wait_status, referral_date").eq("person_id", personId).gte("updated_at", since).eq("status", "waiting"),
     svc.from("entitlements").select("benefit_name, eligibility_status").eq("person_id", personId).gte("updated_at", since),
     svc.from("documents").select("file_name, created_at").eq("person_id", personId).gte("created_at", since),
+    svc.from("daily_care_records").select("record_date, shift, concerns").eq("person_id", personId).eq("follow_up_needed", true).eq("follow_up_resolved", false),
   ]);
 
   const lines: string[] = [`\n--- ${name} ---`];
@@ -96,6 +98,15 @@ async function buildPersonSection(svc: Awaited<ReturnType<typeof createServiceCl
   if ((documents ?? []).length > 0) {
     hasChanges = true;
     lines.push(`Documents uploaded or generated: ${documents!.map((d) => d.file_name).join(", ")}`);
+  }
+
+  if ((openFollowUps ?? []).length > 0) {
+    hasChanges = true;
+    const flagList = openFollowUps!.map((f) => {
+      const base = `${f.shift} on ${formatDate(f.record_date)}`;
+      return f.concerns ? `${base}: ${f.concerns}` : base;
+    }).join("; ");
+    lines.push(`Open follow-up flags from daily care: ${flagList}`);
   }
 
   if (!hasChanges) lines.push(`No changes this week for ${name}.`);

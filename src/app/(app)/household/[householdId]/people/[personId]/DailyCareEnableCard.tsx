@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ClipboardList } from "lucide-react";
+import { AlertTriangle, ClipboardList } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/Card";
@@ -13,9 +13,10 @@ interface Props {
   firstName: string;
   enabled: boolean;
   baseUrl: string;
+  openFollowUpCount?: number;
 }
 
-export function DailyCareEnableCard({ personId, householdId, firstName, enabled, baseUrl }: Props) {
+export function DailyCareEnableCard({ personId, householdId, firstName, enabled, baseUrl, openFollowUpCount = 0 }: Props) {
   const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -29,13 +30,22 @@ export function DailyCareEnableCard({ personId, householdId, firstName, enabled,
 
   if (enabled) {
     return (
-      <Link href={`${baseUrl}/daily-care`} className="md:col-span-2">
-        <Card hoverable clickable className="p-5">
+      <Link href={`${baseUrl}/daily-care`} className="block h-full">
+        <Card hoverable clickable className="p-5 h-full">
           <div className="flex items-center gap-2 mb-2">
             <ClipboardList size={18} className="text-honey-600" />
             <h2 className="font-bold text-warmstone-900">Daily care records</h2>
           </div>
-          <p className="text-sm text-warmstone-500">Track {firstName}&apos;s daily wellbeing, meals, medication and more.</p>
+          {openFollowUpCount > 0 ? (
+            <div className="flex items-center gap-1.5 mt-1 mb-2">
+              <AlertTriangle size={13} className="text-red-500 shrink-0" />
+              <p className="text-sm font-semibold text-red-700">
+                {openFollowUpCount} open follow-up{openFollowUpCount !== 1 ? "s" : ""}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-warmstone-500">Track {firstName}&apos;s daily wellbeing, meals, medication and more.</p>
+          )}
           <p className="text-xs text-honey-600 font-semibold mt-3">View daily care records →</p>
         </Card>
       </Link>
@@ -43,7 +53,7 @@ export function DailyCareEnableCard({ personId, householdId, firstName, enabled,
   }
 
   return (
-    <div className="md:col-span-2">
+    <div>
       <Card className="p-5 border-dashed">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -67,3 +77,4 @@ export function DailyCareEnableCard({ personId, householdId, firstName, enabled,
     </div>
   );
 }
+

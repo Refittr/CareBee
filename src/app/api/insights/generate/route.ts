@@ -16,6 +16,8 @@ PERSON'S RECORD:
 
 When analysing the record, pay attention to the CARE NOTES section in the person data. These notes capture important context about how the person communicates, behaves, what has been tried before, professional contacts, and benefits advice. Pinned notes are particularly important. Factor any relevant notes into your insights.
 
+Also pay attention to OPEN_DAILY_CARE_FOLLOW_UPS in the person data. These are unresolved flags raised by carers in daily care records. If any concern repeated issues (e.g. recurring confusion, falls, pain, medication refusal), include them in CARE GAPS or GENERAL OBSERVATIONS.
+
 Based on this record, generate insights in the following categories:
 
 1. NICE GUIDELINE CHECKS ("missing_check")
@@ -183,6 +185,7 @@ export async function POST(request: NextRequest) {
     { data: appointments },
     { data: handledInsights },
     { data: careNotes },
+    { data: openFollowUps },
   ] = await Promise.all([
     svc.from("people").select("*").eq("id", person_id).single(),
     svc.from("conditions").select("*").eq("person_id", person_id).eq("is_active", true),
@@ -200,6 +203,13 @@ export async function POST(request: NextRequest) {
       .eq("person_id", person_id)
       .in("status", ["dismissed", "resolved"]),
     svc.from("care_notes").select("title, content, category, is_pinned").eq("person_id", person_id).order("is_pinned", { ascending: false }).order("updated_at", { ascending: false }),
+    svc.from("daily_care_records")
+      .select("record_date, shift, concerns, mood, mood_notes")
+      .eq("person_id", person_id)
+      .eq("follow_up_needed", true)
+      .eq("follow_up_resolved", false)
+      .order("record_date", { ascending: false })
+      .limit(10),
   ]);
 
   if (!person) return NextResponse.json({ error: "Person not found" }, { status: 404 });
@@ -216,6 +226,13 @@ export async function POST(request: NextRequest) {
     gp_name: person.gp_name,
     notes: person.notes,
     care_notes: (careNotes ?? []).map(n => ({ title: n.title, content: n.content, category: n.category, pinned: n.is_pinned })),
+    open_daily_care_follow_ups: (openFollowUps ?? []).map(f => ({
+      date: f.record_date,
+      shift: f.shift,
+      concerns: f.concerns,
+      mood: f.mood,
+      mood_notes: f.mood_notes,
+    })),
   };
 
   // Build already-handled context for the AI
