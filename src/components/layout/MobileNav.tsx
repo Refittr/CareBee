@@ -5,18 +5,13 @@ import { usePathname } from "next/navigation";
 import { Home, Shield, BookOpen, Settings, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
-
-const navItems = [
-  { href: "/dashboard", label: "Care records", icon: Home },
-  { href: "/letters-vault", label: "Letters vault", icon: BookOpen },
-  { href: "/updates", label: "Updates", icon: Mail },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+import { useUserType } from "@/lib/context/UserTypeContext";
 
 export function MobileNav() {
   const pathname = usePathname();
   const supabase = createClient();
   const [isAdmin, setIsAdmin] = useState(false);
+  const { labels } = useUserType();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -31,6 +26,13 @@ export function MobileNav() {
         });
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const navItems = [
+    { href: "/dashboard", label: labels.dashboardNavLabel, icon: Home },
+    { href: "/letters-vault", label: "Letters vault", icon: BookOpen },
+    { href: "/updates", label: "Updates", icon: Mail },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ];
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-warmstone-white border-t border-warmstone-100 z-40 safe-area-pb">

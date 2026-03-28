@@ -1,6 +1,7 @@
 export type MemberRole = "owner" | "editor" | "viewer" | "emergency_only";
 export type AccountType = "standard" | "tester" | "admin";
-export type PlanType = "free" | "family" | "custom" | "plus";
+export type PlanType = "free" | "family" | "custom" | "plus" | "self_care_standard" | "self_care_plus" | "carebee_plus";
+export type UserType = "self_care" | "carer";
 export type AppointmentStatus = "upcoming" | "completed" | "cancelled" | "missed";
 export type DocumentType =
   | "discharge_summary"
@@ -21,7 +22,10 @@ export interface Profile {
   email: string;
   avatar_url: string | null;
   account_type: AccountType;
+  user_type: UserType | null;
   plan: PlanType;
+  ai_uses_count: number;
+  ai_uses_reset_at: string | null;
   is_subscribed: boolean;
   trial_ends_at: string | null;
   stripe_customer_id: string | null;

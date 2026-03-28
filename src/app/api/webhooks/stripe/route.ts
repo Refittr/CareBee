@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
+import { priceIdToPlan } from "@/lib/stripe-config";
 import type Stripe from "stripe";
 import type { PlanType } from "@/lib/types/database";
 
@@ -14,7 +15,7 @@ function toIso(unixTs: number | null | undefined): string | null {
 }
 
 function log(event: string, subId: string | null, householdId: string | null, action: string) {
-  console.log(`[Stripe Webhook] ${event} | Sub: ${subId ?? "—"} | Household: ${householdId ?? "—"} | ${action}`);
+  console.log(`[Stripe Webhook] ${event} | Sub: ${subId ?? "-"} | Household: ${householdId ?? "-"} | ${action}`);
 }
 
 async function findHouseholdBySubId(
@@ -93,15 +94,18 @@ export async function POST(request: NextRequest) {
           ? session.customer
           : (session.customer as Stripe.Customer | null)?.id ?? null;
 
+        const priceId = subscription.items.data[0]?.price.id ?? null;
+        const plan = priceIdToPlan(priceId) as PlanType;
+
         // Store Stripe IDs on profile
         await svc.from("profiles").update({
           stripe_customer_id: customerId ?? undefined,
           stripe_subscription_id: subscriptionId,
           is_subscribed: true,
           subscription_status: subscription.status,
-          subscription_price_id: subscription.items.data[0]?.price.id ?? null,
+          subscription_price_id: priceId,
           subscription_current_period_end: toIso(subscription.items.data[0]?.current_period_end),
-          plan: "plus" as PlanType,
+          plan,
         }).eq("id", userId);
 
         // Update the specific household
@@ -139,7 +143,6 @@ export async function POST(request: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const householdId = await findHouseholdBySubId(svc, subscription.id)
           ?? (await (async () => {
-            // Fallback via user metadata
             const userId = subscription.metadata?.supabase_user_id;
             if (!userId) return null;
             const { data } = await svc.from("household_members").select("household_id").eq("user_id", userId).eq("role", "owner").maybeSingle();
@@ -169,11 +172,14 @@ export async function POST(request: NextRequest) {
         const userId = subscription.metadata?.supabase_user_id;
         if (userId) {
           const isActive = subscription.status === "active" || subscription.status === "trialing";
+          const priceId = subscription.items.data[0]?.price.id ?? null;
+          const plan = priceIdToPlan(priceId) as PlanType;
           await svc.from("profiles").update({
             is_subscribed: isActive && !subscription.cancel_at_period_end,
             subscription_status: subscription.status,
+            subscription_price_id: priceId,
             subscription_current_period_end: periodEnd,
-            plan: (isActive ? "plus" : "family") as PlanType,
+            plan: isActive ? plan : "free" as PlanType,
           }).eq("id", userId);
         }
         break;
@@ -199,7 +205,7 @@ export async function POST(request: NextRequest) {
           await svc.from("profiles").update({
             is_subscribed: false,
             subscription_status: "canceled",
-            plan: "family" as PlanType,
+            plan: "free" as PlanType,
           }).eq("id", userId);
         }
         break;
@@ -218,6 +224,8 @@ export async function POST(request: NextRequest) {
         const householdId = await findHouseholdBySubId(svc, subscriptionId);
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const periodEnd = toIso(subscription.items.data[0]?.current_period_end);
+        const priceId = subscription.items.data[0]?.price.id ?? null;
+        const plan = priceIdToPlan(priceId) as PlanType;
 
         log("invoice.payment_succeeded", subscriptionId, householdId, `Set status to active, ends ${periodEnd}`);
 
@@ -233,8 +241,9 @@ export async function POST(request: NextRequest) {
           await svc.from("profiles").update({
             is_subscribed: true,
             subscription_status: "active",
+            subscription_price_id: priceId,
             subscription_current_period_end: periodEnd,
-            plan: "plus" as PlanType,
+            plan,
           }).eq("id", userId);
         }
         break;

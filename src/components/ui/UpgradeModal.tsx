@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Brain, Pill, Clock, FileSearch, PoundSterling } from "lucide-react";
+import { Sparkles, Check } from "lucide-react";
 import { Modal } from "./Modal";
 import { Button } from "./Button";
+import Link from "next/link";
+import { useUserType } from "@/lib/context/UserTypeContext";
+import { getAvailableTiers, isCareBeeIntroActive } from "@/lib/stripe-config";
 
 interface UpgradeModalProps {
   open: boolean;
@@ -11,35 +14,43 @@ interface UpgradeModalProps {
   householdId: string;
 }
 
-const FEATURES = [
-  { icon: <Brain size={16} />, label: "Health insights & NICE guideline checks" },
-  { icon: <Pill size={16} />, label: "Drug interaction detection" },
-  { icon: <FileSearch size={16} />, label: "Document scanning & data extraction" },
-  { icon: <Clock size={16} />, label: "NHS waiting list time estimates" },
-  { icon: <PoundSterling size={16} />, label: "Benefits & entitlements eligibility check" },
-  { icon: <Sparkles size={16} />, label: "Appointment prep briefs & post-visit summaries" },
-];
-
 export function UpgradeModal({ open, onClose, householdId }: UpgradeModalProps) {
-  const [loading, setLoading] = useState<"monthly" | "annual" | null>(null);
+  const { userType } = useUserType();
+  const tiers = getAvailableTiers(userType);
+  const introActive = isCareBeeIntroActive();
 
-  async function startCheckout(plan: "monthly" | "annual") {
-    setLoading(plan);
+  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+  const [selectedTierIndex, setSelectedTierIndex] = useState(tiers.length - 1); // default: highest tier
+  const [loading, setLoading] = useState(false);
+
+  const selectedTier = tiers[selectedTierIndex] ?? tiers[0];
+  const amount = billing === "monthly" ? selectedTier.monthlyAmount : selectedTier.annualAmount;
+  const period = billing === "monthly" ? "month" : "year";
+
+  // Show "Save X%" badge on annual toggle
+  const annualSaving = selectedTier
+    ? Math.round((1 - selectedTier.annualAmount / (selectedTier.monthlyAmount * 12)) * 100)
+    : 0;
+
+  const priceId = billing === "monthly" ? selectedTier.monthlyPriceId : selectedTier.annualPriceId;
+
+  async function startCheckout() {
+    setLoading(true);
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, householdId }),
+        body: JSON.stringify({ priceId, householdId }),
       });
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setLoading(null);
+        setLoading(false);
         alert(data.error ?? "Could not start checkout. Please try again.");
       }
     } catch {
-      setLoading(null);
+      setLoading(false);
       alert("Could not start checkout. Please try again.");
     }
   }
@@ -51,46 +62,117 @@ export function UpgradeModal({ open, onClose, householdId }: UpgradeModalProps) 
           <Sparkles size={24} className="text-honey-600" />
         </div>
 
-        <div className="text-center">
-          <p className="text-sm text-warmstone-600 leading-relaxed">
-            CareBee&apos;s AI features help you stay on top of complex care - spotting risks, flagging gaps, and saving hours of research.
-          </p>
+        {/* Billing period toggle */}
+        <div className="flex rounded-full bg-warmstone-100 p-1 gap-1 self-center">
+          <button
+            onClick={() => setBilling("monthly")}
+            className={[
+              "px-4 py-1.5 rounded-full text-sm font-semibold transition-all",
+              billing === "monthly"
+                ? "bg-warmstone-white text-warmstone-900 shadow-sm"
+                : "text-warmstone-500",
+            ].join(" ")}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setBilling("annual")}
+            className={[
+              "px-4 py-1.5 rounded-full text-sm font-semibold transition-all flex items-center gap-1.5",
+              billing === "annual"
+                ? "bg-warmstone-white text-warmstone-900 shadow-sm"
+                : "text-warmstone-500",
+            ].join(" ")}
+          >
+            Annual
+            {annualSaving > 0 && (
+              <span className="text-[10px] font-bold bg-honey-100 text-honey-700 px-1.5 py-0.5 rounded-full">
+                Save {annualSaving}%
+              </span>
+            )}
+          </button>
         </div>
 
-        <ul className="flex flex-col gap-2.5">
-          {FEATURES.map((f) => (
-            <li key={f.label} className="flex items-center gap-3 text-sm text-warmstone-800">
-              <span className="text-honey-500 shrink-0">{f.icon}</span>
-              {f.label}
+        {/* Tier selector (only shown when there are multiple tiers) */}
+        {tiers.length > 1 && (
+          <div className="grid grid-cols-2 gap-2">
+            {tiers.map((tier, i) => {
+              const amt = billing === "monthly" ? tier.monthlyAmount : tier.annualAmount;
+              const selected = selectedTierIndex === i;
+              return (
+                <button
+                  key={tier.plan}
+                  onClick={() => setSelectedTierIndex(i)}
+                  className={[
+                    "rounded-xl border p-3 text-left transition-all",
+                    selected
+                      ? "border-honey-400 bg-honey-50 ring-1 ring-honey-300"
+                      : "border-warmstone-200 hover:border-warmstone-300",
+                  ].join(" ")}
+                >
+                  <p className="text-xs font-bold text-warmstone-900 leading-tight">{tier.name}</p>
+                  <p className="text-lg font-bold text-honey-600 mt-1">
+                    £{amt}
+                    <span className="text-xs font-normal text-warmstone-500">/{period}</span>
+                  </p>
+                  {tier.recommended && (
+                    <span className="text-[10px] font-bold text-honey-700 uppercase tracking-wide">
+                      Recommended
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Features list */}
+        <ul className="flex flex-col gap-2">
+          {selectedTier.features.map((f) => (
+            <li key={f} className="flex items-start gap-2.5 text-sm text-warmstone-800">
+              <Check size={14} className="text-honey-500 shrink-0 mt-0.5" />
+              {f}
             </li>
           ))}
         </ul>
 
-        <div className="flex flex-col gap-2">
-          <Button
-            variant="primary"
-            className="w-full"
-            loading={loading === "monthly"}
-            disabled={loading !== null}
-            onClick={() => startCheckout("monthly")}
-          >
-            Subscribe — £4.99 / month
-          </Button>
-          <Button
-            variant="secondary"
-            className="w-full"
-            loading={loading === "annual"}
-            disabled={loading !== null}
-            onClick={() => startCheckout("annual")}
-          >
-            Subscribe — £44.99 / year
-            <span className="ml-1.5 text-xs font-normal text-white bg-white/20 rounded-full px-2 py-0.5">Save 25%</span>
-          </Button>
-        </div>
+        {/* Early adopter note for carers */}
+        {userType !== "self_care" && introActive && (
+          <p className="text-xs text-honey-700 bg-honey-50 border border-honey-100 rounded-lg px-3 py-2 text-center">
+            Early adopter rate. Lock in this price for as long as you subscribe before 1 July 2026.
+          </p>
+        )}
+
+        {/* CTA */}
+        <Button
+          variant="primary"
+          className="w-full"
+          loading={loading}
+          onClick={startCheckout}
+        >
+          Subscribe to {selectedTier.name}, £{amount}/{period}
+        </Button>
 
         <p className="text-xs text-warmstone-400 text-center leading-relaxed">
-          We keep AI costs honest - your subscription goes directly towards the compute that powers these checks. Cancel any time.
+          Your subscription goes directly towards the AI compute that powers these checks. Cancel any time.
         </p>
+
+        {/* Cross-type nudge */}
+        {userType === "self_care" ? (
+          <p className="text-xs text-warmstone-400 text-center">
+            Looking after someone else?{" "}
+            <Link href="/settings" onClick={onClose} className="text-honey-600 hover:underline font-semibold">
+              See CareBee Plus
+            </Link>
+          </p>
+        ) : (
+          <p className="text-xs text-warmstone-400 text-center">
+            Just managing your own health?{" "}
+            <Link href="/settings" onClick={onClose} className="text-honey-600 hover:underline font-semibold">
+              See Self-Care plans
+            </Link>
+          </p>
+        )}
 
         <button
           onClick={onClose}

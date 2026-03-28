@@ -12,6 +12,12 @@ import { Alert } from "@/components/ui/Alert";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { Input, Select } from "@/components/ui/Input";
 import { useAppToast } from "@/components/layout/AppShell";
+import { useUserType } from "@/lib/context/UserTypeContext";
+import {
+  getAvailableTiers,
+  getPlanDisplayName,
+  isCareBeeIntroActive,
+} from "@/lib/stripe-config";
 
 const DAY_OPTIONS = [
   { value: "monday", label: "Monday" },
@@ -52,6 +58,7 @@ export default function SettingsPage() {
 function SettingsContent() {
   const supabase = createClient();
   const { addToast } = useAppToast();
+  const { labels, userType } = useUserType();
   const searchParams = useSearchParams();
 
   const [memberships, setMemberships] = useState<HouseholdMembership[]>([]);
@@ -65,7 +72,10 @@ function SettingsContent() {
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
   const [accountType, setAccountType] = useState<string | null>(null);
   const [ownedHouseholdId, setOwnedHouseholdId] = useState<string | null>(null);
-  const [checkoutLoading, setCheckoutLoading] = useState<"monthly" | "annual" | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<string>("free");
+  const [subscribeBilling, setSubscribeBilling] = useState<"monthly" | "annual">("monthly");
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [changePlanLoading, setChangePlanLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
   const statusParam = searchParams.get("status");
@@ -76,7 +86,7 @@ function SettingsContent() {
     if (!user) { setLoading(false); return; }
 
     const [{ data: profile }, { data: members }] = await Promise.all([
-      supabase.from("profiles").select("email, full_name, account_type, is_subscribed, trial_ends_at, subscription_status, subscription_current_period_end").eq("id", user.id).single(),
+      supabase.from("profiles").select("email, full_name, account_type, is_subscribed, trial_ends_at, subscription_status, subscription_current_period_end, plan").eq("id", user.id).single(),
       supabase.from("household_members")
         .select("household_id, weekly_digest_enabled, weekly_digest_day, last_digest_sent_at")
         .eq("user_id", user.id)
@@ -87,6 +97,7 @@ function SettingsContent() {
     setFullName(profile?.full_name ?? "");
     setFullNameSaved(profile?.full_name ?? "");
     setAccountType(profile?.account_type ?? null);
+    setCurrentPlan((profile as { plan?: string } | null)?.plan ?? "free");
 
     // Fetch owned household subscription status
     const { data: ownedMembership } = await supabase
@@ -211,13 +222,13 @@ function SettingsContent() {
     setSavingName(false);
   }
 
-  async function startCheckout(plan: "monthly" | "annual") {
-    setCheckoutLoading(plan);
+  async function startCheckout(priceId: string) {
+    setCheckoutLoading(priceId);
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, householdId: ownedHouseholdId }),
+        body: JSON.stringify({ priceId, householdId: ownedHouseholdId }),
       });
       const data = await res.json();
       if (data.url) {
@@ -230,6 +241,29 @@ function SettingsContent() {
       addToast("Could not start checkout.", "error");
       setCheckoutLoading(null);
     }
+  }
+
+  async function handleChangePlan(targetPlan: string, friendlyName: string) {
+    setChangePlanLoading(targetPlan);
+    try {
+      const res = await fetch("/api/stripe/change-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetPlan }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        addToast(data.error, "error");
+      } else if (data.isUpgrade) {
+        setCurrentPlan(data.plan);
+        addToast(`Upgraded to ${friendlyName}. You now have unlimited AI uses.`, "success");
+      } else {
+        addToast(`Your plan will change to ${friendlyName} at the end of your billing period.`, "success");
+      }
+    } catch {
+      addToast("Could not change plan. Please try again.", "error");
+    }
+    setChangePlanLoading(null);
   }
 
   async function openPortal() {
@@ -266,7 +300,7 @@ function SettingsContent() {
       <section className="flex flex-col gap-4">
         <div>
           <h2 className="text-base font-bold text-warmstone-900">Your profile</h2>
-          <p className="text-sm text-warmstone-600 mt-0.5">This name appears when you are listed as a member of a care record.</p>
+          <p className="text-sm text-warmstone-600 mt-0.5">{labels.settingsProfileHint}</p>
         </div>
         {loading ? (
           <SkeletonLoader count={1} />
@@ -340,7 +374,7 @@ function SettingsContent() {
             <Card className="flex flex-col gap-3 p-4">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-honey-500" />
-                <span className="font-semibold text-warmstone-900">CareBee Plus</span>
+                <span className="font-semibold text-warmstone-900">{getPlanDisplayName(currentPlan)}</span>
                 <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-sage-100 text-sage-800">Active</span>
               </div>
               {planInfo.subscription_current_period_end && (
@@ -352,12 +386,45 @@ function SettingsContent() {
                 <CreditCard size={14} />
                 Manage billing
               </Button>
+              {/* Upgrade / downgrade within user_type (self_care only: Standard <> Plus) */}
+              {userType === "self_care" && (() => {
+                const tiers = getAvailableTiers("self_care");
+                const otherTiers = tiers.filter((t) => t.plan !== currentPlan);
+                if (otherTiers.length === 0) return null;
+                return (
+                  <div className="border-t border-warmstone-100 pt-3 flex flex-col gap-2">
+                    <p className="text-xs text-warmstone-500">Change plan</p>
+                    {otherTiers.map((tier) => {
+                      const isUpgrade = tier.plan === "self_care_plus";
+                      return (
+                        <div key={tier.plan} className="flex flex-col gap-1">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="gap-1.5 w-fit"
+                            loading={changePlanLoading === tier.plan}
+                            disabled={changePlanLoading !== null}
+                            onClick={() => handleChangePlan(tier.plan, tier.name)}
+                          >
+                            {isUpgrade ? "Upgrade to" : "Downgrade to"} {tier.name}
+                          </Button>
+                          {!isUpgrade && (
+                            <p className="text-xs text-warmstone-400">
+                              Your plan will change at the end of your billing period. You will have 20 AI uses per month from then.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </Card>
           ) : planInfo?.household_sub_status === "cancelled" ? (
             <Card className="flex flex-col gap-3 p-4">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-warmstone-400" />
-                <span className="font-semibold text-warmstone-900">CareBee Plus</span>
+                <span className="font-semibold text-warmstone-900">{getPlanDisplayName(currentPlan)}</span>
                 <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-warmstone-100 text-warmstone-600">Cancelled</span>
               </div>
               {planInfo.household_subscription_ends_at && (
@@ -378,12 +445,14 @@ function SettingsContent() {
                 <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-honey-100 text-honey-800">30 days</span>
               </div>
               <p className="text-sm text-warmstone-600">Create your first care record to start your 30-day free trial. No payment needed.</p>
-              <Link href="/household/new">
-                <Button variant="primary" size="sm" className="gap-1.5 w-fit">
-                  Create a care record
-                  <ArrowRight size={14} />
-                </Button>
-              </Link>
+              {labels.settingsCreateRecordCta && (
+                <Link href="/household/new">
+                  <Button variant="primary" size="sm" className="gap-1.5 w-fit">
+                    {labels.settingsCreateRecordCta}
+                    <ArrowRight size={14} />
+                  </Button>
+                </Link>
+              )}
             </Card>
           ) : (() => {
             const trialEndsAt = planInfo?.household_trial_ends_at ?? null;
@@ -408,27 +477,57 @@ function SettingsContent() {
                   </div>
                 )}
                 <p className="text-sm text-warmstone-600">Subscribe to keep your AI features after your trial ends.</p>
-                <div className="flex flex-col gap-2">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    loading={checkoutLoading === "monthly"}
-                    disabled={checkoutLoading !== null}
-                    onClick={() => startCheckout("monthly")}
-                  >
-                    Subscribe — £4.99 / month
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    loading={checkoutLoading === "annual"}
-                    disabled={checkoutLoading !== null}
-                    onClick={() => startCheckout("annual")}
-                  >
-                    Subscribe — £44.99 / year
-                    <span className="ml-1.5 text-xs font-normal text-white bg-white/20 rounded-full px-2 py-0.5">Save 25%</span>
-                  </Button>
+                {/* Billing period toggle */}
+                <div className="flex rounded-full bg-warmstone-100 p-1 gap-1 self-start">
+                  {(["monthly", "annual"] as const).map((b) => (
+                    <button
+                      key={b}
+                      onClick={() => setSubscribeBilling(b)}
+                      className={[
+                        "px-3 py-1 rounded-full text-xs font-semibold transition-all capitalize",
+                        subscribeBilling === b
+                          ? "bg-warmstone-white text-warmstone-900 shadow-sm"
+                          : "text-warmstone-500",
+                      ].join(" ")}
+                    >
+                      {b}
+                      {b === "annual" && (
+                        <span className="ml-1 text-[10px] font-bold text-honey-700">Save</span>
+                      )}
+                    </button>
+                  ))}
                 </div>
+                <div className="flex flex-col gap-2">
+                  {getAvailableTiers(userType).map((tier) => {
+                    const pid = subscribeBilling === "monthly" ? tier.monthlyPriceId : tier.annualPriceId;
+                    const amt = subscribeBilling === "monthly" ? tier.monthlyAmount : tier.annualAmount;
+                    const per = subscribeBilling === "monthly" ? "month" : "year";
+                    const annualSaving = Math.round((1 - tier.annualAmount / (tier.monthlyAmount * 12)) * 100);
+                    return (
+                      <Button
+                        key={tier.plan}
+                        variant={tier.recommended ? "primary" : "secondary"}
+                        size="sm"
+                        loading={checkoutLoading === pid}
+                        disabled={checkoutLoading !== null}
+                        onClick={() => startCheckout(pid)}
+                      >
+                        {tier.name}, £{amt}/{per}
+                        {subscribeBilling === "annual" && annualSaving > 0 && (
+                          <span className="ml-1.5 text-xs font-normal opacity-80 rounded-full px-2 py-0.5 bg-white/20">
+                            Save {annualSaving}%
+                          </span>
+                        )}
+                      </Button>
+                    );
+                  })}
+                </div>
+                {/* Intro note for carers */}
+                {userType !== "self_care" && isCareBeeIntroActive() && (
+                  <p className="text-xs text-honey-700">
+                    Early adopter rate. Lock in this price for as long as you subscribe before 1 July 2026.
+                  </p>
+                )}
               </Card>
             );
           })()}
@@ -439,7 +538,7 @@ function SettingsContent() {
         <div>
           <h2 className="text-base font-bold text-warmstone-900">Weekly updates</h2>
           <p className="text-sm text-warmstone-600 mt-0.5">
-            Receive a weekly email summary of changes across your care records.
+            {labels.settingsWeeklyUpdatesDescription}
           </p>
         </div>
 
@@ -452,7 +551,7 @@ function SettingsContent() {
         ) : memberships.length === 0 ? (
           <Card className="text-center py-8">
             <BellOff size={28} className="mx-auto text-warmstone-300 mb-2" />
-            <p className="text-sm text-warmstone-500">No care records found. Add a care record to enable weekly updates.</p>
+            <p className="text-sm text-warmstone-500">{labels.settingsNoRecordsMessage}</p>
           </Card>
         ) : (
           <div className="flex flex-col gap-3">

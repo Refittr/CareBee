@@ -4,6 +4,86 @@ import { useState } from "react";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 
+const plans = [
+  {
+    name: "Free",
+    label: "Getting started",
+    monthly: "£0",
+    annual: "£0",
+    annualNote: "forever",
+    monthlyNote: "forever",
+    features: [
+      "Record for one person",
+      "Conditions, medications, allergies, appointments",
+      "Document storage",
+      "Manual entry",
+    ],
+    cta: "Get started",
+    ctaHref: "/signup",
+    highlight: false,
+    badge: null,
+  },
+  {
+    name: "Self-Care Standard",
+    label: "For managing your own health",
+    monthly: "£2.99",
+    annual: "£29.99",
+    annualNote: "/year",
+    monthlyNote: "/month",
+    features: [
+      "Everything in Free, plus:",
+      "20 AI uses per month",
+      "AI document scanning",
+      "Medication interaction checker",
+      "Health insights",
+      "Benefits and entitlements engine",
+      "Letter generation",
+      "Appointment preparation",
+    ],
+    cta: "Start free trial",
+    ctaHref: "/signup?type=self_care",
+    highlight: true,
+    badge: "Most popular",
+  },
+  {
+    name: "Self-Care Plus",
+    label: "For power users",
+    monthly: "£4.99",
+    annual: "£49.99",
+    annualNote: "/year",
+    monthlyNote: "/month",
+    features: [
+      "Everything in Standard, plus:",
+      "Unlimited AI uses",
+    ],
+    cta: "Start free trial",
+    ctaHref: "/signup?type=self_care",
+    highlight: false,
+    badge: null,
+  },
+  {
+    name: "CareBee Plus",
+    label: "For carers and families",
+    monthly: "£7.99",
+    annual: "£79.99",
+    annualNote: "/year",
+    monthlyNote: "/month",
+    features: [
+      "Everything in Self-Care Plus, plus:",
+      "Multiple people",
+      "Care circles and shared access",
+      "Invite family with role permissions",
+      "Weekly family digest",
+      "Emergency QR codes",
+      "Communications log",
+    ],
+    cta: "Start free trial",
+    ctaHref: "/signup?type=carer",
+    highlight: false,
+    badge: null,
+  },
+];
+
 export function PricingSection() {
   const [annual, setAnnual] = useState(false);
 
@@ -21,7 +101,7 @@ export function PricingSection() {
         {/* Toggle */}
         <div className="mt-6 flex flex-col items-center gap-2">
           <div className="flex items-center gap-3">
-            <span className={`text-sm font-semibold w-16 text-right transition-colors ${!annual ? "text-warmstone-900" : "text-warmstone-400"}`}>
+            <span className={`text-sm font-semibold w-16 text-right transition-colors ${!annual ? "text-honey-600" : "text-warmstone-400"}`}>
               Monthly
             </span>
             <button
@@ -29,97 +109,87 @@ export function PricingSection() {
               onClick={() => setAnnual(!annual)}
               aria-pressed={annual}
               aria-label="Toggle annual billing"
-              className={`relative w-11 h-6 rounded-full transition-colors duration-200 overflow-hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-honey-400 ${annual ? "bg-honey-400" : "bg-warmstone-200"}`}
+              className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-honey-400 ${annual ? "bg-honey-400" : "bg-warmstone-300"}`}
             >
               <span
                 className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${annual ? "translate-x-[22px]" : "translate-x-0.5"}`}
               />
             </button>
-            <span className={`text-sm font-semibold w-16 text-left transition-colors ${annual ? "text-warmstone-900" : "text-warmstone-400"}`}>
+            <span className={`text-sm font-semibold w-16 text-left transition-colors ${annual ? "text-honey-600" : "text-warmstone-400"}`}>
               Annual
             </span>
           </div>
           <span className={`text-xs font-bold text-honey-600 transition-opacity duration-200 ${annual ? "opacity-100" : "opacity-0"}`}>
-            Save 25% with annual billing
+            Save with annual billing
           </span>
         </div>
 
-        {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-          {/* Free card */}
-          <div className="bg-warmstone-white border border-warmstone-200 rounded-xl p-7 flex flex-col">
-            <div className="font-bold text-warmstone-900 text-xl mb-1">Free</div>
-            <div className="flex items-baseline gap-2 mb-6">
-              <span className="font-display text-4xl text-warmstone-900">£0</span>
-              <span className="text-warmstone-400">forever</span>
-            </div>
-            <ul className="flex flex-col gap-3 flex-1 mb-8">
-              {[
-                "Record for one person",
-                "Conditions, medications, allergies, appointments",
-                "Document storage",
-                "Up to 2 family members",
-              ].map((feature) => (
-                <li key={feature} className="flex items-start gap-2.5">
-                  <CheckCircle size={16} className="text-sage-400 shrink-0 mt-0.5" />
-                  <span className="text-sm text-warmstone-800">{feature}</span>
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/signup"
-              className="border-2 border-warmstone-300 text-warmstone-800 font-bold rounded-md px-4 py-3 block text-center hover:bg-warmstone-50 transition-colors"
-            >
-              Get started
-            </Link>
-          </div>
-
-          {/* Plus card */}
-          <div className="bg-honey-50 border-2 border-honey-400 rounded-xl p-7 flex flex-col relative">
-            <span className="absolute -top-3 left-6 bg-honey-400 text-white text-xs font-bold px-3 py-1 rounded-full">
-              Included free for 30 days
-            </span>
-            <div className="font-bold text-warmstone-900 text-xl mb-1">CareBee Plus</div>
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="font-display text-4xl text-warmstone-900">
-                {annual ? "£44.99" : "£4.99"}
-              </span>
-              <span className="text-warmstone-400">{annual ? "/year" : "/month"}</span>
-            </div>
-            {annual && (
-              <div className="text-sage-600 text-sm font-semibold mb-5">
-                Saving £14.89 vs monthly
-              </div>
-            )}
-            <ul className="flex flex-col gap-3 flex-1 mb-8 mt-5">
-              <li className="text-warmstone-500 font-semibold text-sm">
-                Everything in Free, plus:
-              </li>
-              {[
-                "AI document scanning",
-                "Benefits and entitlements engine",
-                "Drug interaction checker",
-                "Appointment preparation briefs",
-                "Waiting list estimates and chase letters",
-                "Unlimited people and family members",
-                "Emergency QR codes",
-                "Weekly family digest",
-                "Communications log",
-              ].map((feature) => (
-                <li key={feature} className="flex items-start gap-2.5">
-                  <CheckCircle size={16} className="text-sage-400 shrink-0 mt-0.5" />
-                  <span className="text-sm text-warmstone-800">{feature}</span>
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/signup"
-              className="bg-honey-400 text-white font-bold rounded-md px-4 py-3 block text-center hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)]"
-            >
-              Start free trial
-            </Link>
-          </div>
+        {/* Early adopter banner */}
+        <div className="mt-8 bg-honey-50 border border-honey-300 rounded-xl px-5 py-4 flex items-start gap-3 max-w-3xl mx-auto">
+          <span className="text-2xl shrink-0" aria-hidden="true">🐝</span>
+          <p className="text-warmstone-800 text-sm leading-relaxed">
+            <span className="font-bold">Early adopter offer:</span> Sign up before 1 July 2026 and
+            lock in CareBee Plus at £4.99/mo forever.
+          </p>
         </div>
+
+        {/* Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-8">
+          {plans.map((plan) => (
+            <div
+              key={plan.name}
+              className={`rounded-xl p-6 flex flex-col relative ${
+                plan.highlight
+                  ? "bg-honey-50 border-2 border-honey-400"
+                  : "bg-warmstone-white border border-warmstone-200"
+              }`}
+            >
+              {plan.badge && (
+                <span className="absolute -top-3 left-5 bg-honey-400 text-white text-xs font-bold px-3 py-1 rounded-full">
+                  {plan.badge}
+                </span>
+              )}
+              <div className="font-bold text-warmstone-900 text-lg mb-0.5">{plan.name}</div>
+              <div className="text-warmstone-500 text-xs mb-4">{plan.label}</div>
+              <div className="flex items-baseline gap-1 mb-6">
+                <span className="font-display text-3xl text-warmstone-900">
+                  {annual ? plan.annual : plan.monthly}
+                </span>
+                <span className="text-warmstone-400 text-sm">
+                  {annual ? plan.annualNote : plan.monthlyNote}
+                </span>
+              </div>
+              <ul className="flex flex-col gap-2.5 flex-1 mb-6">
+                {plan.features.map((feature) => (
+                  feature.endsWith(":") ? (
+                    <li key={feature} className="text-warmstone-500 font-semibold text-xs mt-1">
+                      {feature}
+                    </li>
+                  ) : (
+                    <li key={feature} className="flex items-start gap-2">
+                      <CheckCircle size={15} className="text-sage-400 shrink-0 mt-0.5" />
+                      <span className="text-sm text-warmstone-800">{feature}</span>
+                    </li>
+                  )
+                ))}
+              </ul>
+              <Link
+                href={plan.ctaHref}
+                className={`rounded-md px-4 py-2.5 block text-center font-bold text-sm transition-colors ${
+                  plan.highlight
+                    ? "bg-honey-400 text-white hover:bg-honey-600 shadow-[0_2px_8px_rgba(232,168,23,0.25)]"
+                    : "border-2 border-warmstone-300 text-warmstone-800 hover:bg-warmstone-50"
+                }`}
+              >
+                {plan.cta}
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-center text-xs text-warmstone-400 mt-6">
+          All paid plans include a 30-day free trial. No card required to start.
+        </p>
       </div>
     </section>
   );

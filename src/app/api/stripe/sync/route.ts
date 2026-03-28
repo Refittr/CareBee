@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
+import { priceIdToPlan } from "@/lib/stripe-config";
 import type { PlanType } from "@/lib/types/database";
 
 export async function POST(request: NextRequest) {
@@ -54,13 +55,16 @@ export async function POST(request: NextRequest) {
     : sub.status === "past_due" ? "past_due"
     : "free";
 
+  const priceId = sub.items.data[0]?.price.id ?? null;
+  const plan = priceIdToPlan(priceId) as PlanType;
+
   await svc.from("profiles").update({
     stripe_subscription_id: sub.id,
     is_subscribed: isActive && !isCancelledInPeriod,
     subscription_status: sub.status,
-    subscription_price_id: sub.items.data[0]?.price.id ?? null,
+    subscription_price_id: priceId,
     subscription_current_period_end: periodEnd,
-    plan: (isActive ? "plus" : "family") as PlanType,
+    plan: isActive ? plan : "free" as PlanType,
   }).eq("id", user.id);
 
   // Update specific household if provided, otherwise all owned households

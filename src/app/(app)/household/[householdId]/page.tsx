@@ -7,8 +7,9 @@ import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Badge } from "@/components/ui/Badge";
 import { getInitials } from "@/lib/utils/formatting";
 import { calculateAge } from "@/lib/utils/dates";
+import { getLabels } from "@/lib/labels";
 import type { Metadata } from "next";
-import type { Person } from "@/lib/types/database";
+import type { Person, UserType } from "@/lib/types/database";
 import { DeleteHouseholdButton } from "./DeleteHouseholdButton";
 
 type Props = { params: Promise<{ householdId: string }> };
@@ -26,12 +27,14 @@ export default async function HouseholdPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: household } = await supabase
-    .from("households")
-    .select("*")
-    .eq("id", householdId)
-    .single();
+  const [{ data: household }, { data: profileData }] = await Promise.all([
+    supabase.from("households").select("*").eq("id", householdId).single(),
+    supabase.from("profiles").select("user_type").eq("id", user.id).maybeSingle(),
+  ]);
   if (!household) notFound();
+
+  const userType = (profileData?.user_type as UserType | null) ?? null;
+  const labels = getLabels(userType);
 
   const svc = await createServiceClient();
 
@@ -88,7 +91,7 @@ export default async function HouseholdPage({ params }: Props) {
       <Header title={household.name} showBack backHref="/dashboard" />
       <Breadcrumbs
         items={[
-          { label: "Your care records", href: "/dashboard" },
+          { label: labels.breadcrumbDashboard, href: "/dashboard" },
           { label: household.name },
         ]}
       />
@@ -130,9 +133,10 @@ export default async function HouseholdPage({ params }: Props) {
                     <div className="flex flex-col gap-0.5">
                       <p className="text-xs font-semibold text-honey-600">{day} {month} · {time}</p>
                       <p className="text-sm font-bold text-warmstone-900 leading-snug line-clamp-2">{appt.title}</p>
-                      {person && (
+                      {/* Only show person name for carer users — self_care only has themselves */}
+                      {person && !labels || (person && labels.householdCareCircleSection) ? (
                         <p className="text-xs text-warmstone-400 truncate">{person.first_name}</p>
-                      )}
+                      ) : null}
                       {(appt.department || appt.location) && (
                         <p className="text-xs text-warmstone-400 truncate">{appt.department ?? appt.location}</p>
                       )}
@@ -145,22 +149,27 @@ export default async function HouseholdPage({ params }: Props) {
         </section>
       )}
 
+      {/* People section — hidden heading for self_care (they go straight through), shown for carers */}
       <section className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-warmstone-900">People</h2>
-          <Link
-            href={`/household/${householdId}/people/new`}
-            className="text-sm font-semibold text-honey-600 hover:text-honey-800 transition-colors flex items-center gap-1 min-h-[44px]"
-          >
-            <Plus size={16} /> Add person
-          </Link>
-        </div>
+        {labels.householdPeopleHeading && (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-warmstone-900">{labels.householdPeopleHeading}</h2>
+            {labels.householdAddPersonButton && (
+              <Link
+                href={`/household/${householdId}/people/new`}
+                className="text-sm font-semibold text-honey-600 hover:text-honey-800 transition-colors flex items-center gap-1 min-h-[44px]"
+              >
+                <Plus size={16} /> {labels.householdAddPersonButton}
+              </Link>
+            )}
+          </div>
+        )}
 
         {people && people.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {people.map((person: Person) => {
               const age = calculateAge(person.date_of_birth);
-              const { conditionCount, medicationCount, hasAllergies, interactionCount, hasSevereInteraction, hasModerateInteraction } = getPersonStats(person.id);
+              const { conditionCount, medicationCount, hasAllergies, interactionCount, hasSevereInteraction } = getPersonStats(person.id);
               return (
                 <Link
                   key={person.id}
@@ -199,17 +208,20 @@ export default async function HouseholdPage({ params }: Props) {
               );
             })}
 
-            <Link
-              href={`/household/${householdId}/people/new`}
-              className="bg-warmstone-50 border border-dashed border-warmstone-200 rounded-lg p-5 hover:bg-warmstone-100 transition-colors flex flex-col items-center justify-center gap-2 text-center min-h-[100px]"
-            >
-              <Plus size={20} className="text-warmstone-400" />
-              <span className="text-sm font-semibold text-warmstone-600">Add someone you care for</span>
-            </Link>
+            {/* Only show "add someone" tile for carer users */}
+            {labels.householdAddPersonTile && (
+              <Link
+                href={`/household/${householdId}/people/new`}
+                className="bg-warmstone-50 border border-dashed border-warmstone-200 rounded-lg p-5 hover:bg-warmstone-100 transition-colors flex flex-col items-center justify-center gap-2 text-center min-h-[100px]"
+              >
+                <Plus size={20} className="text-warmstone-400" />
+                <span className="text-sm font-semibold text-warmstone-600">{labels.householdAddPersonTile}</span>
+              </Link>
+            )}
           </div>
-        ) : (
+        ) : labels.householdEmptyPeopleMessage ? (
           <div className="bg-warmstone-50 border border-dashed border-warmstone-200 rounded-lg p-8 text-center">
-            <p className="text-warmstone-600 text-sm mb-3">No one added yet.</p>
+            <p className="text-warmstone-600 text-sm mb-3">{labels.householdEmptyPeopleMessage}</p>
             <Link
               href={`/household/${householdId}/people/new`}
               className="bg-honey-400 text-warmstone-white font-bold rounded-md px-5 py-2.5 text-sm hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] inline-flex items-center gap-2"
@@ -217,42 +229,45 @@ export default async function HouseholdPage({ params }: Props) {
               <Plus size={16} /> Add first person
             </Link>
           </div>
-        )}
+        ) : null}
       </section>
 
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-warmstone-900">Care circle</h2>
-          <Link
-            href={`/household/${householdId}/invite`}
-            className="text-sm font-semibold text-honey-600 hover:text-honey-800 transition-colors flex items-center gap-1 min-h-[44px]"
-          >
-            <Plus size={16} /> Invite
-          </Link>
-        </div>
+      {/* Care circle — hidden for self_care users */}
+      {labels.householdCareCircleSection && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-warmstone-900">Care circle</h2>
+            <Link
+              href={`/household/${householdId}/invite`}
+              className="text-sm font-semibold text-honey-600 hover:text-honey-800 transition-colors flex items-center gap-1 min-h-[44px]"
+            >
+              <Plus size={16} /> Invite
+            </Link>
+          </div>
 
-        <div className="flex flex-wrap gap-4">
-          {members?.map((member) => {
-            const profile = (member as unknown as { profiles: { full_name: string; email: string; avatar_url: string | null } | null }).profiles;
-            const name = profile?.full_name ?? member.invited_email ?? "Unknown";
-            return (
-              <Link
-                key={member.id}
-                href={`/household/${householdId}/members`}
-                className="flex flex-col items-center gap-1.5 text-center"
-              >
-                <div className="w-12 h-12 rounded-full bg-sage-100 flex items-center justify-center text-sage-800 font-bold text-sm">
-                  {getInitials(name)}
-                </div>
-                <span className="text-xs text-warmstone-800 font-semibold max-w-[64px] truncate">{name.split(" ")[0]}</span>
-                <Badge variant={member.role === "owner" ? "owner" : member.role === "editor" ? "active" : "neutral"}>
-                  {member.role}
-                </Badge>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+          <div className="flex flex-wrap gap-4">
+            {members?.map((member) => {
+              const profile = (member as unknown as { profiles: { full_name: string; email: string; avatar_url: string | null } | null }).profiles;
+              const name = profile?.full_name ?? member.invited_email ?? "Unknown";
+              return (
+                <Link
+                  key={member.id}
+                  href={`/household/${householdId}/members`}
+                  className="flex flex-col items-center gap-1.5 text-center"
+                >
+                  <div className="w-12 h-12 rounded-full bg-sage-100 flex items-center justify-center text-sage-800 font-bold text-sm">
+                    {getInitials(name)}
+                  </div>
+                  <span className="text-xs text-warmstone-800 font-semibold max-w-[64px] truncate">{name.split(" ")[0]}</span>
+                  <Badge variant={member.role === "owner" ? "owner" : member.role === "editor" ? "active" : "neutral"}>
+                    {member.role}
+                  </Badge>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {isOwner && (
         <div className="mt-10 pt-6 border-t border-warmstone-100">

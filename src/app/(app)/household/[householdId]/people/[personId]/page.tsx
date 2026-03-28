@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { ScanDocumentButton } from "@/components/scan/ScanDocumentButton";
 import { formatDateUK, formatDateTime } from "@/lib/utils/dates";
+import { getLabels } from "@/lib/labels";
 import type { Metadata } from "next";
+import type { UserType } from "@/lib/types/database";
 
 type Props = { params: Promise<{ householdId: string; personId: string }> };
 
@@ -22,9 +24,10 @@ export default async function PersonOverviewPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: person }, { data: conditions }, { data: medications }, { data: allergies }, { data: appointments }, { data: testResults }, { data: documents }, { data: insights }] =
+  const [{ data: person }, { data: profileData }, { data: conditions }, { data: medications }, { data: allergies }, { data: appointments }, { data: testResults }, { data: documents }, { data: insights }] =
     await Promise.all([
       supabase.from("people").select("*").eq("id", personId).single(),
+      supabase.from("profiles").select("user_type").eq("id", user.id).maybeSingle(),
       supabase.from("conditions").select("name, is_active").eq("person_id", personId).order("created_at"),
       supabase.from("medications").select("name, dosage, is_active").eq("person_id", personId).order("created_at"),
       supabase.from("allergies").select("name").eq("person_id", personId),
@@ -35,6 +38,9 @@ export default async function PersonOverviewPage({ params }: Props) {
     ]);
 
   if (!person) notFound();
+
+  const userType = (profileData?.user_type as UserType | null) ?? null;
+  const labels = getLabels(userType);
 
   const baseUrl = `/household/${householdId}/people/${personId}`;
   const activeConditions = conditions?.filter((c) => c.is_active) ?? [];
@@ -90,7 +96,7 @@ export default async function PersonOverviewPage({ params }: Props) {
             </div>
           ) : (
             <p className="text-sm text-warmstone-500 leading-relaxed">
-              AI checks for missing NICE guideline reviews, overdue tests, drug interactions, care gaps, and benefit eligibility — across all of {`${person.first_name}`}'s record at once.
+              {labels.personInsightDescription.replace("{firstName}", person.first_name)}
             </p>
           )}
         </Card>
@@ -102,7 +108,7 @@ export default async function PersonOverviewPage({ params }: Props) {
         <Card hoverable clickable className="p-5 h-full">
           <div className="flex items-center gap-2 mb-3">
             <HeartPulse size={18} className="text-honey-600" />
-            <h2 className="font-bold text-warmstone-900">Conditions</h2>
+            <h2 className="font-bold text-warmstone-900">{labels.personConditionsHeading}</h2>
           </div>
           <p className="text-2xl font-bold text-warmstone-900 mb-2">{activeConditions.length}</p>
           {activeConditions.slice(0, 3).map((c) => (
@@ -111,7 +117,7 @@ export default async function PersonOverviewPage({ params }: Props) {
           {activeConditions.length === 0 && (
             <p className="text-sm text-warmstone-400">None recorded</p>
           )}
-          <p className="text-xs text-honey-600 font-semibold mt-3">View all conditions</p>
+          <p className="text-xs text-honey-600 font-semibold mt-3">View all {labels.personConditionsHeading.toLowerCase()}</p>
         </Card>
       </Link>
 
@@ -119,7 +125,7 @@ export default async function PersonOverviewPage({ params }: Props) {
         <Card hoverable clickable className="p-5 h-full">
           <div className="flex items-center gap-2 mb-3">
             <Pill size={18} className="text-honey-600" />
-            <h2 className="font-bold text-warmstone-900">Medications</h2>
+            <h2 className="font-bold text-warmstone-900">{labels.personMedicationsHeading}</h2>
           </div>
           <p className="text-2xl font-bold text-warmstone-900 mb-2">{activeMedications.length}</p>
           {activeMedications.slice(0, 3).map((m) => (
@@ -130,7 +136,7 @@ export default async function PersonOverviewPage({ params }: Props) {
           {activeMedications.length === 0 && (
             <p className="text-sm text-warmstone-400">None recorded</p>
           )}
-          <p className="text-xs text-honey-600 font-semibold mt-3">View all medications</p>
+          <p className="text-xs text-honey-600 font-semibold mt-3">View all {labels.personMedicationsHeading.toLowerCase()}</p>
         </Card>
       </Link>
 
@@ -138,7 +144,7 @@ export default async function PersonOverviewPage({ params }: Props) {
         <Card hoverable clickable className="p-5 h-full">
           <div className="flex items-center gap-2 mb-3">
             <ShieldCheck size={18} className={allergies && allergies.length > 0 ? "text-error" : "text-sage-400"} />
-            <h2 className="font-bold text-warmstone-900">Allergies</h2>
+            <h2 className="font-bold text-warmstone-900">{labels.personAllergiesHeading}</h2>
           </div>
           {allergies && allergies.length > 0 ? (
             <>
@@ -153,7 +159,7 @@ export default async function PersonOverviewPage({ params }: Props) {
               <p className="text-sm text-sage-600 font-semibold">No known allergies</p>
             </div>
           )}
-          <p className="text-xs text-honey-600 font-semibold mt-3">View all allergies</p>
+          <p className="text-xs text-honey-600 font-semibold mt-3">View all {labels.personAllergiesHeading.toLowerCase()}</p>
         </Card>
       </Link>
 
@@ -161,7 +167,7 @@ export default async function PersonOverviewPage({ params }: Props) {
         <Card hoverable clickable className="p-5 h-full">
           <div className="flex items-center gap-2 mb-3">
             <Calendar size={18} className="text-honey-600" />
-            <h2 className="font-bold text-warmstone-900">Appointments</h2>
+            <h2 className="font-bold text-warmstone-900">{labels.personAppointmentsHeading}</h2>
           </div>
           {upcomingAppts.length > 0 ? (
             <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
@@ -192,7 +198,7 @@ export default async function PersonOverviewPage({ params }: Props) {
           ) : (
             <p className="text-sm text-warmstone-400">No upcoming appointments</p>
           )}
-          <p className="text-xs text-honey-600 font-semibold mt-3">View all appointments</p>
+          <p className="text-xs text-honey-600 font-semibold mt-3">View all {labels.personAppointmentsHeading.toLowerCase()}</p>
         </Card>
       </Link>
 
@@ -200,7 +206,7 @@ export default async function PersonOverviewPage({ params }: Props) {
         <Card hoverable clickable className="p-5">
           <div className="flex items-center gap-2 mb-3">
             <FlaskConical size={18} className="text-honey-600" />
-            <h2 className="font-bold text-warmstone-900">Test Results</h2>
+            <h2 className="font-bold text-warmstone-900">{labels.personTestResultsHeading}</h2>
           </div>
           {testResults && testResults.length > 0 ? (
             <>
@@ -219,7 +225,7 @@ export default async function PersonOverviewPage({ params }: Props) {
           ) : (
             <p className="text-sm text-warmstone-400">None recorded</p>
           )}
-          <p className="text-xs text-honey-600 font-semibold mt-3">View all test results</p>
+          <p className="text-xs text-honey-600 font-semibold mt-3">View all {labels.personTestResultsHeading.toLowerCase()}</p>
         </Card>
       </Link>
 
@@ -227,10 +233,10 @@ export default async function PersonOverviewPage({ params }: Props) {
         <Card hoverable clickable className="p-5">
           <div className="flex items-center gap-2 mb-3">
             <FileText size={18} className="text-honey-600" />
-            <h2 className="font-bold text-warmstone-900">Documents</h2>
+            <h2 className="font-bold text-warmstone-900">{labels.personDocumentsHeading}</h2>
           </div>
           <p className="text-2xl font-bold text-warmstone-900">{documents?.length ?? 0}</p>
-          <p className="text-xs text-honey-600 font-semibold mt-3">View all documents</p>
+          <p className="text-xs text-honey-600 font-semibold mt-3">View all {labels.personDocumentsHeading.toLowerCase()}</p>
         </Card>
       </Link>
     </div>

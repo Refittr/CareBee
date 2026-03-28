@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Search, ChevronLeft, ChevronRight, X, AlertTriangle, Trash2, KeyRound, Mail, Save } from "lucide-react";
 import type { AccountType } from "@/lib/types/database";
 import type { UserSubStatus } from "@/app/api/admin/users/route";
@@ -35,7 +35,7 @@ const subBadgeLabel: Record<UserSubStatus, string> = {
   past_due: "Past due",
   cancelled: "Cancelled",
   free: "Free",
-  none: "—",
+  none: "-",
 };
 
 function SubBadge({ status, daysLeft }: { status: UserSubStatus; daysLeft: number | null }) {
@@ -67,7 +67,7 @@ function ConfirmDialog({
   onCancel: () => void;
 }) {
   return (
-    <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/40 z-[70] flex items-center justify-center p-4">
       <div className="bg-warmstone-white rounded-xl shadow-xl max-w-sm w-full p-6 flex flex-col gap-4">
         <div className="flex items-start gap-3">
           <AlertTriangle size={20} className={danger ? "text-error shrink-0 mt-0.5" : "text-honey-500 shrink-0 mt-0.5"} />
@@ -89,6 +89,127 @@ function ConfirmDialog({
             }`}
           >
             {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeleteUserModal({
+  user,
+  onCancel,
+  onDeleted,
+}: {
+  user: AdminUser;
+  onCancel: () => void;
+  onDeleted: (userId: string) => void;
+}) {
+  const [emailInput, setEmailInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const emailMatches = emailInput.trim().toLowerCase() === user.email.trim().toLowerCase();
+
+  async function handleDelete() {
+    if (!emailMatches) return;
+    setLoading(true);
+    setError(null);
+    const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+    const data = await res.json();
+    setLoading(false);
+    if (!res.ok) {
+      setError(data.error ?? "Something went wrong. Please try again.");
+    } else {
+      onDeleted(user.id);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+      <div className="bg-warmstone-white rounded-xl shadow-2xl max-w-md w-full p-6 flex flex-col gap-5">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+              <Trash2 size={18} className="text-error" />
+            </div>
+            <div>
+              <h2 className="font-bold text-warmstone-900 text-base">Delete user</h2>
+              <p className="text-xs text-warmstone-500 mt-0.5">{user.full_name || user.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={onCancel}
+            className="p-1 rounded-md hover:bg-warmstone-100 transition-colors shrink-0"
+          >
+            <X size={16} className="text-warmstone-500" />
+          </button>
+        </div>
+
+        {/* Warning */}
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-red-800 leading-relaxed">
+            Are you sure you want to delete this user? This will permanently remove their profile,
+            all health records, documents, and household data. This cannot be undone.
+          </p>
+        </div>
+
+        {/* Details */}
+        <div className="text-sm text-warmstone-600 leading-relaxed">
+          <p>The following will be permanently deleted:</p>
+          <ul className="mt-2 space-y-1 text-xs text-warmstone-500 list-disc list-inside">
+            <li>Profile and account</li>
+            <li>All owned households and care records</li>
+            <li>All people, medications, conditions, documents, and appointments</li>
+            <li>All health insights, entitlements, and generated letters</li>
+            <li>Usage logs and activity history</li>
+          </ul>
+          <p className="mt-2 text-xs text-warmstone-400">
+            Stripe billing records are kept for accounting purposes.
+          </p>
+        </div>
+
+        {/* Email confirm */}
+        <div>
+          <label className="block text-xs font-semibold text-warmstone-700 mb-1.5">
+            Type <span className="font-mono text-warmstone-900">{user.email}</span> to confirm
+          </label>
+          <input
+            ref={inputRef}
+            type="email"
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && emailMatches) handleDelete(); }}
+            placeholder={user.email}
+            autoFocus
+            className="w-full px-3 py-2 text-sm border-2 border-red-300 rounded-md bg-warmstone-white text-warmstone-900 placeholder:text-warmstone-300 focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+          />
+        </div>
+
+        {error && (
+          <p className="text-xs text-error bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            {error}
+          </p>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-3 justify-end pt-1">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="px-4 py-2 text-sm font-medium text-warmstone-600 hover:text-warmstone-900 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={!emailMatches || loading}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-bold bg-error text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Trash2 size={14} />
+            {loading ? "Deleting..." : "Delete user"}
           </button>
         </div>
       </div>
@@ -123,6 +244,8 @@ function UserDetailPanel({
     danger?: boolean;
     action: () => void;
   } | null>(null);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("en-GB", {
@@ -164,19 +287,6 @@ function UserDetailPanel({
     }
   }
 
-  async function handleDelete() {
-    setActionLoading("delete");
-    const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
-    const data = await res.json();
-    setActionLoading(null);
-    if (!res.ok) {
-      setActionMsg({ type: "err", text: data.error ?? "Failed to delete user." });
-    } else {
-      onDelete(user.id);
-      onClose();
-    }
-  }
-
   return (
     <>
       {confirm && (
@@ -186,6 +296,18 @@ function UserDetailPanel({
           danger={confirm.danger}
           onConfirm={() => { confirm.action(); setConfirm(null); }}
           onCancel={() => setConfirm(null)}
+        />
+      )}
+
+      {showDeleteModal && (
+        <DeleteUserModal
+          user={user}
+          onCancel={() => setShowDeleteModal(false)}
+          onDeleted={(id) => {
+            setShowDeleteModal(false);
+            onDelete(id);
+            onClose();
+          }}
         />
       )}
 
@@ -254,7 +376,7 @@ function UserDetailPanel({
                 className="flex items-center gap-2 justify-center px-4 py-2 text-sm font-bold bg-honey-400 text-warmstone-white rounded-md hover:bg-honey-600 transition-colors disabled:opacity-50"
               >
                 <Save size={14} />
-                {saving ? "Saving…" : "Save changes"}
+                {saving ? "Saving..." : "Save changes"}
               </button>
             </div>
 
@@ -300,14 +422,7 @@ function UserDetailPanel({
             <div className="flex flex-col gap-3 border-t border-warmstone-100 pt-5">
               <p className="text-xs font-semibold text-error uppercase tracking-wide">Danger zone</p>
               <button
-                onClick={() =>
-                  setConfirm({
-                    message: `Permanently delete ${user.full_name ?? user.email}? This will remove their account and all associated data. This cannot be undone.`,
-                    confirmLabel: "Delete user",
-                    danger: true,
-                    action: handleDelete,
-                  })
-                }
+                onClick={() => setShowDeleteModal(true)}
                 disabled={actionLoading !== null}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-error border border-red-200 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50"
               >
@@ -340,6 +455,7 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
 
   const perPage = 50;
   const totalPages = Math.ceil(total / perPage);
@@ -378,9 +494,11 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
     setSelectedUser(updated);
   }
 
-  function handleDelete(userId: string) {
+  function handleDeleted(userId: string) {
     setUsers((prev) => prev.filter((u) => u.id !== userId));
     setTotal((t) => t - 1);
+    setDeleteTarget(null);
+    setSelectedUser(null);
   }
 
   function formatDate(iso: string) {
@@ -391,12 +509,20 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
 
   return (
     <div>
-      {selectedUser && (
+      {deleteTarget && (
+        <DeleteUserModal
+          user={deleteTarget}
+          onCancel={() => setDeleteTarget(null)}
+          onDeleted={handleDeleted}
+        />
+      )}
+
+      {selectedUser && !deleteTarget && (
         <UserDetailPanel
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
           onUpdate={handleUpdate}
-          onDelete={handleDelete}
+          onDelete={handleDeleted}
         />
       )}
 
@@ -440,6 +566,7 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
                 <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500 hidden lg:table-cell">Subscription</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-warmstone-500 hidden md:table-cell">Signed up</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-warmstone-500">HH</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className={loading ? "opacity-50" : undefined}>
@@ -467,11 +594,24 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
                   <td className="px-4 py-3 text-right text-warmstone-600 font-medium text-xs">
                     {u.household_count}
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget(u);
+                      }}
+                      title="Delete user"
+                      className="p-1.5 rounded-md text-red-400 border border-transparent hover:border-red-200 hover:bg-red-50 hover:text-error transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
                 </tr>
               ))}
               {users.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-warmstone-400">
+                  <td colSpan={6} className="px-4 py-8 text-center text-warmstone-400">
                     No users found.
                   </td>
                 </tr>

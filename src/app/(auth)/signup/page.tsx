@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
@@ -28,10 +28,26 @@ function SignupForm() {
       ? redirectTo
       : "/dashboard";
   const emailParam = searchParams.get("email");
+  const typeParam = searchParams.get("type");
   const supabase = createClient();
   const [fullName, setFullName] = useState("");
+
+  // If the user is already logged in, route them straight to onboarding
+  // (which will update their type and redirect appropriately) rather than
+  // showing the signup form again.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      if (typeParam) {
+        router.replace(`/onboarding?type=${typeParam}`);
+      } else {
+        router.replace("/dashboard");
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [email, setEmail] = useState(emailParam ?? "");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +56,9 @@ function SignupForm() {
     e.preventDefault();
     setError(null);
     if (!fullName.trim()) { setError("Please enter your full name."); return; }
+    if (password !== confirmPassword) { setError("Passwords do not match."); return; }
     setLoading(true);
-    const { error: err } = await supabase.auth.signUp({
+    const { data, error: err } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -53,7 +70,12 @@ function SignupForm() {
       const msg = err.message && err.message !== "{}" ? err.message : "Sign up failed. Please check your details and try again.";
       setError(msg);
       setLoading(false);
+    } else if (data.user && (data.user.identities?.length ?? 1) === 0) {
+      // Supabase returns a fake success for existing emails — detect via empty identities
+      setError("An account with this email already exists. Please sign in instead.");
+      setLoading(false);
     } else {
+      if (typeParam) localStorage.setItem("carebee_signup_type", typeParam);
       router.push(`/signup-confirmation?email=${encodeURIComponent(email)}`);
     }
   }
@@ -119,6 +141,15 @@ function SignupForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Choose a password"
+              required
+              autoComplete="new-password"
+            />
+            <Input
+              label="Confirm password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Repeat your password"
               required
               autoComplete="new-password"
             />

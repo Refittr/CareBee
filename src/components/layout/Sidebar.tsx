@@ -7,13 +7,7 @@ import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-
-const navItems = [
-  { href: "/dashboard", label: "Care records", icon: Home },
-  { href: "/letters-vault", label: "Letters vault", icon: BookOpen },
-  { href: "/updates", label: "Weekly updates", icon: Mail },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+import { useUserType } from "@/lib/context/UserTypeContext";
 
 interface HouseholdOption {
   id: string;
@@ -27,6 +21,7 @@ function CareRecordSwitcher({ currentHouseholdId }: { currentHouseholdId: string
   const [households, setHouseholds] = useState<HouseholdOption[]>([]);
   const [currentName, setCurrentName] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const { labels } = useUserType();
 
   useEffect(() => {
     async function load() {
@@ -66,6 +61,17 @@ function CareRecordSwitcher({ currentHouseholdId }: { currentHouseholdId: string
 
   if (!currentHouseholdId || !currentName) return null;
 
+  // Self-care users only ever have one record — show the name with no switcher
+  if (!labels.showCareRecordSwitcher) {
+    return (
+      <div className="px-3 pb-3">
+        <div className="w-full flex items-center gap-2 px-3 py-2.5 rounded-md bg-warmstone-50 border border-warmstone-200 text-sm font-semibold text-warmstone-800">
+          <span className="flex-1 text-left truncate">{currentName}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div ref={ref} className="relative px-3 pb-3">
       <button
@@ -93,18 +99,20 @@ function CareRecordSwitcher({ currentHouseholdId }: { currentHouseholdId: string
               )}
             </button>
           ))}
-          <div className="border-t border-warmstone-100 mt-1 pt-1">
-            <button
-              onClick={() => {
-                setOpen(false);
-                router.push("/household/new");
-              }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-honey-700 hover:bg-honey-50 transition-colors"
-            >
-              <Plus size={14} className="shrink-0" />
-              New care record
-            </button>
-          </div>
+          {labels.showNewCareRecordButton && (
+            <div className="border-t border-warmstone-100 mt-1 pt-1">
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  router.push("/household/new");
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-honey-700 hover:bg-honey-50 transition-colors"
+              >
+                <Plus size={14} className="shrink-0" />
+                New care record
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -116,6 +124,7 @@ export function Sidebar() {
   const router = useRouter();
   const supabase = createClient();
   const [isAdmin, setIsAdmin] = useState(false);
+  const { labels } = useUserType();
 
   const householdMatch = pathname.match(/^\/household\/([^/]+)/);
   const currentHouseholdId = householdMatch ? householdMatch[1] : null;
@@ -139,6 +148,13 @@ export function Sidebar() {
     router.push("/login");
     router.refresh();
   }
+
+  const navItems = [
+    { href: "/dashboard", label: labels.dashboardNavLabel, icon: Home },
+    { href: "/letters-vault", label: "Letters vault", icon: BookOpen },
+    { href: "/updates", label: "Weekly updates", icon: Mail },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ];
 
   return (
     <aside className="hidden md:flex flex-col w-60 bg-warmstone-white border-r border-warmstone-100 min-h-screen shrink-0">

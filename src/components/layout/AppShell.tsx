@@ -9,6 +9,7 @@ import { createContext, useContext, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { trackPageView } from "@/lib/utils/analytics";
 import type { ToastType } from "@/hooks/useToast";
+import { UserTypeProvider } from "@/lib/context/UserTypeContext";
 
 interface ToastContextValue {
   addToast: (message: string, type?: ToastType) => void;
@@ -32,16 +33,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <ToastContext.Provider value={{ addToast }}>
-      <div className="flex min-h-screen bg-warmstone-50">
-        <Sidebar />
-        <main className="flex-1 min-w-0 pb-20 md:pb-0">
-          {children}
-        </main>
-      </div>
-      <MobileNav />
-      <InstallPrompt />
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-    </ToastContext.Provider>
+    <UserTypeProvider>
+      <ToastContext.Provider value={{ addToast }}>
+        <div className="flex min-h-screen bg-warmstone-50">
+          <Sidebar />
+          <main className="flex-1 min-w-0 pb-20 md:pb-0">
+            {children}
+          </main>
+        </div>
+        <MobileNav />
+        <InstallPrompt />
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
+      </ToastContext.Provider>
+    </UserTypeProvider>
   );
 }

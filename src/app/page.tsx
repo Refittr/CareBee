@@ -9,6 +9,8 @@ import {
   ScanLine,
   ShieldAlert,
   QrCode,
+  User,
+  HeartHandshake,
 } from "lucide-react";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
@@ -19,13 +21,13 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { FaqSection } from "@/components/landing/FaqSection";
 
 export const metadata: Metadata = {
-  title: "CareBee | One record for everyone who cares",
+  title: "CareBee | AI-powered health management for you and the people you care for",
   description:
-    "One shared record for medications, appointments, conditions, and benefits. AI that reads your paperwork, finds missing benefits, and spots medication issues. Free for 30 days.",
+    "CareBee keeps your health records, medications, appointments and documents in one place. Whether you are managing your own health or looking after someone else, our AI reads your paperwork, finds missing benefits, and flags medication risks. Free for 30 days.",
   openGraph: {
-    title: "CareBee | One record for everyone who cares",
+    title: "CareBee | AI-powered health management for you and the people you care for",
     description:
-      "One shared record for medications, appointments, conditions, and benefits. AI that reads your paperwork, finds missing benefits, and spots medication issues. Free for 30 days.",
+      "CareBee keeps your health records, medications, appointments and documents in one place. Whether you are managing your own health or looking after someone else, our AI reads your paperwork, finds missing benefits, and flags medication risks. Free for 30 days.",
     type: "website",
   },
 };
@@ -59,18 +61,28 @@ export default async function LandingPage() {
                 One record for everyone who cares
               </h1>
               <p className="text-warmstone-600 text-lg leading-relaxed mb-8 max-w-lg">
-                CareBee is the shared health record for families and carers. Track conditions,
-                medications, appointments, and documents for everyone you look after, in one
-                secure place. Our AI reads your letters, finds benefits you are owed, and flags
-                medication risks before they become problems.
+                Whether you are managing your own health or looking after someone else, CareBee
+                keeps everything in one place. Conditions, medications, appointments and documents,
+                with AI that reads your paperwork, spots risks and finds the support you are
+                entitled to.
               </p>
-              <Link
-                href="/signup"
-                className="inline-flex items-center justify-center bg-honey-400 text-white font-bold rounded-md px-8 py-4 text-lg hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] min-h-[56px]"
-              >
-                Start your free trial
-              </Link>
-              <p className="text-sm text-warmstone-400 mt-3">
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                <Link
+                  href="/signup?type=self_care"
+                  className="inline-flex items-center justify-center gap-2 bg-honey-400 text-white font-bold rounded-md px-6 py-4 text-base hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] min-h-[56px]"
+                >
+                  <User size={18} />
+                  I am managing my own health
+                </Link>
+                <Link
+                  href="/signup?type=carer"
+                  className="inline-flex items-center justify-center gap-2 bg-warmstone-900 text-white font-bold rounded-md px-6 py-4 text-base hover:bg-warmstone-700 transition-colors min-h-[56px]"
+                >
+                  <HeartHandshake size={18} />
+                  I am caring for someone else
+                </Link>
+              </div>
+              <p className="text-sm text-warmstone-400">
                 Free for 30 days. No card needed.
               </p>
             </div>
@@ -96,19 +108,21 @@ export default async function LandingPage() {
                 Paperwork everywhere
               </h3>
               <p className="text-warmstone-600 text-sm leading-relaxed">
-                Letters from three different hospitals, a stack of discharge summaries, and a bag
-                full of prescription slips. Finding anything takes half an hour and a lot of stress.
+                Letters from three different hospitals, a stack of discharge summaries, a bag full
+                of prescription slips. Whether they are your own or someone else's, finding
+                anything takes half an hour and a lot of stress.
               </p>
             </div>
 
             <div className="bg-warmstone-white border border-warmstone-100 rounded-lg p-6 shadow-sm">
-              <Users size={32} className="text-honey-400" />
+              <ShieldAlert size={32} className="text-honey-400" />
               <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">
-                Everyone needs to know
+                Keeping track of it all yourself
               </h3>
               <p className="text-warmstone-600 text-sm leading-relaxed">
-                Siblings, partners, and paid carers all need the same information. Right now it
-                lives in your head, and when you are not there, nobody knows what to do.
+                Multiple conditions, a list of medications that keeps growing, appointments across
+                different departments. It all lives in your head, and one missed interaction or
+                forgotten appointment can have real consequences.
               </p>
             </div>
 
@@ -118,9 +132,9 @@ export default async function LandingPage() {
                 Hours lost to admin
               </h3>
               <p className="text-warmstone-600 text-sm leading-relaxed">
-                Chasing referrals, writing letters to GP practices, preparing for appointments,
-                re-explaining the same history to every new clinician. Caring is a full-time job
-                on top of your full-time job.
+                Chasing your own referrals, writing letters to GP practices, re-explaining the same
+                history to every new clinician, preparing for appointments. It is a part-time job
+                on top of everything else.
               </p>
             </div>
 
@@ -142,11 +156,12 @@ export default async function LandingPage() {
       <section id="features" className="px-4 md:px-8 py-20 bg-warmstone-white">
         <div className="max-w-6xl mx-auto">
           <h2 className="font-display text-3xl md:text-4xl text-warmstone-900 text-center mb-4">
-            Everything in one place. For the whole village.
+            Everything in one place
           </h2>
           <p className="text-warmstone-600 text-center max-w-2xl mx-auto mb-12">
-            CareBee brings together the things carers and families actually need, built around
-            how the NHS really works and the paperwork it produces.
+            For you, your family, and everyone in your care team. CareBee brings together
+            what you actually need, built around how the NHS really works and the
+            paperwork it produces.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div>
@@ -167,11 +182,12 @@ export default async function LandingPage() {
                 <Users size={32} className="text-sage-400" />
               </div>
               <h3 className="font-bold text-warmstone-900 text-lg mt-4 mb-2">
-                Built for households
+                Works for you or your whole care team
               </h3>
               <p className="text-warmstone-600 text-sm leading-relaxed">
-                Create records for every person you care for. Invite siblings and partners to
-                help. Each person has their own record, shared with exactly the right people.
+                Use CareBee solo for your own health, or create records for everyone you look
+                after and invite family to help. Each person has their own record, shared with
+                exactly the right people.
               </p>
             </div>
 
@@ -223,7 +239,8 @@ export default async function LandingPage() {
               </h3>
               <p className="text-warmstone-600 text-sm leading-relaxed">
                 Generate a QR code with critical health information. If something happens and
-                your person cannot speak, a paramedic scans it and sees everything they need.
+                you or the person you look after cannot speak, a paramedic scans it and sees
+                everything they need.
               </p>
             </div>
           </div>
@@ -259,10 +276,10 @@ export default async function LandingPage() {
               <div className="w-12 h-12 rounded-full bg-honey-400 text-white font-display text-xl flex items-center justify-center mb-4 relative z-10">
                 2
               </div>
-              <h3 className="font-bold text-warmstone-900 mb-2">Add the people you care for</h3>
+              <h3 className="font-bold text-warmstone-900 mb-2">Set up your health profile</h3>
               <p className="text-warmstone-600 text-sm leading-relaxed max-w-xs">
-                Create a household and add people. Enter what you know today. Add more as you go.
-                There is no wrong way to start.
+                Tell us who you are tracking health for. Just yourself, someone you care for,
+                or both. Enter what you know today and add more as you go.
               </p>
             </div>
 
@@ -286,7 +303,7 @@ export default async function LandingPage() {
       <section className="px-4 md:px-8 py-20 bg-warmstone-white">
         <div className="max-w-6xl mx-auto">
           <h2 className="font-display text-3xl md:text-4xl text-warmstone-900 text-center mb-12">
-            Built for real carers
+            Built for real people
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
             <div className="text-center">
@@ -307,13 +324,13 @@ export default async function LandingPage() {
               <div className="font-display text-5xl text-honey-400 mb-2">64%</div>
               <p className="text-warmstone-600 text-sm leading-relaxed max-w-xs mx-auto">
                 of patients experienced an NHS admin problem last year, from lost referrals to
-                incorrect medication lists
+                incorrect medication lists. This affects everyone, not just carers.
               </p>
             </div>
           </div>
           <div className="mt-16 text-center">
             <p className="text-warmstone-600 max-w-xl mx-auto mb-6">
-              CareBee is in early testing. We are working with real carers to build something
+              CareBee is in early testing. We are working with real people to build something
               that actually helps. Want to help shape it?
             </p>
             <Link
@@ -338,13 +355,14 @@ export default async function LandingPage() {
                 A note on pricing
               </h2>
               <p className="text-warmstone-600 leading-relaxed">
-                CareBee is free to use for basic record keeping, and always will be. The paid plan
-                exists because AI features like document scanning, the entitlements engine, and drug
-                interaction checking cost us money every time they run. We have priced it as low as
-                we can at <span className="font-semibold text-warmstone-800">£4.99 a month</span>.
-                We know the people who need CareBee most are often the ones with the least to spare,
-                and we never want cost to be a barrier. We have a number of free Plus licenses to give 
-                away each month, please get in touch using the contact at the bottom of this page.
+                CareBee starts at <span className="font-semibold text-warmstone-800">£2.99 a month</span> for
+                individuals managing their own health. If you are looking after someone else,
+                CareBee Plus is <span className="font-semibold text-warmstone-800">£7.99 a month</span>.
+                The AI features cost us money every time they run, but we have priced it as low
+                as we can. We know the people who need CareBee most are often the ones with the
+                least to spare, and we never want cost to be a barrier. We have a number of free
+                Plus licences to give away each month. Please get in touch using the contact at
+                the bottom of this page.
               </p>
             </div>
           </div>
@@ -361,14 +379,24 @@ export default async function LandingPage() {
             Start your free 30 day trial. No credit card. No commitment. Just one less thing to
             carry in your head.
           </p>
-          <Link
-            href="/signup"
-            className="inline-flex items-center justify-center bg-honey-400 text-white font-bold rounded-md px-10 py-4 text-lg hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] min-h-[56px]"
-          >
-            Get started free
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
+            <Link
+              href="/signup?type=self_care"
+              className="inline-flex items-center justify-center gap-2 bg-honey-400 text-white font-bold rounded-md px-8 py-4 text-lg hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] min-h-[56px]"
+            >
+              <User size={20} />
+              Managing my own health
+            </Link>
+            <Link
+              href="/signup?type=carer"
+              className="inline-flex items-center justify-center gap-2 bg-warmstone-900 text-white font-bold rounded-md px-8 py-4 text-lg hover:bg-warmstone-700 transition-colors min-h-[56px]"
+            >
+              <HeartHandshake size={20} />
+              Caring for someone else
+            </Link>
+          </div>
           <p className="text-sm text-warmstone-400 mt-4">
-            Free for 30 days. Then £4.99/month or £44.99/year.
+            Free for 30 days. Then from £2.99/month.
             Contact us for enterprise and whitelabel options.
           </p>
         </div>
@@ -390,7 +418,7 @@ export default async function LandingPage() {
             </Link>
           </div>
           <div className="flex flex-col items-center md:items-end gap-1">
-            <span className="text-sm text-warmstone-400">Made in the UK for UK carers</span>
+            <span className="text-sm text-warmstone-400">Made in the UK</span>
             <span className="text-xs text-warmstone-300">Copyright 2026 CareBee</span>
           </div>
         </div>

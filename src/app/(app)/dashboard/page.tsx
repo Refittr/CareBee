@@ -7,9 +7,11 @@ import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { SignOutButton } from "@/components/ui/SignOutButton";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { getLabels } from "@/lib/labels";
 import type { Metadata } from "next";
+import type { UserType } from "@/lib/types/database";
 
-export const metadata: Metadata = { title: "Your care records | CareBee" };
+export const metadata: Metadata = { title: "Dashboard | CareBee" };
 
 const roleLabels: Record<string, { label: string; variant: "owner" | "active" | "neutral" | "warning" }> = {
   owner: { label: "Owner", variant: "owner" },
@@ -23,13 +25,46 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: memberships } = await supabase
-    .from("household_members")
-    .select("*, households(*)")
-    .eq("user_id", user.id)
-    .not("accepted_at", "is", null);
+  const [{ data: memberships }, { data: profile }] = await Promise.all([
+    supabase
+      .from("household_members")
+      .select("*, households(*)")
+      .eq("user_id", user.id)
+      .not("accepted_at", "is", null),
+    supabase
+      .from("profiles")
+      .select("user_type")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
 
   const households = memberships ?? [];
+  const userType = (profile?.user_type as UserType | null) ?? null;
+  const labels = getLabels(userType);
+
+  // Any user with no households goes to onboarding — covers new users, users
+  // who abandoned setup mid-flow, and users who had user_type set from a
+  // previous attempt but never created a household.
+  if (households.length === 0) {
+    redirect("/onboarding");
+  }
+
+  // Self-care users go straight to their person record — no need to see the household grid
+  if (userType === "self_care" && households.length > 0) {
+    const owned = households.find((m) => m.role === "owner");
+    if (owned) {
+      const { data: people } = await supabase
+        .from("people")
+        .select("id")
+        .eq("household_id", owned.household_id)
+        .limit(1);
+      if (people?.[0]) {
+        redirect(`/household/${owned.household_id}/people/${people[0].id}`);
+      }
+      // Fallback if no person record exists yet
+      redirect(`/household/${owned.household_id}`);
+    }
+  }
 
   async function getHouseholdStats(householdId: string) {
     const [people, members] = await Promise.all([
@@ -49,27 +84,29 @@ export default async function DashboardPage() {
   return (
     <div className="px-4 md:px-8 py-6 max-w-4xl">
 
-      <Header title="Your care records" actions={<SignOutButton />} />
-      <Breadcrumbs items={[{ label: "Your care records" }]} />
+      <Header title={labels.dashboardTitle} actions={<SignOutButton />} />
+      <Breadcrumbs items={[{ label: labels.breadcrumbDashboard }]} />
 
       <div className="flex items-center justify-between mb-6 mt-4 md:mt-0">
-        <h1 className="text-2xl font-bold text-warmstone-900 hidden md:block">Your care records</h1>
-        <Link
-          href="/household/new"
-          className="bg-honey-400 text-warmstone-white font-bold rounded-md px-4 py-2 text-sm hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] flex items-center gap-2 min-h-[44px]"
-        >
-          <Plus size={16} />
-          New care record
-        </Link>
+        <h1 className="text-2xl font-bold text-warmstone-900 hidden md:block">{labels.dashboardTitle}</h1>
+        {labels.dashboardNewButton && (
+          <Link
+            href="/household/new"
+            className="bg-honey-400 text-warmstone-white font-bold rounded-md px-4 py-2 text-sm hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] flex items-center gap-2 min-h-[44px]"
+          >
+            <Plus size={16} />
+            {labels.dashboardNewButton}
+          </Link>
+        )}
       </div>
 
       {households.length === 0 ? (
         <EmptyState
           icon={Heart}
-          heading="Welcome to CareBee"
-          description="Create a care record to start tracking health and care information for someone you look after."
-          ctaLabel="Create your first care record"
-          ctaHref="/household/new"
+          heading={labels.dashboardEmptyHeading}
+          description={labels.dashboardEmptyDescription}
+          ctaLabel={labels.dashboardEmptyCta ?? undefined}
+          ctaHref={labels.dashboardEmptyCta ? "/household/new" : undefined}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -103,14 +140,15 @@ export default async function DashboardPage() {
             );
           })}
 
-          <Link
-            href="/household/new"
-            className="bg-warmstone-50 border border-dashed border-warmstone-200 rounded-lg p-5 hover:bg-warmstone-100 transition-colors flex flex-col items-center justify-center gap-2 text-center min-h-[120px]"
-          >
-            <Plus size={24} className="text-warmstone-400" />
-            <span className="text-sm font-semibold text-warmstone-600">Start a new care record</span>
-
-          </Link>
+          {labels.dashboardNewRecordTile && (
+            <Link
+              href="/household/new"
+              className="bg-warmstone-50 border border-dashed border-warmstone-200 rounded-lg p-5 hover:bg-warmstone-100 transition-colors flex flex-col items-center justify-center gap-2 text-center min-h-[120px]"
+            >
+              <Plus size={24} className="text-warmstone-400" />
+              <span className="text-sm font-semibold text-warmstone-600">{labels.dashboardNewRecordTile}</span>
+            </Link>
+          )}
         </div>
       )}
     </div>
