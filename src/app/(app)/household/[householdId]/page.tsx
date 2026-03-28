@@ -221,7 +221,8 @@ export default async function HouseholdPage({ params }: Props) {
           </div>
         ) : labels.householdEmptyPeopleMessage ? (
           <div className="bg-warmstone-50 border border-dashed border-warmstone-200 rounded-lg p-8 text-center">
-            <p className="text-warmstone-600 text-sm mb-3">{labels.householdEmptyPeopleMessage}</p>
+            <h3 className="font-bold text-warmstone-900 text-base mb-2">No one added yet</h3>
+            <p className="text-warmstone-500 text-sm mb-5">Add the person you're caring for to start building their care record.</p>
             <Link
               href={`/household/${householdId}/people/new`}
               className="bg-honey-400 text-warmstone-white font-bold rounded-md px-5 py-2.5 text-sm hover:bg-honey-600 transition-colors shadow-[0_2px_8px_rgba(232,168,23,0.25)] inline-flex items-center gap-2"

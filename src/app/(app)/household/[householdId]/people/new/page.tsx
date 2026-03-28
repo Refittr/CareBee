@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -11,12 +11,24 @@ import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
 import { logActivity } from "@/lib/logActivity";
 
-export default function NewPersonPage() {
+export default function NewPersonPageWrapper() {
+  return (
+    <Suspense>
+      <NewPersonPage />
+    </Suspense>
+  );
+}
+
+function NewPersonPage() {
   const router = useRouter();
   const params = useParams<{ householdId: string }>();
   const householdId = params.householdId;
+  const searchParams = useSearchParams();
+  const isOnboarding = searchParams.get("onboarding") === "true";
   const supabase = createClient();
   const { addToast } = useAppToast();
+
+  const [householdName, setHouseholdName] = useState<string | null>(null);
 
   const [fields, setFields] = useState({
     first_name: "",
@@ -29,6 +41,16 @@ export default function NewPersonPage() {
   const [errors, setErrors] = useState<Partial<typeof fields>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOnboarding) return;
+    supabase
+      .from("households")
+      .select("name")
+      .eq("id", householdId)
+      .maybeSingle()
+      .then(({ data }) => setHouseholdName(data?.name ?? null));
+  }, [isOnboarding, householdId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function validate() {
     const e: Partial<typeof fields> = {};
@@ -68,7 +90,7 @@ export default function NewPersonPage() {
       setLoading(false);
     } else {
       await logActivity("person_added", "person", data.id, { household_id: householdId });
-      addToast(`Added ${fields.first_name} to your household.`, "success");
+      addToast(`Added ${fields.first_name} to your care record.`, "success");
       router.push(`/household/${householdId}/people/${data.id}`);
     }
   }
@@ -89,6 +111,17 @@ export default function NewPersonPage() {
         ]}
       />
       <h1 className="text-2xl font-bold text-warmstone-900 mb-6 hidden md:block">Add someone you care for</h1>
+
+      {isOnboarding && (
+        <div className="mb-5 bg-honey-50 border border-honey-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-honey-800 leading-relaxed">
+            {householdName
+              ? `You're setting up ${householdName}.`
+              : "You're setting up your care record."}{" "}
+            Add the first person you're caring for to get started.
+          </p>
+        </div>
+      )}
 
       {submitError && (
         <div className="mb-4">

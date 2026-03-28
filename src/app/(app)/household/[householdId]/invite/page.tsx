@@ -129,7 +129,8 @@ export default function InvitePage() {
 
       {!inviteToken ? (
         <>
-          <h1 className="text-2xl font-bold text-warmstone-900 mb-6 hidden md:block">Invite someone</h1>
+          <h1 className="text-2xl font-bold text-warmstone-900 mb-2 hidden md:block">Invite someone</h1>
+          <p className="text-sm text-warmstone-600 mb-6 hidden md:block">Invite family members, friends, or other carers to this care record. You can choose whether they can view only, or also add and edit information.</p>
 
           {error && (
             <div className="mb-4">

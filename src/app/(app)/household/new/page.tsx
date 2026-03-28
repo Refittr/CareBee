@@ -45,7 +45,7 @@ export default function NewHouseholdPage() {
     } else {
       await logActivity("household_created", "household", data);
       addToast("Care record created.", "success");
-      router.push(`/household/${data}`);
+      router.push(`/household/${data}/people/new?onboarding=true`);
     }
   }
 
@@ -68,13 +68,13 @@ export default function NewHouseholdPage() {
       )}
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <Input
-          label="Who is this care record for?"
+          label="Care record name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Mum, Dad, Gran, David"
+          placeholder="e.g. James Jones Care, Mum's Records, Dad at Home"
           required
           error={nameError ?? undefined}
-          hint="You can add their full details on the next step."
+          hint="You can have multiple people in one care record and invite family or friends to view or edit it."
           autoFocus
         />
         <Button type="submit" loading={loading} fullWidth>

@@ -19,7 +19,7 @@ const MAX_ITEMS = 30;
 function actionLabel(action: string) {
   const map: Record<string, string> = {
     user_signup: "signed up",
-    household_created: "created a household",
+    household_created: "created a care record",
     person_added: "added a person",
     document_uploaded: "uploaded a document",
     ai_scan_performed: "performed an AI scan",
