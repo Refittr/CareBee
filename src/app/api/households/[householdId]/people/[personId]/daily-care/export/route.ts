@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import type { DailyCareShift } from "@/lib/types/database";
 
 export async function GET(
   request: NextRequest,
@@ -34,7 +35,7 @@ export async function GET(
 
   if (from) query = query.gte("record_date", from);
   if (to) query = query.lte("record_date", to);
-  if (shift) query = query.eq("shift", shift as never);
+  if (shift) query = query.eq("shift", shift as DailyCareShift);
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
