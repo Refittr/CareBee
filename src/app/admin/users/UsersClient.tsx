@@ -11,7 +11,7 @@ interface AdminUser {
   email: string;
   account_type: AccountType;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   household_count: number;
   people_count: number;
   subscription_status: UserSubStatus;
