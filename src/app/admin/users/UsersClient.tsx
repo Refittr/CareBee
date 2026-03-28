@@ -225,11 +225,13 @@ function UserDetailPanel({
   onClose,
   onUpdate,
   onDelete,
+  onRequestDelete,
 }: {
   user: AdminUser;
   onClose: () => void;
   onUpdate: (updated: AdminUser) => void;
   onDelete: (userId: string) => void;
+  onRequestDelete: (user: AdminUser) => void;
 }) {
   const [fullName, setFullName] = useState(user.full_name ?? "");
   const [email, setEmail] = useState(user.email ?? "");
@@ -247,8 +249,6 @@ function UserDetailPanel({
     danger?: boolean;
     action: () => void;
   } | null>(null);
-
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("en-GB", {
@@ -299,18 +299,6 @@ function UserDetailPanel({
           danger={confirm.danger}
           onConfirm={() => { confirm.action(); setConfirm(null); }}
           onCancel={() => setConfirm(null)}
-        />
-      )}
-
-      {showDeleteModal && (
-        <DeleteUserModal
-          user={user}
-          onCancel={() => setShowDeleteModal(false)}
-          onDeleted={(id) => {
-            setShowDeleteModal(false);
-            onDelete(id);
-            onClose();
-          }}
         />
       )}
 
@@ -425,7 +413,7 @@ function UserDetailPanel({
             <div className="flex flex-col gap-3 border-t border-warmstone-100 pt-5">
               <p className="text-xs font-semibold text-error uppercase tracking-wide">Danger zone</p>
               <button
-                onClick={() => setShowDeleteModal(true)}
+                onClick={() => onRequestDelete(user)}
                 disabled={actionLoading !== null}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-error border border-red-200 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50"
               >
@@ -526,6 +514,7 @@ export function UsersClient({ initialUsers, initialTotal }: { initialUsers: Admi
           onClose={() => setSelectedUser(null)}
           onUpdate={handleUpdate}
           onDelete={handleDeleted}
+          onRequestDelete={(u) => { setSelectedUser(null); setDeleteTarget(u); }}
         />
       )}
 
