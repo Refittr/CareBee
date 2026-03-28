@@ -27,6 +27,7 @@ export interface Profile {
   ai_uses_count: number;
   ai_uses_reset_at: string | null;
   is_subscribed: boolean;
+  product_updates_enabled: boolean;
   trial_ends_at: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;

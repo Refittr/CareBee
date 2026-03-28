@@ -83,6 +83,8 @@ function SettingsContent() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const [switchingToCareBee, setSwitchingToCareBee] = useState(false);
+  const [productUpdatesEnabled, setProductUpdatesEnabled] = useState(true);
+  const [savingProductUpdates, setSavingProductUpdates] = useState(false);
 
   const statusParam = searchParams.get("status");
 
@@ -104,6 +106,7 @@ function SettingsContent() {
     setFullNameSaved(profile?.full_name ?? "");
     setAccountType(profile?.account_type ?? null);
     setCurrentPlan((profile as { plan?: string } | null)?.plan ?? "free");
+    setProductUpdatesEnabled((profile as { product_updates_enabled?: boolean } | null)?.product_updates_enabled ?? true);
 
     // Fetch owned household subscription status
     const { data: ownedMembership } = await supabase
@@ -324,6 +327,20 @@ function SettingsContent() {
       setConfirmPassword("");
       addToast("Password updated.", "success");
     }
+  }
+
+  async function toggleProductUpdates(enabled: boolean) {
+    setSavingProductUpdates(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSavingProductUpdates(false); return; }
+    const { error: err } = await supabase.from("profiles").update({ product_updates_enabled: enabled }).eq("id", user.id);
+    if (err) {
+      addToast(err.message, "error");
+    } else {
+      setProductUpdatesEnabled(enabled);
+      addToast(enabled ? "You are now opted in to updates from CareBee." : "You have opted out of updates from CareBee.", "success");
+    }
+    setSavingProductUpdates(false);
   }
 
   async function handleSwitchToCareBee() {
@@ -732,6 +749,39 @@ function SettingsContent() {
           View past updates and generate a preview
           <ArrowRight size={14} />
         </Link>
+      </section>
+
+      {/* CareBee product updates opt-out */}
+      <section className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-base font-bold text-warmstone-900">Updates from CareBee</h2>
+          <p className="text-sm text-warmstone-600 mt-0.5">Occasional emails about new features, improvements, and news from the CareBee team.</p>
+        </div>
+        <Card className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-warmstone-900">
+                {productUpdatesEnabled ? "Opted in" : "Opted out"}
+              </p>
+              <p className="text-xs text-warmstone-500 mt-0.5">
+                {productUpdatesEnabled
+                  ? "You will receive occasional product updates from CareBee."
+                  : "You will not receive product update emails from CareBee."}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant={productUpdatesEnabled ? "secondary" : "primary"}
+              onClick={() => toggleProductUpdates(!productUpdatesEnabled)}
+              loading={savingProductUpdates}
+            >
+              {productUpdatesEnabled ? "Opt out" : "Opt back in"}
+            </Button>
+          </div>
+        </Card>
+        <p className="text-xs text-warmstone-400">
+          This does not affect your weekly care record updates, which are controlled above. You will still receive emails about your account and subscription regardless of this setting.
+        </p>
       </section>
 
       {showSwitchModal && (
