@@ -27,8 +27,9 @@ export default async function DailyCarePage({ params }: Props) {
     .order("created_at", { ascending: false })
     .range(0, 19);
 
-  const mapped: DailyCareRecord[] = (records ?? []).map((r: Record<string, unknown> & { profiles?: { full_name?: string } | null }) => ({
-    ...(r as DailyCareRecord),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mapped: DailyCareRecord[] = (records ?? []).map((r: any) => ({
+    ...r,
     recorded_by_name: r.profiles?.full_name ?? null,
     profiles: undefined,
   }));
