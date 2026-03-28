@@ -144,6 +144,8 @@ function OnboardingFork() {
       household_id: householdId,
       first_name: personFirstName,
       last_name: personLastName ?? "",
+      hospital_numbers: [],
+      dnacpr_status: false,
     });
 
     router.push("/dashboard");
