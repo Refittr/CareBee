@@ -4,7 +4,22 @@ import { useState } from "react";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 
-const plans = [
+interface Plan {
+  name: string;
+  label: string;
+  monthly: string;
+  annual: string;
+  annualNote: string;
+  monthlyNote: string;
+  features: string[];
+  newFrom?: string; // subheading after which features are "new" (rendered prominently)
+  cta: string;
+  ctaHref: string;
+  highlight: boolean;
+  badge: string | null;
+}
+
+const plans: Plan[] = [
   {
     name: "Free",
     label: "Getting started",
@@ -53,9 +68,17 @@ const plans = [
     annualNote: "/year",
     monthlyNote: "/month",
     features: [
-      "Everything in Standard, plus:",
+      "Everything in Standard:",
+      "AI document scanning",
+      "Medication interaction checker",
+      "Health insights",
+      "Benefits and entitlements engine",
+      "Letter generation",
+      "Appointment preparation",
+      "Plus adds:",
       "Unlimited AI uses",
     ],
+    newFrom: "Plus adds:",
     cta: "Start free trial",
     ctaHref: "/signup?type=self_care",
     highlight: false,
@@ -160,18 +183,25 @@ export function PricingSection() {
                 </span>
               </div>
               <ul className="flex flex-col gap-2.5 flex-1 mb-6">
-                {plan.features.map((feature) => (
-                  feature.endsWith(":") ? (
-                    <li key={feature} className="text-warmstone-500 font-semibold text-xs mt-1">
-                      {feature}
-                    </li>
-                  ) : (
-                    <li key={feature} className="flex items-start gap-2">
-                      <CheckCircle size={15} className="text-sage-400 shrink-0 mt-0.5" />
-                      <span className="text-sm text-warmstone-800">{feature}</span>
-                    </li>
-                  )
-                ))}
+                {(() => {
+                  let isNew = false;
+                  return plan.features.map((feature) => {
+                    if (feature.endsWith(":")) {
+                      if (plan.newFrom && feature === plan.newFrom) isNew = true;
+                      return (
+                        <li key={feature} className={`font-semibold text-xs mt-1 ${isNew ? "text-honey-700" : "text-warmstone-500"}`}>
+                          {feature}
+                        </li>
+                      );
+                    }
+                    return (
+                      <li key={feature} className="flex items-start gap-2">
+                        <CheckCircle size={15} className={`shrink-0 mt-0.5 ${isNew ? "text-sage-400" : "text-warmstone-300"}`} />
+                        <span className={`text-sm ${isNew ? "text-warmstone-800 font-semibold" : "text-warmstone-500"}`}>{feature}</span>
+                      </li>
+                    );
+                  });
+                })()}
               </ul>
               <Link
                 href={plan.ctaHref}
