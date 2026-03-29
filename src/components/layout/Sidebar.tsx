@@ -149,7 +149,7 @@ export function Sidebar() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [dailyCareEnabled, setDailyCareEnabled] = useState<boolean | null>(null);
   const [trialWidget, setTrialWidget] = useState<TrialWidgetState>(null);
-  const { labels } = useUserType();
+  const { labels, isSelfCare } = useUserType();
 
   const householdMatch = pathname.match(/^\/household\/([^/]+)/);
   const currentHouseholdId = householdMatch ? householdMatch[1] : null;
@@ -242,7 +242,8 @@ export function Sidebar() {
 
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname.startsWith(href);
+          const active = pathname.startsWith(href) ||
+            (href === "/dashboard" && isSelfCare && pathname.startsWith("/household/"));
           return (
             <Link
               key={href}
