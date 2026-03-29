@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback, Suspense } from "react";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import {
   FileText, ChevronDown, ChevronUp, Copy, CheckCircle,
-  Sparkles, X, Save, Download,
+  Sparkles, X, Save, Download, ExternalLink,
 } from "lucide-react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -150,7 +151,6 @@ function LettersPageInner() {
   const params = useParams<{ householdId: string; personId: string }>();
   const { householdId, personId } = params;
   const searchParams = useSearchParams();
-  const router = useRouter();
   const supabase = createClient();
   const { addToast } = useAppToast();
 
@@ -169,10 +169,15 @@ function LettersPageInner() {
   const [extraFieldValues, setExtraFieldValues] = useState<Record<string, string>>({});
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [savingChanges, setSavingChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set(["benefits"]));
 
   const [generated, setGenerated] = useState<{ title: string; content: string } | null>(null);
+  const [editedContent, setEditedContent] = useState("");
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [lastSavedContent, setLastSavedContent] = useState("");
   const [copied, setCopied] = useState(false);
   const [previewExpanded, setPreviewExpanded] = useState(true);
 
@@ -240,6 +245,9 @@ function LettersPageInner() {
 
     setGenerating(true);
     setGenerated(null);
+    setEditedContent("");
+    setSavedId(null);
+    setLastSavedContent("");
     setError(null);
 
     try {
@@ -260,9 +268,36 @@ function LettersPageInner() {
       const title = !tid
         ? (customTitle.trim() || (cp ? cp.slice(0, 60).trim() + (cp.length > 60 ? "..." : "") : data.title))
         : data.title;
+      const content: string = data.content;
 
-      setGenerated({ title, content: data.content });
+      setGenerated({ title, content });
+      setEditedContent(content);
       setPreviewExpanded(true);
+
+      // Auto-save to vault
+      if (canEdit) {
+        setAutoSaving(true);
+        const { data: saved, error: saveErr } = await supabase
+          .from("generated_letters")
+          .insert({
+            person_id: personId,
+            household_id: householdId,
+            title,
+            content,
+            template_id: tid ?? null,
+            custom_prompt: cp ?? null,
+            entitlement_context: entitlementContext ?? null,
+            sent: false,
+          })
+          .select("id")
+          .single();
+        setAutoSaving(false);
+        if (!saveErr && saved) {
+          setSavedId(saved.id);
+          setLastSavedContent(content);
+          addToast("Letter saved to vault.", "success");
+        }
+      }
     } catch {
       setError("Could not reach the server. Please try again.");
     } finally {
@@ -273,29 +308,48 @@ function LettersPageInner() {
   async function saveToVault() {
     if (!generated) return;
     setSaving(true);
-    const { error: err } = await supabase.from("generated_letters").insert({
+    const { data: saved, error: err } = await supabase.from("generated_letters").insert({
       person_id: personId,
       household_id: householdId,
       title: generated.title,
-      content: generated.content,
+      content: editedContent,
       template_id: selectedTemplate !== "custom" ? selectedTemplate : null,
       custom_prompt: customPrompt.trim() || null,
       entitlement_context: entitlementContext ?? null,
       sent: false,
-    });
+    }).select("id").single();
     if (err) {
-      console.error("[saveToVault]", err.code, err.message, err.details);
       addToast(err.message ?? "Could not save. Please try again.", "error");
       setSaving(false);
       return;
     }
+    if (saved) {
+      setSavedId(saved.id);
+      setLastSavedContent(editedContent);
+    }
     addToast("Saved to letters vault.", "success");
-    router.push("/letters-vault");
+    setSaving(false);
+  }
+
+  async function saveChanges() {
+    if (!savedId || editedContent === lastSavedContent) return;
+    setSavingChanges(true);
+    const { error: err } = await supabase
+      .from("generated_letters")
+      .update({ content: editedContent })
+      .eq("id", savedId);
+    if (err) {
+      addToast("Could not save changes. Please try again.", "error");
+    } else {
+      setLastSavedContent(editedContent);
+      addToast("Changes saved.", "success");
+    }
+    setSavingChanges(false);
   }
 
   function copyText() {
     if (!generated) return;
-    navigator.clipboard.writeText(generated.content).then(() => {
+    navigator.clipboard.writeText(editedContent).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -432,22 +486,30 @@ function LettersPageInner() {
             </Button>
           )}
 
-          {generating && <SkeletonLoader variant="card" count={1} />}
-
           {/* Generated preview */}
+          {(generating && !generated) && <SkeletonLoader variant="card" count={1} />}
+
           {!generating && generated && (
             <Card className="overflow-hidden">
               <button
                 onClick={() => setPreviewExpanded((v) => !v)}
                 className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left min-h-[56px]"
               >
-                <p className="font-semibold text-warmstone-900">{generated.title}</p>
-                {previewExpanded ? <ChevronUp size={15} className="text-warmstone-400" /> : <ChevronDown size={15} className="text-warmstone-400" />}
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <p className="font-semibold text-warmstone-900 truncate">{generated.title}</p>
+                  {autoSaving && (
+                    <span className="text-xs text-warmstone-400 shrink-0">Saving...</span>
+                  )}
+                  {!autoSaving && savedId && editedContent === lastSavedContent && (
+                    <span className="text-xs text-sage-600 font-semibold shrink-0">Saved</span>
+                  )}
+                </div>
+                {previewExpanded ? <ChevronUp size={15} className="text-warmstone-400 shrink-0" /> : <ChevronDown size={15} className="text-warmstone-400 shrink-0" />}
               </button>
 
               {previewExpanded && (
                 <div className="border-t border-warmstone-100">
-                  <div className="flex flex-wrap gap-2 px-5 py-3 border-b border-warmstone-50">
+                  <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-warmstone-50">
                     <button
                       onClick={copyText}
                       className="flex items-center gap-1.5 text-sm font-semibold text-warmstone-700 bg-warmstone-100 hover:bg-warmstone-200 px-3 py-2 rounded-md min-h-[40px] transition-colors"
@@ -456,25 +518,38 @@ function LettersPageInner() {
                       {copied ? "Copied!" : "Copy text"}
                     </button>
                     <button
-                      onClick={() => openPrintWindow(generated.title, generated.content)}
+                      onClick={() => openPrintWindow(generated.title, editedContent)}
                       className="flex items-center gap-1.5 text-sm font-semibold text-warmstone-700 bg-warmstone-100 hover:bg-warmstone-200 px-3 py-2 rounded-md min-h-[40px] transition-colors"
                     >
                       <Download size={14} /> Download PDF
                     </button>
-                    {canEdit && (
-                      <Button
-                        size="sm"
-                        onClick={saveToVault}
-                        loading={saving}
-                      >
+                    {canEdit && savedId && editedContent !== lastSavedContent && (
+                      <Button size="sm" onClick={saveChanges} loading={savingChanges}>
+                        <Save size={14} />
+                        Save changes
+                      </Button>
+                    )}
+                    {canEdit && !savedId && !autoSaving && (
+                      <Button size="sm" onClick={saveToVault} loading={saving}>
                         <Save size={14} />
                         Save to vault
                       </Button>
                     )}
+                    {savedId && (
+                      <Link
+                        href="/letters-vault"
+                        className="flex items-center gap-1.5 text-sm font-semibold text-honey-600 hover:text-honey-800 transition-colors ml-auto min-h-[40px]"
+                      >
+                        View in vault <ExternalLink size={13} />
+                      </Link>
+                    )}
                   </div>
-                  <div className="px-5 py-4 whitespace-pre-wrap text-sm text-warmstone-800 leading-relaxed font-mono max-h-[500px] overflow-y-auto">
-                    {generated.content}
-                  </div>
+                  <textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="w-full px-5 py-4 text-sm text-warmstone-800 leading-relaxed font-mono bg-transparent resize-none focus:outline-none min-h-[300px]"
+                    spellCheck={false}
+                  />
                 </div>
               )}
             </Card>

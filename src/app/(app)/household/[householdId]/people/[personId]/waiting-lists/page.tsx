@@ -243,7 +243,7 @@ export default function WaitingListsPage() {
           <h2 className="text-lg font-bold text-warmstone-900">Waiting lists</h2>
           <p className="text-sm text-warmstone-600">Track NHS referrals and get estimated waiting times</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {active.length > 0 && (
             <Button
               variant="secondary"
@@ -258,7 +258,7 @@ export default function WaitingListsPage() {
           {canEdit && (
             <Button variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)} className="gap-2">
               <Sparkles size={16} />
-              Scan in a document
+              Scan document
             </Button>
           )}
           {canEdit && (
@@ -300,7 +300,7 @@ export default function WaitingListsPage() {
             const isExpanded = expandedId === entry.id;
 
             return (
-              <Card key={entry.id} className="flex flex-col gap-3">
+              <Card key={entry.id} className="flex flex-col gap-3 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -378,22 +378,22 @@ export default function WaitingListsPage() {
                     {entry.expected_wait && (
                       <p className="text-sm text-warmstone-600"><span className="font-medium">Expected wait from letter:</span> {entry.expected_wait}</p>
                     )}
-                    <div className="flex gap-2 flex-wrap mt-1">
+                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-1">
                       {canEdit && (
-                        <Button size="sm" variant="secondary" onClick={() => openEdit(entry)} className="gap-1.5">
+                        <Button size="sm" variant="secondary" onClick={() => openEdit(entry)} className="gap-1.5 justify-center">
                           <Pencil size={14} /> Edit
                         </Button>
                       )}
                       {canEdit && (
-                        <Button size="sm" variant="secondary" onClick={() => markAsSeen(entry)} className="gap-1.5">
+                        <Button size="sm" variant="secondary" onClick={() => markAsSeen(entry)} className="gap-1.5 justify-center">
                           <CheckCircle size={14} /> Mark as seen
                         </Button>
                       )}
-                      <Button size="sm" variant="secondary" onClick={() => goToChase(entry)} className="gap-1.5">
+                      <Button size="sm" variant="secondary" onClick={() => goToChase(entry)} className="gap-1.5 justify-center">
                         <Mail size={14} /> Chase letter
                       </Button>
                       {canEdit && (
-                        <Button size="sm" variant="secondary" onClick={() => setDeleteTarget(entry)} className="gap-1.5 text-red-600 hover:text-red-700">
+                        <Button size="sm" variant="secondary" onClick={() => setDeleteTarget(entry)} className="gap-1.5 justify-center text-red-600 hover:text-red-700">
                           <Trash2 size={14} /> Remove
                         </Button>
                       )}
@@ -418,7 +418,7 @@ export default function WaitingListsPage() {
           {showPastOpen && (
             <div className="flex flex-col gap-2">
               {past.map((entry) => (
-                <Card key={entry.id} className="flex items-center justify-between gap-3 py-3 opacity-70">
+                <Card key={entry.id} className="flex items-center justify-between gap-3 p-4 opacity-70">
                   <div>
                     <span className="font-semibold text-warmstone-800">{entry.department}</span>
                     {entry.trust_name && <span className="text-sm text-warmstone-500 ml-2">{entry.trust_name}</span>}
