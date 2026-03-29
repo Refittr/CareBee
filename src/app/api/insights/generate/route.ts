@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { trackApiCall } from "@/lib/analytics-server";
-import { hasCareRecordPremiumAccess } from "@/lib/permissions";
+import { checkAndIncrementAiUse } from "@/lib/ai-usage";
 import type { HealthInsight, InsightPriority, InsightStatus, InsightType, InsightCategory } from "@/lib/types/database";
 
 const SYSTEM_PROMPT = `You are a health insights engine for CareBee, a UK family health and care record app. You are given a person's complete health record and your job is to identify useful insights, missing checks, trends, and care gaps.
@@ -136,14 +136,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Check premium access
-  const [{ data: profile }, { data: household }] = await Promise.all([
-    svc.from("profiles").select("account_type, plan").eq("id", user.id).maybeSingle(),
-    svc.from("households").select("subscription_status, trial_ends_at").eq("id", household_id).maybeSingle(),
-  ]);
-
-  if (!profile || !household || !hasCareRecordPremiumAccess(household, profile)) {
-    return NextResponse.json({ error: "Premium required" }, { status: 403 });
+  const aiCheck = await checkAndIncrementAiUse(user.id);
+  if (!aiCheck.allowed) {
+    return NextResponse.json(
+      { error: "ai_limit_reached", used: aiCheck.used, limit: aiCheck.limit },
+      { status: 429 }
+    );
   }
 
   // Rate limiting: last check within 24h (auto) or 1h (manual)

@@ -145,6 +145,10 @@ export default function EntitlementsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 429 && data.error === "ai_limit_reached") {
+          setError(`You've used all ${data.limit} AI calls this month. Upgrade your plan in Settings to continue.`);
+          return;
+        }
         setError(data.error ?? "Check failed.");
         if (res.status === 429) {
           const next = new Date(Date.now() + 60 * 60 * 1000);

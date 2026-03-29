@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
-  Plus, Pencil, Trash2, Pill, RefreshCw, Tag, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Sparkles,
+  Plus, Pencil, Trash2, Pill, RefreshCw, Tag, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Sparkles, Info,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -182,7 +182,15 @@ export default function MedicationsPage() {
       )}
 
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <h2 className="font-bold text-warmstone-900">Medications</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-bold text-warmstone-900">Medications</h2>
+          <div className="group relative flex items-center">
+            <Info size={14} className="text-warmstone-400 cursor-default" />
+            <div className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 z-50 w-64 rounded-lg bg-warmstone-900 px-3 py-2 text-xs text-warmstone-100 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+              Drug interaction checks are always free and never count against your AI usage. We monitor usage to keep the service safe.
+            </div>
+          </div>
+        </div>
         {canEdit && (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>

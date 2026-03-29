@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { trackApiCall } from "@/lib/analytics-server";
 import { calculateAge } from "@/lib/utils/dates";
+import { checkAndIncrementAiUse } from "@/lib/ai-usage";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -20,6 +21,14 @@ export async function POST(request: NextRequest) {
   const { data: membership } = await svc.from("household_members").select("role")
     .eq("household_id", household_id).eq("user_id", user.id).maybeSingle();
   if (!membership) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const aiCheck = await checkAndIncrementAiUse(user.id);
+  if (!aiCheck.allowed) {
+    return NextResponse.json(
+      { error: "ai_limit_reached", used: aiCheck.used, limit: aiCheck.limit },
+      { status: 429 }
+    );
+  }
 
   const [
     { data: appt },

@@ -169,7 +169,14 @@ export default function WaitingListsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ person_id: personId, household_id: householdId }),
       });
-      if (!res.ok) throw new Error("Estimate failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string; limit?: number };
+        if (res.status === 429 && data.error === "ai_limit_reached") {
+          addToast(`You've used all ${data.limit} AI calls this month. Upgrade your plan in Settings to continue.`, "error");
+          return;
+        }
+        throw new Error("Estimate failed");
+      }
       addToast("Wait times updated.", "success");
       await load();
     } catch {

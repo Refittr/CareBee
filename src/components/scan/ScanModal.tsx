@@ -107,11 +107,14 @@ export function ScanModal({ open, onClose, householdId, personId }: ScanModalPro
     }
 
     if (!result.ok) {
-      const data = await result.json().catch(() => ({}));
-      setErrorMessage(
-        (data as { error?: string }).error ??
-          "Something went wrong while reading your document. Please try again."
-      );
+      const data = await result.json().catch(() => ({})) as { error?: string; limit?: number };
+      if (result.status === 429 && data.error === "ai_limit_reached") {
+        setErrorMessage(`You've used all ${data.limit} AI calls this month. Upgrade your plan in Settings to continue.`);
+      } else {
+        setErrorMessage(
+          data.error ?? "Something went wrong while reading your document. Please try again."
+        );
+      }
       setStep("error");
       return;
     }

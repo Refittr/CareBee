@@ -269,7 +269,14 @@ export default function LettersVaultPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { addToast(data.error ?? "Could not regenerate.", "error"); return; }
+      if (!res.ok) {
+        if (res.status === 429 && (data as { error?: string }).error === "ai_limit_reached") {
+          addToast(`You've used all ${(data as { limit?: number }).limit} AI calls this month. Upgrade your plan in Settings to continue.`, "error");
+        } else {
+          addToast((data as { error?: string }).error ?? "Could not regenerate.", "error");
+        }
+        return;
+      }
 
       const now = new Date().toISOString();
       await supabase

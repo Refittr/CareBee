@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LogOut, Shield, BookOpen, Settings, Mail, Bug, ChevronDown, Plus, Check, ClipboardList, Lock, Sparkles, Clock } from "lucide-react";
+import { Home, LogOut, Shield, BookOpen, Settings, Mail, Bug, ChevronDown, Plus, Check, ClipboardList, Lock, Sparkles, Clock, Zap } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -149,6 +149,7 @@ export function Sidebar() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [dailyCareEnabled, setDailyCareEnabled] = useState<boolean | null>(null);
   const [trialWidget, setTrialWidget] = useState<TrialWidgetState>(null);
+  const [aiUsage, setAiUsage] = useState<{ used: number | null; limit: number | null } | null>(null);
   const { labels, isSelfCare } = useUserType();
 
   const householdMatch = pathname.match(/^\/household\/([^/]+)/);
@@ -211,6 +212,37 @@ export function Sidebar() {
         setDailyCareEnabled(data?.daily_care_enabled ?? false);
       });
   }, [currentPersonId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    fetch("/api/ai-usage")
+      .then((r) => r.json())
+      .then((data: { used: number | null; limit: number | null }) => setAiUsage(data))
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Live-update counter when ai_uses_count changes on the profile row
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      channel = supabase
+        .channel("sidebar-ai-usage")
+        .on(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          "postgres_changes" as any,
+          { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (payload: any) => {
+            const row = payload.new as { ai_uses_count?: number };
+            if (typeof row.ai_uses_count === "number") {
+              setAiUsage((prev) => prev ? { ...prev, used: row.ai_uses_count! } : prev);
+            }
+          }
+        )
+        .subscribe();
+    });
+    return () => { if (channel) void supabase.removeChannel(channel); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -292,6 +324,33 @@ export function Sidebar() {
               <settingsItem.icon size={18} />
               {settingsItem.label}
             </Link>
+          );
+        })()}
+
+        {aiUsage && aiUsage.limit !== null && aiUsage.used !== null && (() => {
+          const pct = aiUsage.used / aiUsage.limit;
+          const atLimit = aiUsage.used >= aiUsage.limit;
+          const nearLimit = pct >= 0.8;
+          return (
+            <div className={`px-3 py-2.5 rounded-lg border text-xs ${
+              atLimit ? "bg-red-50 border-red-200" : nearLimit ? "bg-amber-50 border-amber-200" : "bg-warmstone-50 border-warmstone-100"
+            }`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className={`flex items-center gap-1 font-semibold ${atLimit ? "text-red-700" : nearLimit ? "text-amber-700" : "text-warmstone-600"}`}>
+                  <Zap size={11} className="shrink-0" />
+                  AI uses this month
+                </span>
+                <span className={`font-bold tabular-nums ${atLimit ? "text-red-700" : nearLimit ? "text-amber-700" : "text-warmstone-700"}`}>
+                  {aiUsage.used}/{aiUsage.limit}
+                </span>
+              </div>
+              <div className="h-1 rounded-full bg-warmstone-200 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${atLimit ? "bg-red-500" : nearLimit ? "bg-amber-400" : "bg-sage-400"}`}
+                  style={{ width: `${Math.min(100, pct * 100)}%` }}
+                />
+              </div>
+            </div>
           );
         })()}
 

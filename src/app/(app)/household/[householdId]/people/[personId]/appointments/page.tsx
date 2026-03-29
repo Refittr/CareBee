@@ -89,7 +89,14 @@ function PrepModal({ appt, householdId, personId, onClose }: {
         body: JSON.stringify({ appointment_id: appt.id, person_id: personId, household_id: householdId }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Could not generate prep."); return; }
+      if (!res.ok) {
+        if (res.status === 429 && data.error === "ai_limit_reached") {
+          setError(`You've used all ${data.limit} AI calls this month. Upgrade your plan in Settings to continue.`);
+        } else {
+          setError(data.error ?? "Could not generate prep.");
+        }
+        return;
+      }
       setPrep(data.prep);
     } catch { setError("Could not reach the server."); }
     finally { setGenerating(false); }
@@ -184,7 +191,14 @@ function DebriefModal({ appt, householdId, personId, existing, onClose, onSaved 
         }),
       });
       const data = await res.json();
-      if (!res.ok) { addToast(data.error ?? "Could not save.", "error"); return; }
+      if (!res.ok) {
+        if (res.status === 429 && data.error === "ai_limit_reached") {
+          addToast(`You've used all ${data.limit} AI calls this month. Upgrade your plan in Settings to continue.`, "error");
+        } else {
+          addToast(data.error ?? "Could not save.", "error");
+        }
+        return;
+      }
       setSavedDebrief(data.debrief);
       setSuggestions(data.suggested_updates ?? []);
       setMissingPrompts(data.missing_info_prompts ?? []);

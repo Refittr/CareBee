@@ -263,7 +263,14 @@ function LettersPageInner() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Could not generate text. Please try again."); return; }
+      if (!res.ok) {
+        if (res.status === 429 && (data as { error?: string }).error === "ai_limit_reached") {
+          setError(`You've used all ${(data as { limit?: number }).limit} AI calls this month. Upgrade your plan in Settings to continue.`);
+        } else {
+          setError((data as { error?: string }).error ?? "Could not generate text. Please try again.");
+        }
+        return;
+      }
 
       const title = !tid
         ? (customTitle.trim() || (cp ? cp.slice(0, 60).trim() + (cp.length > 60 ? "..." : "") : data.title))

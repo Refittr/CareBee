@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { trackApiCall } from "@/lib/analytics-server";
+import { checkAndIncrementAiUse } from "@/lib/ai-usage";
 
 const SYSTEM_PROMPT = `You are a waiting list estimator for CareBee, a UK family health and care record app. You are given NHS referral details. Estimate typical waiting times and flag if a wait appears overdue.
 
@@ -42,6 +43,14 @@ export async function POST(request: NextRequest) {
     .eq("household_id", household_id).eq("user_id", user.id).maybeSingle();
   if (!membership || (membership.role !== "owner" && membership.role !== "editor"))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const aiCheck = await checkAndIncrementAiUse(user.id);
+  if (!aiCheck.allowed) {
+    return NextResponse.json(
+      { error: "ai_limit_reached", used: aiCheck.used, limit: aiCheck.limit },
+      { status: 429 }
+    );
+  }
 
   const { data: entries } = await svc.from("waiting_lists")
     .select("*").eq("person_id", person_id).eq("status", "waiting");

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { trackApiCall } from "@/lib/analytics-server";
+import { checkAndIncrementAiUse } from "@/lib/ai-usage";
 
 const SYSTEM_PROMPT = `You are a health document scanner for CareBee, a UK family care record app. Examine the image and extract all structured health and care data from it.
 
@@ -165,6 +166,14 @@ export async function POST(request: NextRequest) {
     (membership.role !== "owner" && membership.role !== "editor")
   ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const aiCheck = await checkAndIncrementAiUse(user.id);
+  if (!aiCheck.allowed) {
+    return NextResponse.json(
+      { error: "ai_limit_reached", used: aiCheck.used, limit: aiCheck.limit },
+      { status: 429 }
+    );
   }
 
   // Load care notes to provide context for cross-referencing

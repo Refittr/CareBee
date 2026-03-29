@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { trackApiCall } from "@/lib/analytics-server";
 import { calculateAge } from "@/lib/utils/dates";
+import { checkAndIncrementAiUse } from "@/lib/ai-usage";
 import type {
   EntitlementEligibilityStatus,
   EntitlementConfidence,
@@ -108,6 +109,14 @@ export async function POST(request: NextRequest) {
 
   if (!membership || (membership.role !== "owner" && membership.role !== "editor")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const aiCheck = await checkAndIncrementAiUse(user.id);
+  if (!aiCheck.allowed) {
+    return NextResponse.json(
+      { error: "ai_limit_reached", used: aiCheck.used, limit: aiCheck.limit },
+      { status: 429 }
+    );
   }
 
   // Rate limit: max once per hour per person

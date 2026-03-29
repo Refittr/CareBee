@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { trackApiCall } from "@/lib/analytics-server";
+import { checkAndIncrementAiUse } from "@/lib/ai-usage";
 
 const SYSTEM_PROMPT = `You are analysing an appointment debrief for CareBee, a UK family/carer health and care record app. The family member has recorded what happened at a medical appointment. Your job is to identify missing information and suggest specific updates to the person's health record.
 
@@ -59,6 +60,14 @@ export async function POST(request: NextRequest) {
     .eq("household_id", household_id).eq("user_id", user.id).maybeSingle();
   if (!membership || (membership.role !== "owner" && membership.role !== "editor"))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const aiCheck = await checkAndIncrementAiUse(user.id);
+  if (!aiCheck.allowed) {
+    return NextResponse.json(
+      { error: "ai_limit_reached", used: aiCheck.used, limit: aiCheck.limit },
+      { status: 429 }
+    );
+  }
 
   const now = new Date().toISOString();
 

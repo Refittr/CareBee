@@ -77,6 +77,10 @@ export default function InsightsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 429 && data.error === "ai_limit_reached") {
+          addToast(`You've used all ${data.limit} AI calls this month. Upgrade your plan in Settings to continue.`, "error");
+          return;
+        }
         if (res.status === 403 && data.error === "Premium required") {
           setIsPremium(false);
         }
