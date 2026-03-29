@@ -3,6 +3,18 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendInviteEmail } from "@/lib/email";
 import type { MemberRole } from "@/lib/types/database";
 
+async function markInviteStep(userId: string): Promise<void> {
+  try {
+    const svc = await createServiceClient();
+    await svc
+      .from("onboarding_checklist")
+      .update({ completed_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("step_key", "invite_family")
+      .is("completed_at", null);
+  } catch { /* non-critical */ }
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -114,6 +126,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ inviteToken: invite.invite_token, emailSent: false });
   }
 
+  void markInviteStep(user.id);
   return NextResponse.json({ inviteToken: invite.invite_token, emailSent: true });
 }
 

@@ -7,6 +7,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
 import { trackFeatureUsage } from "@/lib/utils/analytics";
+import { markChecklistStep } from "@/lib/utils/checklist";
 import type { Condition } from "@/lib/types/database";
 
 interface ConditionFormProps {
@@ -65,6 +66,7 @@ export function ConditionForm({ householdId, personId, condition, onSaved, onCan
       setLoading(false);
     } else {
       void trackFeatureUsage("conditions", condition ? "condition_updated" : "condition_added", "person", personId);
+      if (!condition) void markChecklistStep("add_first_condition_or_med");
       addToast(condition ? "Condition updated." : "Condition added.", "success");
       onSaved();
     }

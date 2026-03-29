@@ -6,6 +6,7 @@ export type UserSubStatus = "active" | "trial_active" | "trial_expired" | "past_
 function resolveSubscriptionStatus(
   ownedHouseholds: Array<{ subscription_status: string; trial_ends_at: string | null }>,
   profileTrialEndsAt: string | null,
+  profilePlan: string | null,
 ): { status: UserSubStatus; daysLeft: number | null } {
   const now = new Date();
 
@@ -17,6 +18,12 @@ function resolveSubscriptionStatus(
   }
   for (const h of ownedHouseholds) {
     if (h.subscription_status === "cancelled") return { status: "cancelled", daysLeft: null };
+  }
+
+  // plan: 'free' is an explicit override — treat as free regardless of trial dates
+  if (profilePlan === "free") {
+    if (ownedHouseholds.length === 0) return { status: "none", daysLeft: null };
+    return { status: "free", daysLeft: null };
   }
 
   const trialDates: (string | null)[] = [
@@ -50,7 +57,7 @@ export async function GET(request: NextRequest) {
 
   let query = svc
     .from("profiles")
-    .select("id, full_name, email, account_type, created_at, trial_ends_at", { count: "exact" })
+    .select("id, full_name, email, account_type, created_at, trial_ends_at, plan", { count: "exact" })
     .order("created_at", { ascending: false });
 
   if (search) query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
@@ -79,6 +86,7 @@ export async function GET(request: NextRequest) {
       const resolved = resolveSubscriptionStatus(
         households,
         (p as { trial_ends_at?: string | null }).trial_ends_at ?? null,
+        (p as { plan?: string | null }).plan ?? null,
       );
 
       let peopleCount = 0;

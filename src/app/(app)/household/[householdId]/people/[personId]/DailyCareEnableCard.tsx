@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertTriangle, ClipboardList } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { markChecklistStep } from "@/lib/utils/checklist";
 import { Card } from "@/components/ui/Card";
 import { useUserType } from "@/lib/context/UserTypeContext";
 
@@ -26,6 +27,7 @@ export function DailyCareEnableCard({ personId, householdId, firstName, enabled,
   async function handleEnable() {
     setLoading(true);
     await supabase.from("people").update({ daily_care_enabled: true }).eq("id", personId);
+    void markChecklistStep("enable_daily_care");
     router.refresh();
     setLoading(false);
   }

@@ -34,7 +34,7 @@ export function getCapabilities(
     return { maxPeople: null, canInviteMembers: true, unlimitedAI: true, hasFullAccess: true };
   }
 
-  const profileTrial = trialActive(profile.trial_ends_at);
+  const profileTrial = profile.plan !== 'free' && trialActive(profile.trial_ends_at);
 
   if (profile.user_type === "self_care") {
     const isPaid = profile.is_subscribed;

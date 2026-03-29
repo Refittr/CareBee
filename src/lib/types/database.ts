@@ -36,8 +36,17 @@ export interface Profile {
   subscription_current_period_end: string | null;
   plan_lapsed_at: string | null;
   lapse_email_step: number;
+  onboarding_dismissed: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface OnboardingChecklist {
+  id: string;
+  user_id: string;
+  step_key: string;
+  completed_at: string | null;
+  created_at: string;
 }
 
 export interface AdminActivityLog {
@@ -492,7 +501,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: Row & Profile;
-        Insert: Row & OptionalNullables<Omit<Profile, "created_at" | "updated_at" | "product_updates_enabled" | "lapse_email_step">> & { product_updates_enabled?: boolean; lapse_email_step?: number };
+        Insert: Row & OptionalNullables<Omit<Profile, "created_at" | "updated_at" | "product_updates_enabled" | "lapse_email_step" | "onboarding_dismissed">> & { product_updates_enabled?: boolean; lapse_email_step?: number; onboarding_dismissed?: boolean };
         Update: Row & Partial<Omit<Profile, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
@@ -740,6 +749,12 @@ export type Database = {
         Row: Row & ContactMessage;
         Insert: Row & Omit<ContactMessage, "id" | "created_at">;
         Update: Row & Partial<Omit<ContactMessage, "id" | "created_at">>;
+        Relationships: never[];
+      };
+      onboarding_checklist: {
+        Row: Row & OnboardingChecklist;
+        Insert: Row & Omit<OnboardingChecklist, "id" | "created_at"> & { completed_at?: string | null };
+        Update: Row & Partial<Omit<OnboardingChecklist, "id" | "created_at">>;
         Relationships: never[];
       };
       care_notes: {

@@ -17,7 +17,7 @@ export function useAIAccess(householdId: string): { hasAccess: boolean | null } 
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { setHasAccess(false); return; }
       Promise.all([
-        supabase.from("profiles").select("account_type").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("account_type, plan").eq("id", user.id).maybeSingle(),
         supabase.from("households").select("subscription_status, trial_ends_at").eq("id", householdId).maybeSingle(),
       ]).then(([{ data: profile }, { data: household }]) => {
         setHasAccess(

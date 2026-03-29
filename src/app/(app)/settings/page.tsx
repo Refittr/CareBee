@@ -580,7 +580,7 @@ function SettingsContent() {
           ) : (() => {
             const trialEndsAt = planInfo?.household_trial_ends_at ?? null;
             const householdIsTrial = planInfo?.household_sub_status === "trial";
-            const trialActive = householdIsTrial && trialEndsAt && new Date(trialEndsAt) > new Date();
+            const trialActive = householdIsTrial && trialEndsAt && new Date(trialEndsAt) > new Date() && currentPlan !== 'free';
             const daysLeft = trialActive
               ? Math.max(0, Math.ceil((new Date(trialEndsAt!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
               : 0;

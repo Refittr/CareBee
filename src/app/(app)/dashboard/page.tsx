@@ -7,6 +7,7 @@ import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { SignOutButton } from "@/components/ui/SignOutButton";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 import { getLabels } from "@/lib/labels";
 import type { Metadata } from "next";
 import type { UserType } from "@/lib/types/database";
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
       .not("accepted_at", "is", null),
     supabase
       .from("profiles")
-      .select("user_type")
+      .select("user_type, onboarding_dismissed")
       .eq("id", user.id)
       .maybeSingle(),
   ]);
@@ -81,6 +82,25 @@ export default async function DashboardPage() {
     }))
   );
 
+  // For the onboarding checklist nav links — use the first owned household + person
+  const ownedMembership = households.find((m) => m.role === "owner");
+  const checklistHouseholdId = ownedMembership?.household_id ?? null;
+  let checklistPersonId: string | null = null;
+  if (checklistHouseholdId) {
+    const { data: firstPerson } = await supabase
+      .from("people")
+      .select("id")
+      .eq("household_id", checklistHouseholdId)
+      .limit(1)
+      .maybeSingle();
+    checklistPersonId = firstPerson?.id ?? null;
+  }
+
+  const showChecklist =
+    !profile?.onboarding_dismissed &&
+    checklistHouseholdId !== null &&
+    checklistPersonId !== null;
+
   return (
     <div className="px-4 md:px-8 py-6 max-w-4xl">
 
@@ -99,6 +119,14 @@ export default async function DashboardPage() {
           </Link>
         )}
       </div>
+
+      {showChecklist && (
+        <OnboardingChecklist
+          userType={userType as "carer"}
+          householdId={checklistHouseholdId!}
+          personId={checklistPersonId!}
+        />
+      )}
 
       {households.length === 0 ? (
         <EmptyState

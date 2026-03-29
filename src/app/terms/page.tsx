@@ -140,7 +140,7 @@ export default function TermsPage() {
           1. About CareBee
         </h2>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
-          CareBee is a personal and family health and care record service operated by CareBee Ltd.
+          CareBee is a personal and family health and care record service operated by Refittr Ltd operating as CareBee.
           It allows users to store, organise, and share health and care information for themselves
           and the people they care for. By creating an account and using CareBee, you agree to
           these terms.
@@ -354,11 +354,11 @@ export default function TermsPage() {
           11. Your data
         </h2>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
-          Your data belongs to you. CareBee Ltd does not claim ownership of any content you create
+          Your data belongs to you. Refittr Ltd operating as CareBee does not claim ownership of any content you create
           or upload.
         </p>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
-          You grant CareBee Ltd a limited licence to store, process, and display your data solely
+          You grant Refittr Ltd operating as CareBee a limited licence to store, process, and display your data solely
           for the purpose of providing the service to you and the household members you authorise.
         </p>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
@@ -419,7 +419,7 @@ export default function TermsPage() {
           permitted by law.
         </p>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
-          To the maximum extent permitted by applicable law, CareBee Ltd is not liable for:
+          To the maximum extent permitted by applicable law, Refittr Ltd operating as CareBee is not liable for:
         </p>
         <ul className="list-disc list-outside ml-5 flex flex-col gap-2 mb-4 text-sm text-warmstone-800 leading-relaxed">
           <li>
@@ -504,7 +504,7 @@ export default function TermsPage() {
 
         {/* Footer */}
         <div className="mt-16 pt-8 border-t border-warmstone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-warmstone-400">
-          <span>CareBee Ltd. Registered in England and Wales.</span>
+          <span>Refittr Ltd operating as CareBee. Registered in England and Wales.</span>
           <div className="flex items-center gap-4">
             <Link href="/privacy" className="hover:text-warmstone-600 transition-colors">
               Privacy Policy

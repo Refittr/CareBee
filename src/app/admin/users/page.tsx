@@ -10,7 +10,7 @@ export default async function AdminUsersPage() {
 
   const { data: profiles, count } = await svc
     .from("profiles")
-    .select("id, full_name, email, account_type, created_at, trial_ends_at", {
+    .select("id, full_name, email, account_type, created_at, trial_ends_at, plan", {
       count: "exact",
     })
     .order("created_at", { ascending: false })
@@ -45,6 +45,8 @@ export default async function AdminUsersPage() {
         subscription_status = "past_due";
       } else if (households.some((h) => h.subscription_status === "cancelled")) {
         subscription_status = "cancelled";
+      } else if ((p as { plan?: string | null }).plan === "free") {
+        subscription_status = householdIds.length > 0 ? "free" : "none";
       } else {
         const trialDates = [...households.map((h) => h.trial_ends_at), profileTrialEndsAt];
         const activeTrialDate = trialDates.find((t) => t && new Date(t) > now);

@@ -7,6 +7,7 @@ import { Input, Textarea, Select } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
 import { trackFeatureUsage } from "@/lib/utils/analytics";
+import { markChecklistStep } from "@/lib/utils/checklist";
 import type { Medication, Condition } from "@/lib/types/database";
 
 interface MedicationFormProps {
@@ -70,6 +71,7 @@ export function MedicationForm({ householdId, personId, medication, conditions, 
     if (err) { setError(err.message); setLoading(false); }
     else {
       void trackFeatureUsage("medications", medication ? "medication_updated" : "medication_added", "person", personId);
+      if (!medication) void markChecklistStep("add_first_condition_or_med");
       addToast(medication ? "Medication updated." : "Medication added.", "success");
       onSaved();
     }

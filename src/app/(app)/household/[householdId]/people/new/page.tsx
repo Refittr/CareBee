@@ -13,6 +13,7 @@ import { Alert } from "@/components/ui/Alert";
 import { useAppToast } from "@/components/layout/AppShell";
 import { logActivity } from "@/lib/logActivity";
 import { getCapabilities } from "@/lib/plan-utils";
+import { markChecklistStep } from "@/lib/utils/checklist";
 import type { AccountType, UserType, PlanType } from "@/lib/types/database";
 
 export default function NewPersonPageWrapper() {
@@ -116,6 +117,7 @@ function NewPersonPage() {
       setLoading(false);
     } else {
       await logActivity("person_added", "person", data.id, { household_id: householdId });
+      void markChecklistStep("add_person");
       addToast(`Added ${fields.first_name} to your care record.`, "success");
       router.push(`/household/${householdId}/people/${data.id}`);
     }

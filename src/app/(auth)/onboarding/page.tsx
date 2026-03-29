@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { User, HeartHandshake } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/ui/Logo";
+import { seedChecklist, markChecklistStep } from "@/lib/utils/checklist";
 import type { UserType } from "@/lib/types/database";
 
 export default function OnboardingPage() {
@@ -97,6 +98,9 @@ function OnboardingFork() {
       return;
     }
 
+    // Seed checklist rows for this user type (safe to call multiple times)
+    await seedChecklist(user.id, choice);
+
     if (choice === "carer") {
       router.push("/household/new");
       return;
@@ -160,6 +164,9 @@ function OnboardingFork() {
       hospital_numbers: [],
       dnacpr_status: false,
     });
+
+    // Person record created — mark the profile setup step complete
+    await markChecklistStep("add_profile");
 
     router.push("/dashboard");
   }

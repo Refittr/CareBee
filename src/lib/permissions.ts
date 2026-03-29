@@ -20,10 +20,14 @@ interface HouseholdForPermissions {
  */
 export function hasCareRecordPremiumAccess(
   household: HouseholdForPermissions,
-  profile: { account_type: AccountType }
+  profile: { account_type: AccountType; plan?: string | null }
 ): boolean {
   if (profile.account_type === "admin" || profile.account_type === "tester") {
     return true;
+  }
+  // plan: 'free' is an explicit override — revokes access regardless of household trial state
+  if (profile.plan === "free") {
+    return false;
   }
   if (household.subscription_status === "active") {
     return true;
@@ -69,7 +73,7 @@ export function hasPremiumAccess(profile: ProfileForPermissions): boolean {
   if (profile.is_subscribed) {
     return true;
   }
-  if (profile.trial_ends_at) {
+  if (profile.plan !== 'free' && profile.trial_ends_at) {
     return new Date(profile.trial_ends_at) > new Date();
   }
   return false;

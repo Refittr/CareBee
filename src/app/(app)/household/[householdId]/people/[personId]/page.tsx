@@ -7,6 +7,7 @@ import { ScanDocumentButton } from "@/components/scan/ScanDocumentButton";
 import { formatDateUK } from "@/lib/utils/dates";
 import { getLabels } from "@/lib/labels";
 import { DailyCareEnableCard } from "./DailyCareEnableCard";
+import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 import type { Metadata } from "next";
 import type { UserType } from "@/lib/types/database";
 
@@ -39,7 +40,7 @@ export default async function PersonOverviewPage({ params }: Props) {
     { data: openFollowUps },
   ] = await Promise.all([
     supabase.from("people").select("*").eq("id", personId).single(),
-    supabase.from("profiles").select("user_type").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("user_type, onboarding_dismissed").eq("id", user.id).maybeSingle(),
     supabase.from("conditions").select("name, is_active").eq("person_id", personId).order("created_at"),
     supabase.from("medications").select("name, dosage, is_active").eq("person_id", personId).order("created_at"),
     supabase.from("allergies").select("name").eq("person_id", personId),
@@ -61,8 +62,18 @@ export default async function PersonOverviewPage({ params }: Props) {
   const upcomingAppts = appointments ?? [];
   const openFollowUpCount = openFollowUps?.length ?? 0;
 
+  const showChecklist = userType === "self_care" && !profileData?.onboarding_dismissed;
+
   return (
     <div className="flex flex-col gap-4">
+
+      {showChecklist && (
+        <OnboardingChecklist
+          userType="self_care"
+          householdId={householdId}
+          personId={personId}
+        />
+      )}
 
       {/* Follow-up alert */}
       {openFollowUpCount > 0 && (

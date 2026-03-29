@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { logActivity } from "@/lib/logActivity";
+import { markChecklistStep } from "@/lib/utils/checklist";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ReviewCard } from "./ReviewCard";
@@ -431,6 +432,7 @@ export function ReviewStep({
       document_type: scanResult.document_type,
     });
 
+    void markChecklistStep("scan_first_document");
     setSaving(false);
     onSaved(savedCount);
   }

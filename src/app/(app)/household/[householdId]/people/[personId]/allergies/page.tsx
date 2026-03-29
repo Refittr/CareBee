@@ -68,12 +68,14 @@ export default function AllergiesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <h2 className="font-bold text-warmstone-900">Allergies</h2>
         {canEdit && (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="secondary" onClick={() => hasAccess === false ? setShowUpgrade(true) : setScanOpen(true)}>
-              <Sparkles size={16} /> Scan in a document
+              <Sparkles size={16} />
+              <span className="hidden md:inline">Scan in a document</span>
+              <span className="md:hidden">Scan</span>
             </Button>
             <Button size="sm" onClick={() => setAddOpen(true)}>
               <Plus size={16} /> Add

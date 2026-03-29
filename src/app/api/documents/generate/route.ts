@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
   if (!membership) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const [{ data: profile }, { data: household }] = await Promise.all([
-    svc.from("profiles").select("account_type").eq("id", user.id).maybeSingle(),
+    svc.from("profiles").select("account_type, plan").eq("id", user.id).maybeSingle(),
     svc.from("households").select("subscription_status, trial_ends_at").eq("id", household_id).maybeSingle(),
   ]);
 

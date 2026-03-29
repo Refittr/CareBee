@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LogOut, Shield, BookOpen, Settings, Mail, Bug, ChevronDown, Plus, Check, ClipboardList, Lock } from "lucide-react";
+import { Home, LogOut, Shield, BookOpen, Settings, Mail, Bug, ChevronDown, Plus, Check, ClipboardList, Lock, Sparkles, Clock } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -123,12 +123,32 @@ function CareRecordSwitcher({ currentHouseholdId }: { currentHouseholdId: string
   );
 }
 
+type TrialWidgetState =
+  | { kind: "expiring"; daysLeft: number }
+  | { kind: "ended" }
+  | null;
+
+function computeTrialWidget(
+  plan: string | null,
+  subscriptionStatus: string | null,
+  trialEndsAt: string | null,
+): TrialWidgetState {
+  if (plan === "free") return { kind: "ended" };
+  if (subscriptionStatus === "trial" && trialEndsAt) {
+    const daysLeft = Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86400000);
+    if (daysLeft <= 7 && daysLeft > 0) return { kind: "expiring", daysLeft };
+    if (daysLeft <= 0) return { kind: "ended" };
+  }
+  return null;
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
   const [isAdmin, setIsAdmin] = useState(false);
   const [dailyCareEnabled, setDailyCareEnabled] = useState<boolean | null>(null);
+  const [trialWidget, setTrialWidget] = useState<TrialWidgetState>(null);
   const { labels } = useUserType();
 
   const householdMatch = pathname.match(/^\/household\/([^/]+)/);
@@ -138,16 +158,45 @@ export function Sidebar() {
   const currentPersonId = personMatch ? personMatch[1] : null;
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return;
-      supabase
+      const { data: profile } = await supabase
         .from("profiles")
-        .select("account_type")
+        .select("account_type, plan")
         .eq("id", user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data?.account_type === "admin") setIsAdmin(true);
-        });
+        .maybeSingle();
+      if (!profile) return;
+      if (profile.account_type === "admin") setIsAdmin(true);
+
+      // Trial widget: only show for non-admin/tester standard accounts
+      if (profile.account_type !== "admin" && profile.account_type !== "tester") {
+        const plan = (profile as { plan?: string | null }).plan ?? null;
+        if (plan === "free") {
+          setTrialWidget({ kind: "ended" });
+        } else {
+          // Fetch the owned household's trial status
+          const { data: membership } = await supabase
+            .from("household_members")
+            .select("household_id")
+            .eq("user_id", user.id)
+            .eq("role", "owner")
+            .maybeSingle();
+          if (membership) {
+            const { data: hh } = await supabase
+              .from("households")
+              .select("subscription_status, trial_ends_at")
+              .eq("id", membership.household_id)
+              .maybeSingle();
+            if (hh) {
+              setTrialWidget(computeTrialWidget(
+                plan,
+                hh.subscription_status,
+                (hh as { trial_ends_at?: string | null }).trial_ends_at ?? null,
+              ));
+            }
+          }
+        }
+      }
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -244,7 +293,37 @@ export function Sidebar() {
             </Link>
           );
         })()}
+
+        {trialWidget && (
+          <Link
+            href="/settings"
+            className={`flex items-start gap-2.5 px-3 py-2.5 rounded-lg border text-xs transition-colors ${
+              trialWidget.kind === "ended"
+                ? "bg-red-50 border-red-200 hover:bg-red-100 text-red-800"
+                : "bg-honey-50 border-honey-200 hover:bg-honey-100 text-honey-800"
+            }`}
+          >
+            {trialWidget.kind === "ended" ? (
+              <Sparkles size={14} className="shrink-0 mt-0.5" />
+            ) : (
+              <Clock size={14} className="shrink-0 mt-0.5" />
+            )}
+            <div>
+              <p className="font-semibold leading-tight">
+                {trialWidget.kind === "ended"
+                  ? "Trial ended"
+                  : trialWidget.daysLeft === 1
+                  ? "Trial ends tomorrow"
+                  : `${trialWidget.daysLeft} days left`}
+              </p>
+              <p className="text-xs opacity-75 mt-0.5 leading-tight">
+                {trialWidget.kind === "ended" ? "Subscribe to restore AI access" : "Subscribe to keep AI access"}
+              </p>
+            </div>
+          </Link>
+        )}
       </nav>
+
       <div className="px-3 py-4 border-t border-warmstone-100 flex flex-col gap-1">
         {isAdmin && (
           <Link

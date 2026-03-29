@@ -102,7 +102,7 @@ export default function InsightsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const [{ data: profile }, { data: household }] = await Promise.all([
-          supabase.from("profiles").select("account_type").eq("id", user.id).maybeSingle(),
+          supabase.from("profiles").select("account_type, plan").eq("id", user.id).maybeSingle(),
           supabase.from("households").select("subscription_status, trial_ends_at").eq("id", householdId).maybeSingle(),
         ]);
         const premium = profile && household ? hasCareRecordPremiumAccess(household, profile) : false;
