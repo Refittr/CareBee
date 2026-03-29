@@ -33,8 +33,8 @@ export async function applyHouseholdLocks(userId: string): Promise<void> {
 
   // Sort by household.created_at ASC — the first is the primary (never locked)
   const sorted = [...memberships].sort((a, b) => {
-    const aDate = (a.households as { created_at: string } | null)?.created_at ?? "";
-    const bDate = (b.households as { created_at: string } | null)?.created_at ?? "";
+    const aDate = ((a as unknown as { households: { created_at: string } | null }).households)?.created_at ?? "";
+    const bDate = ((b as unknown as { households: { created_at: string } | null }).households)?.created_at ?? "";
     return aDate < bDate ? -1 : 1;
   });
 
