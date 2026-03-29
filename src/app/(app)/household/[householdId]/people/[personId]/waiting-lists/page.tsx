@@ -352,17 +352,19 @@ export default function WaitingListsPage() {
                 </div>
 
                 {(entry.wait_status === "overdue" || entry.wait_status === "significantly_overdue") && entry.action_suggestion && (
-                  <div className="bg-red-50 border border-red-100 rounded-lg p-3 flex items-start gap-3">
-                    <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-red-900">Action recommended</p>
-                      <p className="text-sm text-red-800 mt-0.5">{entry.action_suggestion}</p>
+                  <div className="bg-red-50 border border-red-100 rounded-lg p-3 flex flex-col gap-2">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-red-900">Action recommended</p>
+                        <p className="text-sm text-red-800 mt-0.5">{entry.action_suggestion}</p>
+                      </div>
                     </div>
                     <Button
                       size="sm"
                       variant="secondary"
                       onClick={() => goToChase(entry)}
-                      className="gap-1.5 shrink-0"
+                      className="gap-1.5 self-start"
                     >
                       <Mail size={14} />
                       Generate chase letter
