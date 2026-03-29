@@ -488,7 +488,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: Row & Profile;
-        Insert: Row & OptionalNullables<Omit<Profile, "created_at" | "updated_at">>;
+        Insert: Row & OptionalNullables<Omit<Profile, "created_at" | "updated_at">> & { product_updates_enabled?: boolean };
         Update: Row & Partial<Omit<Profile, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };

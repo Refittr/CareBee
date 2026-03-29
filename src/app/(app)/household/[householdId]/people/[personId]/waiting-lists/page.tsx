@@ -274,13 +274,8 @@ export default function WaitingListsPage() {
 
       {hasOverdue && (
         <Alert type="warning">
-          <div className="flex items-start gap-2">
-            <AlertTriangle size={16} className="shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-sm">One or more waits may be overdue</p>
-              <p className="text-sm mt-0.5">Consider chasing the NHS trust or contacting PALS. Use the "Generate chase letter" button on the relevant entry.</p>
-            </div>
-          </div>
+          <p className="font-semibold text-sm">One or more waits may be overdue</p>
+          <p className="text-sm mt-0.5">Consider chasing the NHS trust or contacting PALS. Use the "Generate chase letter" button on the relevant entry.</p>
         </Alert>
       )}
 
