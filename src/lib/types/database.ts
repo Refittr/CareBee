@@ -34,6 +34,8 @@ export interface Profile {
   subscription_status: string | null;
   subscription_price_id: string | null;
   subscription_current_period_end: string | null;
+  plan_lapsed_at: string | null;
+  lapse_email_step: number;
   created_at: string;
   updated_at: string;
 }
@@ -59,6 +61,8 @@ export interface Household {
   trial_ends_at: string | null;
   subscription_started_at: string | null;
   subscription_ends_at: string | null;
+  is_locked: boolean;
+  locked_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -488,13 +492,13 @@ export type Database = {
     Tables: {
       profiles: {
         Row: Row & Profile;
-        Insert: Row & OptionalNullables<Omit<Profile, "created_at" | "updated_at">> & { product_updates_enabled?: boolean };
+        Insert: Row & OptionalNullables<Omit<Profile, "created_at" | "updated_at">> & { product_updates_enabled?: boolean; lapse_email_step?: number };
         Update: Row & Partial<Omit<Profile, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
       households: {
         Row: Row & Household;
-        Insert: Row & OptionalNullables<Omit<Household, "id" | "created_at" | "updated_at">>;
+        Insert: Row & OptionalNullables<Omit<Household, "id" | "created_at" | "updated_at">> & { is_locked?: boolean };
         Update: Row & Partial<Omit<Household, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };

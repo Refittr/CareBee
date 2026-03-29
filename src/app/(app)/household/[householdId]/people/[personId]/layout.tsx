@@ -9,6 +9,7 @@ import { PersonTabs } from "./PersonTabs";
 import { RoleProvider } from "@/lib/context/role";
 import { ViewerBanner } from "@/components/layout/ViewerBanner";
 import { PastDueBanner } from "@/components/layout/PastDueBanner";
+import { LockedHouseholdBanner } from "@/components/layout/LockedHouseholdBanner";
 import type { MemberRole } from "@/lib/types/database";
 
 type Props = {
@@ -25,7 +26,7 @@ export default async function PersonLayout({ children, params }: Props) {
 
   const [{ data: person }, { data: household }, { data: membership }] = await Promise.all([
     supabase.from("people").select("*").eq("id", personId).single(),
-    supabase.from("households").select("name, subscription_status").eq("id", householdId).single(),
+    supabase.from("households").select("name, subscription_status, is_locked").eq("id", householdId).single(),
     supabase.from("household_members").select("role").eq("household_id", householdId).eq("user_id", user.id).maybeSingle(),
   ]);
 
@@ -74,9 +75,15 @@ export default async function PersonLayout({ children, params }: Props) {
       </div>
 
       <div className="px-4 md:px-8 pt-4 pb-8">
-        <RoleProvider role={role}>
-          <PastDueBanner householdId={householdId} memberRole={role} subscriptionStatus={household?.subscription_status ?? null} />
-          <ViewerBanner />
+        <RoleProvider role={role} isLocked={household?.is_locked ?? false}>
+          {household?.is_locked ? (
+            <LockedHouseholdBanner memberRole={role} />
+          ) : (
+            <>
+              <PastDueBanner householdId={householdId} memberRole={role} subscriptionStatus={household?.subscription_status ?? null} />
+              <ViewerBanner />
+            </>
+          )}
           {children}
         </RoleProvider>
       </div>

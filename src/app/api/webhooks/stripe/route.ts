@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { priceIdToPlan } from "@/lib/stripe-config";
+import { applyPlanLapse, clearPlanLapse } from "@/lib/lapse-utils";
 import type Stripe from "stripe";
 import type { PlanType } from "@/lib/types/database";
 
@@ -108,6 +109,9 @@ export async function POST(request: NextRequest) {
           plan,
         }).eq("id", userId);
 
+        // Clear any lapse state and unlock households
+        await clearPlanLapse(userId);
+
         // Update the specific household
         if (householdId) {
           await svc.from("households").update({
@@ -205,8 +209,9 @@ export async function POST(request: NextRequest) {
           await svc.from("profiles").update({
             is_subscribed: false,
             subscription_status: "canceled",
-            plan: "free" as PlanType,
           }).eq("id", userId);
+          // Start the 7-day grace period — sets plan='free', plan_lapsed_at, lapse_email_step=0
+          await applyPlanLapse(userId);
         }
         break;
       }
@@ -245,6 +250,8 @@ export async function POST(request: NextRequest) {
             subscription_current_period_end: periodEnd,
             plan,
           }).eq("id", userId);
+          // Clear any lapse state and unlock households
+          await clearPlanLapse(userId);
         }
         break;
       }

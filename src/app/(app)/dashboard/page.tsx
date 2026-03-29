@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, Home, Users, Heart } from "lucide-react";
+import { Plus, Home, Users, Heart, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -111,7 +111,7 @@ export default async function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {householdStats.map(({ membership, stats }) => {
-            const household = (membership as unknown as { households: { id: string; name: string } | null }).households;
+            const household = (membership as unknown as { households: { id: string; name: string; is_locked: boolean } | null }).households;
             if (!household) return null;
             const roleInfo = roleLabels[membership.role] ?? { label: membership.role, variant: "neutral" as const };
             return (
@@ -121,7 +121,12 @@ export default async function DashboardPage() {
                 className="bg-warmstone-white border border-warmstone-100 rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow flex flex-col gap-3"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="font-bold text-warmstone-900 text-lg leading-tight">{household.name}</h2>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h2 className="font-bold text-warmstone-900 text-lg leading-tight truncate">{household.name}</h2>
+                    {household.is_locked && (
+                      <Lock size={14} className="shrink-0 text-amber-500" />
+                    )}
+                  </div>
                   <Badge variant={roleInfo.variant as "owner" | "active" | "neutral" | "warning"}>
                     {roleInfo.label}
                   </Badge>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LogOut, Shield, BookOpen, Settings, Mail, Bug, ChevronDown, Plus, Check, ClipboardList } from "lucide-react";
+import { Home, LogOut, Shield, BookOpen, Settings, Mail, Bug, ChevronDown, Plus, Check, ClipboardList, Lock } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,7 @@ import { useUserType } from "@/lib/context/UserTypeContext";
 interface HouseholdOption {
   id: string;
   name: string;
+  is_locked: boolean;
 }
 
 function CareRecordSwitcher({ currentHouseholdId }: { currentHouseholdId: string | null }) {
@@ -35,7 +36,7 @@ function CareRecordSwitcher({ currentHouseholdId }: { currentHouseholdId: string
       const ids = memberships.map((m) => m.household_id as string);
       const { data: hh } = await supabase
         .from("households")
-        .select("id, name")
+        .select("id, name, is_locked")
         .in("id", ids)
         .order("name");
       if (hh) {
@@ -94,6 +95,9 @@ function CareRecordSwitcher({ currentHouseholdId }: { currentHouseholdId: string
               className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-warmstone-800 hover:bg-warmstone-50 transition-colors text-left"
             >
               <span className="flex-1 truncate">{h.name}</span>
+              {h.is_locked && (
+                <Lock size={12} className="shrink-0 text-amber-500" />
+              )}
               {h.id === currentHouseholdId && (
                 <Check size={14} className="shrink-0 text-sage-500" />
               )}

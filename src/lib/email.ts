@@ -263,6 +263,162 @@ export async function sendNewSignupEmail({
   });
 }
 
+export async function sendPlanLapseDay1Email({
+  to,
+  name,
+  appUrl,
+}: {
+  to: string;
+  name: string;
+  appUrl: string;
+}) {
+  await sendEmail({
+    to,
+    subject: "Your CareBee Plus plan has ended",
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8f6f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f6f2;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+        <tr><td style="padding-bottom:24px;text-align:center;">
+          <span style="font-size:24px;font-weight:800;letter-spacing:-0.5px;">
+            <span style="color:#1c1917;">Care</span><span style="color:#E8A817;">Bee</span>
+          </span>
+        </td></tr>
+        <tr><td style="background:#fff;border:1px solid #e7e4df;border-radius:16px;padding:40px 32px;">
+          <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1c1917;">Your CareBee Plus plan has ended</h1>
+          <p style="margin:0 0 16px;font-size:15px;color:#78716c;line-height:1.6;">Hi ${name}, your CareBee Plus subscription has ended and your account has reverted to the free plan.</p>
+          <p style="margin:0 0 24px;font-size:15px;color:#78716c;line-height:1.6;">
+            Your primary care record remains fully accessible. Any additional care records will switch to <strong style="color:#1c1917;">read-only mode in 7 days</strong> unless you resubscribe.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="${appUrl}/settings" style="display:inline-block;background:#E8A817;color:#fff;font-weight:700;font-size:16px;text-decoration:none;padding:14px 32px;border-radius:8px;letter-spacing:-0.2px;">
+                Resubscribe now
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:24px 0 0;font-size:12px;color:#a8a29e;text-align:center;line-height:1.6;">
+            If you have any questions, reply to this email or contact us at support@carebee.co.uk
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+    `.trim(),
+    text: `Hi ${name}, your CareBee Plus plan has ended. Additional care records will switch to read-only in 7 days. Resubscribe at ${appUrl}/settings`,
+  });
+}
+
+export async function sendPlanLapseDay5Email({
+  to,
+  name,
+  appUrl,
+}: {
+  to: string;
+  name: string;
+  appUrl: string;
+}) {
+  await sendEmail({
+    to,
+    subject: "Your additional care records will be locked in 2 days",
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8f6f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f6f2;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+        <tr><td style="padding-bottom:24px;text-align:center;">
+          <span style="font-size:24px;font-weight:800;letter-spacing:-0.5px;">
+            <span style="color:#1c1917;">Care</span><span style="color:#E8A817;">Bee</span>
+          </span>
+        </td></tr>
+        <tr><td style="background:#fff;border:1px solid #e7e4df;border-radius:16px;padding:40px 32px;">
+          <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1c1917;">2 days left before records lock</h1>
+          <p style="margin:0 0 16px;font-size:15px;color:#78716c;line-height:1.6;">Hi ${name}, this is a reminder that your additional care records will switch to read-only mode in <strong style="color:#1c1917;">2 days</strong>.</p>
+          <p style="margin:0 0 24px;font-size:15px;color:#78716c;line-height:1.6;">
+            You can still view everything, but new entries, edits, and uploads will be paused. Resubscribe to restore full access.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="${appUrl}/settings" style="display:inline-block;background:#E8A817;color:#fff;font-weight:700;font-size:16px;text-decoration:none;padding:14px 32px;border-radius:8px;letter-spacing:-0.2px;">
+                Resubscribe now
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:24px 0 0;font-size:12px;color:#a8a29e;text-align:center;line-height:1.6;">
+            If you have any questions, reply to this email or contact us at support@carebee.co.uk
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+    `.trim(),
+    text: `Hi ${name}, your additional care records will switch to read-only in 2 days. Resubscribe at ${appUrl}/settings`,
+  });
+}
+
+export async function sendPlanLapseDay7Email({
+  to,
+  name,
+  appUrl,
+}: {
+  to: string;
+  name: string;
+  appUrl: string;
+}) {
+  await sendEmail({
+    to,
+    subject: "Your additional care records are now in read-only mode",
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8f6f2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f6f2;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+        <tr><td style="padding-bottom:24px;text-align:center;">
+          <span style="font-size:24px;font-weight:800;letter-spacing:-0.5px;">
+            <span style="color:#1c1917;">Care</span><span style="color:#E8A817;">Bee</span>
+          </span>
+        </td></tr>
+        <tr><td style="background:#fff;border:1px solid #e7e4df;border-radius:16px;padding:40px 32px;">
+          <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1c1917;">Your additional care records are now read-only</h1>
+          <p style="margin:0 0 16px;font-size:15px;color:#78716c;line-height:1.6;">Hi ${name}, your additional care records have switched to read-only mode.</p>
+          <p style="margin:0 0 24px;font-size:15px;color:#78716c;line-height:1.6;">
+            All your data is safe and you can still view it at any time. To restore full editing access, resubscribe to CareBee Plus.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="${appUrl}/settings" style="display:inline-block;background:#E8A817;color:#fff;font-weight:700;font-size:16px;text-decoration:none;padding:14px 32px;border-radius:8px;letter-spacing:-0.2px;">
+                Resubscribe to unlock
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:24px 0 0;font-size:12px;color:#a8a29e;text-align:center;line-height:1.6;">
+            If you have any questions, reply to this email or contact us at support@carebee.co.uk
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+    `.trim(),
+    text: `Hi ${name}, your additional care records are now in read-only mode. Resubscribe at ${appUrl}/settings to restore full access.`,
+  });
+}
+
 export async function sendContactEmail({
   name,
   email,
