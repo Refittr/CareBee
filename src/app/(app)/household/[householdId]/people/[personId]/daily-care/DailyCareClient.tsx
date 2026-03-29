@@ -6,6 +6,7 @@ import type { DailyCareRecord } from "@/lib/types/database";
 import { DailyCareCard } from "./DailyCareCard";
 import { DailyCareForm } from "./DailyCareForm";
 import { HelpPopout } from "./HelpPopout";
+import { useUserType } from "@/lib/context/UserTypeContext";
 
 interface Props {
   person: { id: string; first_name: string; last_name: string; daily_care_enabled: boolean };
@@ -19,6 +20,7 @@ interface Props {
 const PER_PAGE = 20;
 
 export function DailyCareClient({ person, householdId, initialRecords, initialTotal, readOnly = false, initialOpenFlags = [] }: Props) {
+  const { labels } = useUserType();
   const [records, setRecords] = useState<DailyCareRecord[]>(initialRecords);
   const [total, setTotal] = useState(initialTotal);
   const [page, setPage] = useState(1);
@@ -119,7 +121,7 @@ export function DailyCareClient({ person, householdId, initialRecords, initialTo
       {readOnly && (
         <div className="flex items-center gap-2 mb-5 px-4 py-3 bg-warmstone-50 border border-warmstone-200 rounded-lg text-sm text-warmstone-600">
           <EyeOff size={15} className="shrink-0 text-warmstone-400" />
-          Daily care is turned off. Records are read-only. Turn it back on in the person&apos;s settings to add new records.
+          Daily care is turned off. Records are read-only. {labels.dailyCareReadOnlyHint}
         </div>
       )}
 
@@ -171,7 +173,7 @@ export function DailyCareClient({ person, householdId, initialRecords, initialTo
             <ClipboardList size={32} className="mx-auto mb-3 opacity-40" />
             <p className="font-medium text-warmstone-600">No daily care records yet</p>
             <p className="text-sm mt-1">
-              Add the first one to start building a picture of {person.first_name}&apos;s day-to-day wellbeing.
+              Add the first one to start building a picture of {labels.dailyCareEmptyStateSuffix.replace("{firstName}", person.first_name)}
             </p>
           </div>
         ) : (

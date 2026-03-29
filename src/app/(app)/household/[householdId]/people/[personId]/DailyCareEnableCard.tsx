@@ -6,6 +6,7 @@ import { AlertTriangle, ClipboardList } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/Card";
+import { useUserType } from "@/lib/context/UserTypeContext";
 
 interface Props {
   personId: string;
@@ -20,6 +21,7 @@ export function DailyCareEnableCard({ personId, householdId, firstName, enabled,
   const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const { labels } = useUserType();
 
   async function handleEnable() {
     setLoading(true);
@@ -44,7 +46,9 @@ export function DailyCareEnableCard({ personId, householdId, firstName, enabled,
               </p>
             </div>
           ) : (
-            <p className="text-sm text-warmstone-500">Track {firstName}&apos;s daily wellbeing, meals, medication and more.</p>
+            <p className="text-sm text-warmstone-500">
+              {labels.dailyCareTrackDescription.replace("{firstName}", firstName)}
+            </p>
           )}
           <p className="text-xs text-honey-600 font-semibold mt-3">View daily care records →</p>
         </Card>
@@ -62,7 +66,7 @@ export function DailyCareEnableCard({ personId, householdId, firstName, enabled,
               <h2 className="font-bold text-warmstone-700">Daily care records</h2>
             </div>
             <p className="text-sm text-warmstone-500 max-w-md">
-              Keep a shift-by-shift log of {firstName}&apos;s day: mood, meals, medication, mobility and more. Useful when multiple carers are involved or when you want a detailed picture over time.
+              {labels.dailyCareEnableDescription.replace("{firstName}", firstName)}
             </p>
           </div>
           <button

@@ -32,6 +32,12 @@ export interface AppLabels {
   personTestResultsHeading: string;
   personDocumentsHeading: string;
 
+  // Daily care feature
+  dailyCareEnableDescription: string;
+  dailyCareTrackDescription: string;
+  dailyCareReadOnlyHint: string;
+  dailyCareEmptyStateSuffix: string; // appended after "start building a picture of "
+
   // Settings page
   settingsProfileHint: string;
   settingsWeeklyUpdatesDescription: string;
@@ -74,6 +80,11 @@ export function getLabels(userType: UserType | null): AppLabels {
       personTestResultsHeading: "Your test results",
       personDocumentsHeading: "Your documents",
 
+      dailyCareEnableDescription: "Keep a day-by-day log of your wellbeing: mood, meals, medication, mobility and more. Useful for tracking patterns over time.",
+      dailyCareTrackDescription: "Track your daily wellbeing, meals, medication and more.",
+      dailyCareReadOnlyHint: "Turn it back on in settings to add new records.",
+      dailyCareEmptyStateSuffix: "your day-to-day wellbeing.",
+
       settingsProfileHint: "Your display name shown across your health record.",
       settingsWeeklyUpdatesDescription: "Receive a weekly email summary of changes across your health record.",
       settingsNoRecordsMessage: "No health record found. Please contact support if this looks wrong.",
@@ -111,6 +122,11 @@ export function getLabels(userType: UserType | null): AppLabels {
     personAppointmentsHeading: "Appointments",
     personTestResultsHeading: "Test Results",
     personDocumentsHeading: "Documents",
+
+    dailyCareEnableDescription: "Keep a shift-by-shift log of {firstName}'s day: mood, meals, medication, mobility and more. Useful when multiple carers are involved or when you want a detailed picture over time.",
+    dailyCareTrackDescription: "Track {firstName}'s daily wellbeing, meals, medication and more.",
+    dailyCareReadOnlyHint: "Turn it back on in the person's settings to add new records.",
+    dailyCareEmptyStateSuffix: "{firstName}'s day-to-day wellbeing.",
 
     settingsProfileHint: "This name appears when you are listed as a member of a care record.",
     settingsWeeklyUpdatesDescription: "Receive a weekly email summary of changes across your care records.",

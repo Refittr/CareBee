@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, AlertTriangle, CheckCircle } from "lucide-react";
+import { useUserType } from "@/lib/context/UserTypeContext";
 import type {
   DailyCareRecord,
   DailyCareShift,
@@ -144,6 +145,7 @@ function formatFlagDate(d: string) {
 
 export function DailyCareForm({ householdId, personId, personName, record, openFlags = [], onFlagDismissed, onSaved, onCancel }: Props) {
   const isEdit = !!record;
+  const { isSelfCare } = useUserType();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dismissingId, setDismissingId] = useState<string | null>(null);
@@ -317,7 +319,7 @@ export function DailyCareForm({ householdId, personId, personName, record, openF
             <FieldSection title="Mood & wellbeing">
               <PillGroup options={MOOD_OPTIONS} value={mood} onChange={(v) => setMood(v)} />
               <TextArea
-                placeholder="Describe how they seemed, including any changes in behaviour, energy, or anything they mentioned"
+                placeholder={isSelfCare ? "Describe how you felt, including any changes in mood, energy, or anything worth noting" : "Describe how they seemed, including any changes in behaviour, energy, or anything they mentioned"}
                 value={moodNotes}
                 onChange={setMoodNotes}
               />
@@ -361,7 +363,7 @@ export function DailyCareForm({ householdId, personId, personName, record, openF
             {/* Section 5 — Mobility */}
             <FieldSection title="Mobility">
               <TextArea
-                placeholder="How did they move around today? Any assistance needed, use of aids, or concerns about balance or falls?"
+                placeholder={isSelfCare ? "How did you move around today? Any issues with balance, falls, or use of aids?" : "How did they move around today? Any assistance needed, use of aids, or concerns about balance or falls?"}
                 value={mobilityNotes}
                 onChange={setMobilityNotes}
               />
@@ -380,7 +382,7 @@ export function DailyCareForm({ householdId, personId, personName, record, openF
             {/* Section 7 — Sleep */}
             <FieldSection title="Sleep">
               <TextArea
-                placeholder="How did they sleep? Any disturbances? (Most relevant for overnight or full-day records)"
+                placeholder={isSelfCare ? "How did you sleep? Any disturbances?" : "How did they sleep? Any disturbances? (Most relevant for overnight or full-day records)"}
                 value={sleepNotes}
                 onChange={setSleepNotes}
               />
@@ -400,7 +402,7 @@ export function DailyCareForm({ householdId, personId, personName, record, openF
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium text-warmstone-800">Follow-up needed</p>
-                  <p className="text-xs text-warmstone-500 mt-0.5">Flag this for the next carer or family member</p>
+                  <p className="text-xs text-warmstone-500 mt-0.5">{isSelfCare ? "Flag this for yourself or a family member" : "Flag this for the next carer or family member"}</p>
                 </div>
                 <button
                   type="button"
@@ -419,7 +421,7 @@ export function DailyCareForm({ householdId, personId, personName, record, openF
                 </button>
               </div>
               <TextArea
-                placeholder="What does the next carer or family member need to know?"
+                placeholder={isSelfCare ? "What do you want to remember or follow up on?" : "What does the next carer or family member need to know?"}
                 value={concerns}
                 onChange={setConcerns}
               />
@@ -431,9 +433,11 @@ export function DailyCareForm({ householdId, personId, personName, record, openF
             {error && (
               <p className="text-sm text-red-600 mb-3">{error}</p>
             )}
-            <p className="text-xs text-warmstone-400 mb-3">
-              This record will be saved under your account for {personName}.
-            </p>
+            {!isSelfCare && (
+              <p className="text-xs text-warmstone-400 mb-3">
+                This record will be saved under your account for {personName}.
+              </p>
+            )}
             <div className="flex items-center gap-3">
               <button
                 type="submit"
