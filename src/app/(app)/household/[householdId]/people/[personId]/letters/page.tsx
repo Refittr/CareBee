@@ -480,10 +480,10 @@ function LettersPageInner() {
             <Alert type="info" description="You have view-only access to this record. Generating and saving letters is not available." />
           ) : hasAccess === false ? (
             <>
-              <Alert type="info" description="Generating letters is a Plus feature. Upgrade this care record to use it." />
+              <Alert type="info" description="Generating letters is a premium feature. Subscribe to unlock it." />
               <Button onClick={() => setShowUpgrade(true)} variant="secondary">
                 <Sparkles size={16} />
-                Upgrade to Plus
+                Subscribe
               </Button>
             </>
           ) : (
