@@ -113,12 +113,6 @@ export function useCalendarData(
               taken_date: date,
               taken: newValue,
               updated_at: new Date().toISOString(),
-            } as {
-              medication_id: string;
-              schedule_id: string;
-              taken_date: string;
-              taken: boolean;
-              updated_at: string;
             },
             { onConflict: "medication_id,schedule_id,taken_date" }
           );
@@ -143,11 +137,6 @@ export function useCalendarData(
               schedule_id: null,
               taken_date: date,
               taken: newValue,
-            } as {
-              medication_id: string;
-              schedule_id: null;
-              taken_date: string;
-              taken: boolean;
             });
           }
         }

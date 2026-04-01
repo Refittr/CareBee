@@ -554,6 +554,18 @@ export type Database = {
         Update: Row & Partial<Omit<Medication, "id" | "created_at" | "updated_at">>;
         Relationships: never[];
       };
+      medication_schedules: {
+        Row: Row & MedicationSchedule;
+        Insert: Row & OptionalNullables<Omit<MedicationSchedule, "id" | "created_at">>;
+        Update: Row & Partial<Omit<MedicationSchedule, "id" | "created_at">>;
+        Relationships: never[];
+      };
+      medication_taken_log: {
+        Row: Row & MedicationTakenLog;
+        Insert: Row & OptionalNullables<Omit<MedicationTakenLog, "id" | "created_at" | "updated_at">>;
+        Update: Row & Partial<Omit<MedicationTakenLog, "id" | "created_at" | "updated_at">>;
+        Relationships: never[];
+      };
       medication_changes: {
         Row: Row & MedicationChange;
         Insert: Row & OptionalNullables<Omit<MedicationChange, "id" | "created_at">>;
