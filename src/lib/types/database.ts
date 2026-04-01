@@ -270,6 +270,25 @@ export interface Medication {
   condition_id: string | null;
   is_active: boolean;
   notes: string | null;
+  schedule_type: "specific_times" | "times_per_day" | null;
+  times_per_day: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MedicationSchedule {
+  id: string;
+  medication_id: string;
+  time: string; // 'HH:MM:SS' from Postgres time type
+  created_at: string;
+}
+
+export interface MedicationTakenLog {
+  id: string;
+  medication_id: string;
+  schedule_id: string | null;
+  taken_date: string; // 'YYYY-MM-DD'
+  taken: boolean;
   created_at: string;
   updated_at: string;
 }

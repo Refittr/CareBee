@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LogOut, Shield, BookOpen, Settings, Mail, Bug, ChevronDown, Plus, Check, ClipboardList, Lock, Sparkles, Clock, Zap } from "lucide-react";
+import { Home, LogOut, Shield, BookOpen, Settings, Mail, Bug, ChevronDown, Plus, Check, ClipboardList, Lock, Sparkles, Clock, Zap, CalendarDays } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -259,7 +259,7 @@ export function Sidebar() {
   const settingsItem = { href: "/settings", label: "Settings", icon: Settings };
 
   return (
-    <aside className="hidden md:flex flex-col w-60 bg-warmstone-white border-r border-warmstone-100 min-h-screen shrink-0">
+    <aside className="hidden md:flex flex-col w-60 bg-warmstone-white border-r border-warmstone-100 min-h-screen max-h-screen overflow-y-auto shrink-0">
       <div className="px-5 py-5 border-b border-warmstone-100">
         <Link href="/dashboard" className="flex items-center gap-2">
           <Logo size="md" />
@@ -308,6 +308,21 @@ export function Sidebar() {
             {dailyCareEnabled !== null && (
               <span className={`w-2 h-2 rounded-full shrink-0 ${dailyCareEnabled ? "bg-sage-400" : "bg-warmstone-300"}`} />
             )}
+          </Link>
+        )}
+
+        {currentHouseholdId && (
+          <Link
+            href={`/household/${currentHouseholdId}/calendar`}
+            className={[
+              "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold transition-colors min-h-[44px]",
+              pathname.includes("/calendar")
+                ? "bg-honey-50 text-honey-800"
+                : "text-warmstone-600 hover:bg-warmstone-50 hover:text-warmstone-900",
+            ].join(" ")}
+          >
+            <CalendarDays size={18} />
+            Calendar
           </Link>
         )}
 
