@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Plus, Pencil, Trash2, Calendar, ClipboardList, CheckCircle,
-  RefreshCw, Share2, Download, X, ChevronDown, ChevronUp, Sparkles,
+  RefreshCw, Share2, Download, X, ChevronDown, ChevronUp, Sparkles, CalendarPlus,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +19,7 @@ import { AppointmentForm } from "@/components/forms/AppointmentForm";
 import { useAppToast } from "@/components/layout/AppShell";
 import { formatDateTime, formatDateUK } from "@/lib/utils/dates";
 import { useAIAccess } from "@/lib/utils/access";
+import { downloadOrShareIcs } from "@/lib/utils/calendar";
 import { UpgradeModal } from "@/components/ui/UpgradeModal";
 import { useCanEdit } from "@/lib/context/role";
 import { ScanModal } from "@/components/scan/ScanModal";
@@ -431,6 +432,14 @@ export default function AppointmentsPage() {
                 </button>
               )
             )}
+
+            <button
+              onClick={() => void downloadOrShareIcs(appt)}
+              className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-warmstone-500 hover:text-warmstone-900 transition-colors min-h-[36px]"
+            >
+              <CalendarPlus size={14} />
+              Add to calendar
+            </button>
           </div>
           {canEdit && (
             <div className="flex items-center gap-1 shrink-0">
