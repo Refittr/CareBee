@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
         .select("id, medication_id, time")
         .in("medication_id", medIds)
         .order("time")
-    : { data: [] };
+    : { data: [] as Array<{ id: string; medication_id: string; time: string }> };
 
   // Fetch taken log for the month
   const { data: takenRows } = medIds.length > 0
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
         .in("medication_id", medIds)
         .gte("taken_date", startOfMonth)
         .lte("taken_date", endOfMonth)
-    : { data: [] };
+    : { data: [] as Array<{ id: string; medication_id: string; schedule_id: string | null; taken_date: string; taken: boolean }> };
 
   // Build response
   const people: CalendarPerson[] = (peopleRows ?? []).map((p) => ({
