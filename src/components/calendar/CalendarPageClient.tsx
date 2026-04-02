@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Bell } from "lucide-react";
-import Link from "next/link";
 import { useCalendarData } from "./useCalendarData";
 import type { CalendarData, CalendarTakenEntry, CalendarEvent } from "./types";
 import { YearView } from "./views/YearView";
@@ -99,6 +99,7 @@ interface Props {
 }
 
 export function CalendarPageClient({ householdId }: Props) {
+  const router = useRouter();
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -283,14 +284,14 @@ export function CalendarPageClient({ householdId }: Props) {
     <div className="flex flex-col gap-6 px-4 md:px-0">
       {/* Header */}
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Back to dashboard */}
-        <Link
-          href={`/household/${householdId}`}
-          className="flex items-center gap-1 text-sm font-semibold text-warmstone-500 hover:text-warmstone-900 hover:bg-warmstone-100 px-2.5 py-1.5 rounded-lg transition-colors shrink-0 mr-1"
+        {/* Back */}
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1 text-sm font-semibold text-warmstone-500 hover:text-warmstone-900 hover:bg-warmstone-100 px-2.5 py-1.5 rounded-lg transition-colors shrink-0 mr-1 min-h-[44px]"
         >
           <ChevronLeft size={15} />
           Back
-        </Link>
+        </button>
 
         {/* Prev / Today / Next */}
         <div className="flex items-center gap-0.5">
