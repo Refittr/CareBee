@@ -214,7 +214,7 @@ export async function GET(request: NextRequest) {
       person_id: r.person_id as string,
     }));
 
-  const calendar_events: CalendarEvent[] = (eventRows ?? []).map((e) => ({
+  const calendar_events: CalendarEvent[] = (eventRows ?? []).map((e: Record<string, unknown>) => ({
     id: e.id as string,
     title: e.title as string,
     event_date: e.event_date as string,
