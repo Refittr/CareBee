@@ -135,9 +135,12 @@ export function MobileNav() {
           "md:hidden fixed left-0 right-0 z-50 bg-warmstone-white rounded-t-2xl shadow-2xl border-t border-warmstone-100 transition-transform duration-300",
           moreOpen ? "translate-y-0" : "translate-y-full",
         ].join(" ")}
-        style={{ bottom: "calc(56px + env(safe-area-inset-bottom))" }}
+        style={{ bottom: 0 }}
       >
-        <div className="px-4 pt-3 pb-4">
+        <div
+          className="px-4 pt-3"
+          style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom))" }}
+        >
           {/* Drag handle */}
           <div className="w-10 h-1 bg-warmstone-200 rounded-full mx-auto mb-4" />
 
