@@ -425,6 +425,7 @@ export function CalendarPageClient({ householdId }: Props) {
           orderedRx={orderedRx}
           dismissedRx={dismissedRx}
           onDismissRx={dismissRx}
+          onMarkOrdered={markOrdered}
           onDayClick={(date) => drillDown(date, "day")}
           onAppointmentDayView={handleAppointmentDayView}
           onTakenToggle={toggleTaken}
@@ -438,6 +439,10 @@ export function CalendarPageClient({ householdId }: Props) {
           personColorMap={personColorMap}
           showPersonFilters={showPersonFilters}
           today={today}
+          orderedRx={orderedRx}
+          dismissedRx={dismissedRx}
+          onDismissRx={dismissRx}
+          onMarkOrdered={markOrdered}
           onDayClick={(date) => drillDown(date, "day")}
           onTakenToggle={toggleTaken}
         />
