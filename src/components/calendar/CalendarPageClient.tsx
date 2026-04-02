@@ -280,7 +280,7 @@ export function CalendarPageClient({ householdId }: Props) {
   const views: CalendarView[] = ["day", "week", "month", "year"];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 px-4 md:px-0">
       {/* Header */}
       <div className="flex items-center gap-2 flex-wrap">
         {/* Back to dashboard */}
@@ -353,7 +353,7 @@ export function CalendarPageClient({ householdId }: Props) {
             <Bell size={26} />
             {bellCount > 0 && (
               <span
-                className="absolute top-1 right-1 min-w-[20px] h-[20px] rounded-full text-[11px] font-bold flex items-center justify-center px-1.5 leading-none"
+                className="absolute top-1 left-1 min-w-[20px] h-[20px] rounded-full text-[11px] font-bold flex items-center justify-center px-1.5 leading-none"
                 style={{
                   backgroundColor: bellUrgent ? "#DC2626" : "#E8A817",
                   color: "#fff",
