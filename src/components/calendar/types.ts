@@ -55,6 +55,16 @@ export interface CalendarRepeatPrescription {
   person_id: string;
 }
 
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  event_date: string; // 'YYYY-MM-DD'
+  event_time: string | null; // 'HH:MM:SS' from Postgres, null = all-day
+  notes: string | null;
+  category: string;
+  created_by: string;
+}
+
 export interface CalendarData {
   people: CalendarPerson[];
   appointments: CalendarAppointment[];
@@ -62,6 +72,7 @@ export interface CalendarData {
   taken_log: CalendarTakenEntry[];
   entitlement_reviews: CalendarEntitlementReview[];
   repeat_prescriptions: CalendarRepeatPrescription[];
+  calendar_events: CalendarEvent[];
 }
 
 // Derived per-day summary used by day cells

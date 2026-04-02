@@ -37,7 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <ToastContext.Provider value={{ addToast }}>
         <div className="flex min-h-screen bg-warmstone-50">
           <Sidebar />
-          <main className="flex-1 min-w-0 pb-20 md:pb-0">
+          <main className="flex-1 min-w-0 pb-24 md:pb-0">
             {children}
           </main>
         </div>

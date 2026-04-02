@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Pill, FileText, RotateCcw, Clock, MapPin, User, CalendarDays } from "lucide-react";
+import { Pill, FileText, RotateCcw, Clock, MapPin, User, CalendarDays, X } from "lucide-react";
 import { getMedTakenStatus, isMedActiveOnDay } from "../useCalendarData";
 import type {
   CalendarData,
@@ -46,6 +46,14 @@ function formatDisplayDate(iso: string): string {
     year: "numeric",
   });
 }
+/** Returns days until the rx date (0 = due today, 1-3 = upcoming). -1 = not a reminder day. */
+function rxDaysUntil(rxDate: string, dayStr: string): number {
+  const due = new Date(rxDate + "T00:00:00").getTime();
+  const day = new Date(dayStr + "T00:00:00").getTime();
+  const diff = Math.round((due - day) / 86400000);
+  return diff >= 0 && diff <= 3 ? diff : -1;
+}
+
 function buildCalendarDays(year: number, month: number): (Date | null)[] {
   const firstDay = new Date(year, month - 1, 1);
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -66,6 +74,9 @@ interface Props {
   personColorMap: Record<string, string>;
   showPersonFilters: boolean;
   today: Date;
+  orderedRx: Set<string>;
+  dismissedRx: Set<string>;
+  onDismissRx: (medId: string, rxDate: string) => void;
   onDayClick: (date: Date) => void;
   onAppointmentDayView: (date: Date, apptIso: string) => void;
   onTakenToggle: (
@@ -85,6 +96,9 @@ export function MonthView({
   personColorMap,
   showPersonFilters,
   today,
+  orderedRx,
+  dismissedRx,
+  onDismissRx,
   onDayClick,
   onAppointmentDayView,
 }: Props) {
@@ -102,6 +116,7 @@ export function MonthView({
     appt: CalendarAppointment;
     date: Date;
   } | null>(null);
+
 
   function getDayContent(date: Date): DayContent {
     const dayStr = toDateStr(
@@ -132,8 +147,9 @@ export function MonthView({
       ),
       repeatPrescriptions: data.repeat_prescriptions.filter(
         (rx) =>
-          rx.repeat_prescription_date === dayStr &&
-          !hiddenPersonIds.has(rx.person_id)
+          rxDaysUntil(rx.repeat_prescription_date, dayStr) >= 0 &&
+          !hiddenPersonIds.has(rx.person_id) &&
+          !dismissedRx.has(`${rx.id}_${rx.repeat_prescription_date}`)
       ),
     };
   }
@@ -372,14 +388,69 @@ export function MonthView({
                     <FileText size={11} className="text-info shrink-0 ml-1" />
                   )}
 
-                {/* Repeat prescription indicator */}
-                {content.repeatPrescriptions.length > 0 &&
-                  indicatorCount < MAX_INDICATORS && (
-                    <RotateCcw
-                      size={11}
-                      className="text-warmstone-400 shrink-0 ml-1"
-                    />
-                  )}
+                {/* Repeat prescription indicators - one per medication, 1-3 days before due */}
+                {content.repeatPrescriptions.map((rx) => {
+                  if (indicatorCount >= MAX_INDICATORS) return null;
+                  indicatorCount++;
+                  const days = rxDaysUntil(rx.repeat_prescription_date, dayStr);
+                  const isOrdered = orderedRx.has(`${rx.id}_${rx.repeat_prescription_date}`);
+
+                  if (isOrdered) {
+                    return (
+                      <div
+                        key={rx.id}
+                        className="relative group/rx flex items-center gap-0.5 px-1 py-0.5 rounded shrink-0"
+                        style={{ backgroundColor: "#DCFCE7" }}
+                      >
+                        <RotateCcw size={10} style={{ color: "#16A34A" }} className="shrink-0" />
+                        <span className="text-[9px] font-semibold leading-none" style={{ color: "#16A34A" }}>
+                          Rx ordered
+                        </span>
+                        <div
+                          className="pointer-events-none absolute bottom-full left-0 z-50 w-40 rounded-xl px-2.5 pt-2 pb-2.5 shadow-xl opacity-0 group-hover/rx:opacity-100 transition-opacity"
+                          style={{ backgroundColor: "#1C1917" }}
+                        >
+                          <p className="text-[10px] font-semibold text-white">{rx.name}</p>
+                          <p className="text-[9px] mt-0.5" style={{ color: "#86EFAC" }}>Marked as ordered</p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const label = days === 0 ? "Rx due" : `Rx in ${days}d`;
+                  return (
+                    <div
+                      key={rx.id}
+                      className="relative group/rx flex items-center gap-0.5 px-1 py-0.5 rounded shrink-0"
+                      style={{ backgroundColor: "#FEF3C7" }}
+                    >
+                      <RotateCcw size={10} style={{ color: "#D97706" }} className="shrink-0" />
+                      <span className="text-[9px] font-semibold leading-none" style={{ color: "#D97706" }}>
+                        {label}
+                      </span>
+                      {/* Dismiss button */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDismissRx(rx.id, rx.repeat_prescription_date); }}
+                        className="ml-0.5 opacity-0 group-hover/rx:opacity-100 transition-opacity rounded-full"
+                        style={{ color: "#D97706" }}
+                        aria-label={`Dismiss reminder for ${rx.name}`}
+                      >
+                        <X size={9} />
+                      </button>
+                      {/* Tooltip */}
+                      <div
+                        className="pointer-events-none absolute bottom-full left-0 z-50 w-40 rounded-xl px-2.5 pt-2 pb-2.5 shadow-xl opacity-0 group-hover/rx:opacity-100 transition-opacity"
+                        style={{ backgroundColor: "#1C1917" }}
+                      >
+                        <p className="text-[10px] font-semibold text-white">{rx.name}</p>
+                        <p className="text-[9px] text-amber-300 mt-0.5">
+                          {days === 0 ? "Due today" : `Due in ${days} day${days > 1 ? "s" : ""}`}
+                        </p>
+                        <p className="text-[9px] text-gray-400 mt-1">Repeat prescription</p>
+                      </div>
+                    </div>
+                  );
+                })}
 
                 {/* +N more overflow */}
                 {(() => {

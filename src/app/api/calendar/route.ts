@@ -7,6 +7,7 @@ import type {
   CalendarEntitlementReview,
   CalendarRepeatPrescription,
   CalendarPerson,
+  CalendarEvent,
 } from "@/components/calendar/types";
 
 export async function GET(request: NextRequest) {
@@ -41,6 +42,11 @@ export async function GET(request: NextRequest) {
   const startOfMonth = `${year}-${String(month).padStart(2, "0")}-01`;
   const endDate = new Date(year, month, 0); // last day of month
   const endOfMonth = `${year}-${String(month).padStart(2, "0")}-${String(endDate.getDate()).padStart(2, "0")}`;
+  // For repeat prescriptions, fetch 3 days into next month so end-of-month cells can show upcoming reminders
+  const rxWindowEnd = (() => {
+    const d = new Date(year, month - 1, endDate.getDate() + 3);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
   const startOfNextMonth = new Date(year, month, 1).toISOString();
   const startOfMonthISO = new Date(year, month - 1, 1).toISOString();
 
@@ -55,6 +61,7 @@ export async function GET(request: NextRequest) {
     { data: medRows },
     { data: reviewRows },
     { data: rxRows },
+    { data: eventRows },
   ] = await Promise.all([
     // People in this household (or just the one person)
     personId
@@ -108,10 +115,18 @@ export async function GET(request: NextRequest) {
         .eq("household_id", householdId)
         .not("repeat_prescription_date", "is", null)
         .gte("repeat_prescription_date", startOfMonth)
-        .lte("repeat_prescription_date", endOfMonth);
+        .lte("repeat_prescription_date", rxWindowEnd);
       if (personId) q = q.eq("person_id", personId);
       return q;
     })(),
+
+    // Manual calendar events in the month
+    svc
+      .from("calendar_events")
+      .select("id, title, event_date, event_time, notes, category, created_by")
+      .eq("household_id", householdId)
+      .gte("event_date", startOfMonth)
+      .lte("event_date", endOfMonth),
   ]);
 
   // Fetch medication schedules for the active scheduled meds
@@ -198,6 +213,16 @@ export async function GET(request: NextRequest) {
       person_id: r.person_id as string,
     }));
 
+  const calendar_events: CalendarEvent[] = (eventRows ?? []).map((e) => ({
+    id: e.id as string,
+    title: e.title as string,
+    event_date: e.event_date as string,
+    event_time: (e.event_time as string | null) ?? null,
+    notes: (e.notes as string | null) ?? null,
+    category: (e.category as string) ?? "other",
+    created_by: e.created_by as string,
+  }));
+
   return NextResponse.json({
     people,
     appointments,
@@ -205,5 +230,6 @@ export async function GET(request: NextRequest) {
     taken_log,
     entitlement_reviews,
     repeat_prescriptions,
+    calendar_events,
   });
 }

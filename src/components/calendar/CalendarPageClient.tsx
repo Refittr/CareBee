@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Bell } from "lucide-react";
+import Link from "next/link";
 import { useCalendarData } from "./useCalendarData";
-import type { CalendarData, CalendarTakenEntry } from "./types";
+import type { CalendarData, CalendarTakenEntry, CalendarEvent } from "./types";
 import { YearView } from "./views/YearView";
 import { MonthView } from "./views/MonthView";
 import { WeekView } from "./views/WeekView";
 import { DayView } from "./views/DayView";
+import { PrescriptionDrawer } from "./PrescriptionDrawer";
+import { AddEventModal } from "./AddEventModal";
 
 export type CalendarView = "day" | "week" | "month" | "year";
 
@@ -34,6 +37,13 @@ export function toDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function rxDaysUntil(rxDate: string, dayStr: string): number {
+  const due = new Date(rxDate + "T00:00:00").getTime();
+  const day = new Date(dayStr + "T00:00:00").getTime();
+  const diff = Math.round((due - day) / 86400000);
+  return diff >= 0 && diff <= 3 ? diff : -1;
+}
+
 function formatTitle(view: CalendarView, cursor: Date): string {
   if (view === "year") return String(cursor.getFullYear());
   if (view === "month") {
@@ -44,12 +54,12 @@ function formatTitle(view: CalendarView, cursor: Date): string {
     const sunday = addDays(monday, 6);
     const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
     if (monday.getFullYear() !== sunday.getFullYear()) {
-      return `${monday.toLocaleDateString("en-GB", { ...opts, year: "numeric" })} – ${sunday.toLocaleDateString("en-GB", { ...opts, year: "numeric" })}`;
+      return `${monday.toLocaleDateString("en-GB", { ...opts, year: "numeric" })} - ${sunday.toLocaleDateString("en-GB", { ...opts, year: "numeric" })}`;
     }
     if (monday.getMonth() !== sunday.getMonth()) {
-      return `${monday.toLocaleDateString("en-GB", opts)} – ${sunday.toLocaleDateString("en-GB", { ...opts, year: "numeric" })}`;
+      return `${monday.toLocaleDateString("en-GB", opts)} - ${sunday.toLocaleDateString("en-GB", { ...opts, year: "numeric" })}`;
     }
-    return `${monday.getDate()}–${sunday.toLocaleDateString("en-GB", { ...opts, year: "numeric" })}`;
+    return `${monday.getDate()} - ${sunday.toLocaleDateString("en-GB", { ...opts, year: "numeric" })}`;
   }
   // day
   return cursor.toLocaleDateString("en-GB", {
@@ -95,10 +105,52 @@ export function CalendarPageClient({ householdId }: Props) {
     return d;
   }, []);
 
+  const todayStr = useMemo(() => toDateStr(today), [today]);
+
   const [view, setView] = useState<CalendarView>("month");
   const [cursor, setCursor] = useState<Date>(today);
   const [hiddenPersonIds, setHiddenPersonIds] = useState<Set<string>>(new Set());
   const [focusIso, setFocusIso] = useState<string | null>(null);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [addEventOpen, setAddEventOpen] = useState(false);
+  const [localEvents, setLocalEvents] = useState<CalendarEvent[]>([]);
+
+  // Rx notification state — shared across all views and the drawer
+  const [orderedRx, setOrderedRx] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = localStorage.getItem("carebee_ordered_rx");
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    } catch { return new Set(); }
+  });
+
+  const [dismissedRx, setDismissedRx] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = localStorage.getItem("carebee_dismissed_rx");
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    } catch { return new Set(); }
+  });
+
+  function markOrdered(medId: string, rxDate: string) {
+    const key = `${medId}_${rxDate}`;
+    setOrderedRx((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      try { localStorage.setItem("carebee_ordered_rx", JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }
+
+  function dismissRx(medId: string, rxDate: string) {
+    const key = `${medId}_${rxDate}`;
+    setDismissedRx((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      try { localStorage.setItem("carebee_dismissed_rx", JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }
 
   const weekMonday = useMemo(() => getWeekMonday(cursor), [cursor]);
   const weekSunday = useMemo(() => addDays(weekMonday, 6), [weekMonday]);
@@ -131,6 +183,13 @@ export function CalendarPageClient({ householdId }: Props) {
     needsSecondMonth ? secondaryMonth : primaryMonth
   );
 
+  // Always fetch today's month for the notification bell (browser deduplicates if same as above)
+  const { data: notifData } = useCalendarData(
+    householdId,
+    today.getFullYear(),
+    today.getMonth() + 1
+  );
+
   const mergedData = useMemo((): CalendarData | null => {
     if (!data1) return null;
     if (!needsSecondMonth || !data2) return data1;
@@ -147,8 +206,19 @@ export function CalendarPageClient({ householdId }: Props) {
         data1.repeat_prescriptions,
         data2.repeat_prescriptions
       ),
+      calendar_events: mergeUnique(
+        data1.calendar_events ?? [],
+        data2.calendar_events ?? []
+      ),
     };
   }, [data1, data2, needsSecondMonth]);
+
+  // All calendar events: fetched + locally added this session
+  const allCalendarEvents = useMemo(() => {
+    const fetched = mergedData?.calendar_events ?? [];
+    const fetchedIds = new Set(fetched.map((e) => e.id));
+    return [...fetched, ...localEvents.filter((e) => !fetchedIds.has(e.id))];
+  }, [mergedData, localEvents]);
 
   const takenLog = useMemo(() => {
     if (!needsSecondMonth) return takenLog1;
@@ -164,6 +234,28 @@ export function CalendarPageClient({ householdId }: Props) {
   }, [data1]);
 
   const showPersonFilters = (data1?.people.length ?? 0) > 1;
+
+  function personName(personId: string): string {
+    const p = data1?.people.find((p) => p.id === personId);
+    return p ? `${p.first_name} ${p.last_name}` : "";
+  }
+
+  // Active notification count (for bell badge) — based on today, not the viewed month
+  const { bellCount, bellUrgent } = useMemo(() => {
+    const rxList = notifData?.repeat_prescriptions ?? [];
+    const active = rxList.filter(
+      (rx) =>
+        rxDaysUntil(rx.repeat_prescription_date, todayStr) >= 0 &&
+        !dismissedRx.has(`${rx.id}_${rx.repeat_prescription_date}`) &&
+        !orderedRx.has(`${rx.id}_${rx.repeat_prescription_date}`)
+    );
+    return {
+      bellCount: active.length,
+      bellUrgent: active.some(
+        (rx) => rxDaysUntil(rx.repeat_prescription_date, todayStr) <= 1
+      ),
+    };
+  }, [notifData, todayStr, dismissedRx, orderedRx]);
 
   function togglePerson(id: string) {
     setHiddenPersonIds((prev) => {
@@ -189,8 +281,17 @@ export function CalendarPageClient({ householdId }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header — navigation + title + view switcher all in one row */}
+      {/* Header */}
       <div className="flex items-center gap-2 flex-wrap">
+        {/* Back to dashboard */}
+        <Link
+          href={`/household/${householdId}`}
+          className="flex items-center gap-1 text-sm font-semibold text-warmstone-500 hover:text-warmstone-900 hover:bg-warmstone-100 px-2.5 py-1.5 rounded-lg transition-colors shrink-0 mr-1"
+        >
+          <ChevronLeft size={15} />
+          Back
+        </Link>
+
         {/* Prev / Today / Next */}
         <div className="flex items-center gap-0.5">
           <button
@@ -223,7 +324,7 @@ export function CalendarPageClient({ householdId }: Props) {
         {/* Divider */}
         <div className="w-px h-6 bg-warmstone-200 mx-1 hidden sm:block" />
 
-        {/* View switcher — pill tabs */}
+        {/* View switcher */}
         <div className="flex items-center gap-1 bg-warmstone-100 rounded-xl p-1">
           {views.map((v) => (
             <button
@@ -239,6 +340,29 @@ export function CalendarPageClient({ householdId }: Props) {
               {v.charAt(0).toUpperCase() + v.slice(1)}
             </button>
           ))}
+        </div>
+
+        {/* Notification bell */}
+        <div className="ml-auto relative">
+          <button
+            onClick={() => setBellOpen(true)}
+            className="relative p-2.5 rounded-xl transition-colors hover:bg-warmstone-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            style={{ color: bellCount > 0 ? "#E8A817" : "#A8957A" }}
+            aria-label={`Prescription alerts${bellCount > 0 ? `, ${bellCount} active` : ""}`}
+          >
+            <Bell size={26} />
+            {bellCount > 0 && (
+              <span
+                className="absolute top-1 right-1 min-w-[20px] h-[20px] rounded-full text-[11px] font-bold flex items-center justify-center px-1.5 leading-none"
+                style={{
+                  backgroundColor: bellUrgent ? "#DC2626" : "#E8A817",
+                  color: "#fff",
+                }}
+              >
+                {bellCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -298,6 +422,9 @@ export function CalendarPageClient({ householdId }: Props) {
           personColorMap={personColorMap}
           showPersonFilters={showPersonFilters}
           today={today}
+          orderedRx={orderedRx}
+          dismissedRx={dismissedRx}
+          onDismissRx={dismissRx}
           onDayClick={(date) => drillDown(date, "day")}
           onAppointmentDayView={handleAppointmentDayView}
           onTakenToggle={toggleTaken}
@@ -324,9 +451,34 @@ export function CalendarPageClient({ householdId }: Props) {
           showPersonFilters={showPersonFilters}
           today={today}
           focusIso={focusIso}
+          calendarEvents={allCalendarEvents}
           onTakenToggle={toggleTaken}
+          onAddEvent={() => setAddEventOpen(true)}
         />
       )}
+
+      {/* Add event modal */}
+      <AddEventModal
+        open={addEventOpen}
+        onClose={() => setAddEventOpen(false)}
+        defaultDate={toDateStr(cursor)}
+        householdId={householdId}
+        onCreated={(event) => setLocalEvents((prev) => [...prev, event])}
+      />
+
+      {/* Prescription alerts drawer */}
+      <PrescriptionDrawer
+        open={bellOpen}
+        onClose={() => setBellOpen(false)}
+        prescriptions={notifData?.repeat_prescriptions ?? []}
+        todayStr={todayStr}
+        orderedRx={orderedRx}
+        dismissedRx={dismissedRx}
+        markOrdered={markOrdered}
+        dismissRx={dismissRx}
+        showPersonFilters={showPersonFilters}
+        personName={personName}
+      />
     </div>
   );
 }
