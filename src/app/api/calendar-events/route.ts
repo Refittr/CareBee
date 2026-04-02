@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   if (!membership) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { data, error } = await svc
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (svc as any)
     .from("calendar_events")
     .insert({
       household_id,

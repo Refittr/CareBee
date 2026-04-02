@@ -120,8 +120,9 @@ export async function GET(request: NextRequest) {
       return q;
     })(),
 
-    // Manual calendar events in the month
-    svc
+    // Manual calendar events in the month (cast to any — table added after type generation)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (svc as any)
       .from("calendar_events")
       .select("id, title, event_date, event_time, notes, category, created_by")
       .eq("household_id", householdId)
