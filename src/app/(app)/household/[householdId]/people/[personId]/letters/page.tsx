@@ -70,11 +70,19 @@ const TEMPLATE_CATEGORIES = [
     ],
   },
   {
+    label: "Work and employment",
+    key: "work",
+    templates: [
+      { id: "employer_letter", label: "Letter to employer (caring responsibilities)" },
+      { id: "employer_push_back_doctors_note", label: "Push back on employer requesting a doctor's note" },
+      { id: "employer_disclose_health_condition", label: "Disclose health condition and request support" },
+    ],
+  },
+  {
     label: "Legal and other",
     key: "legal",
     templates: [
       { id: "opg_cover_letter", label: "Letter to the Office of the Public Guardian" },
-      { id: "employer_letter", label: "Letter to employer (caring responsibilities)" },
       { id: "custom", label: "Write your own" },
     ],
   },
@@ -91,7 +99,7 @@ function templateLabel(id: string): string {
 // ---- Template-specific extra fields ----------------------------------------
 // These are fields that collect context the AI cannot get from the care record.
 
-const TEMPLATE_EXTRA_FIELDS: Record<string, { key: string; label: string; placeholder: string; hint?: string }[]> = {
+const TEMPLATE_EXTRA_FIELDS: Record<string, { key: string; label: string; placeholder: string; hint?: string; options?: { value: string; label: string }[] }[]> = {
   employer_letter: [
     {
       key: "carer_name",
@@ -123,6 +131,107 @@ const TEMPLATE_EXTRA_FIELDS: Record<string, { key: string; label: string; placeh
       key: "carer_name",
       label: "Your name (the carer requesting assessment)",
       placeholder: "e.g. Jane Smith",
+    },
+  ],
+  employer_push_back_doctors_note: [
+    {
+      key: "your_name",
+      label: "Your name",
+      placeholder: "e.g. Jane Smith",
+    },
+    {
+      key: "manager_name",
+      label: "Manager or employer name",
+      placeholder: "e.g. Sarah Jones",
+    },
+    {
+      key: "company_name",
+      label: "Company name",
+      placeholder: "e.g. Acme Ltd",
+    },
+    {
+      key: "location",
+      label: "Where are you based?",
+      placeholder: "",
+      options: [
+        { value: "England or Wales", label: "England or Wales" },
+        { value: "Scotland", label: "Scotland" },
+        { value: "Northern Ireland", label: "Northern Ireland" },
+      ],
+    },
+    {
+      key: "taken_sick_leave",
+      label: "Have you taken any sick leave?",
+      placeholder: "",
+      options: [
+        { value: "Yes", label: "Yes" },
+        { value: "No", label: "No" },
+      ],
+    },
+    {
+      key: "appointments_management",
+      label: "How have you managed appointments so far?",
+      placeholder: "",
+      options: [
+        { value: "Annual leave", label: "Annual leave" },
+        { value: "TOIL (time off in lieu)", label: "TOIL (time off in lieu)" },
+        { value: "Unpaid leave", label: "Unpaid leave" },
+        { value: "A mix of the above", label: "A mix of the above" },
+      ],
+    },
+    {
+      key: "satisfactory_output",
+      label: "Has your work output been confirmed as satisfactory?",
+      placeholder: "",
+      options: [
+        { value: "Yes", label: "Yes" },
+        { value: "No", label: "No" },
+        { value: "Not discussed", label: "Not discussed" },
+      ],
+    },
+    {
+      key: "employer_reason",
+      label: "Reason your employer gave for requesting the note (optional)",
+      placeholder: "e.g. Routine policy for absences over 3 days, or leave blank if no reason was given",
+      hint: "Leave blank if no reason was given.",
+    },
+  ],
+  employer_disclose_health_condition: [
+    {
+      key: "your_name",
+      label: "Your name",
+      placeholder: "e.g. Jane Smith",
+    },
+    {
+      key: "manager_name",
+      label: "Manager or employer name",
+      placeholder: "e.g. Sarah Jones",
+    },
+    {
+      key: "company_name",
+      label: "Company name",
+      placeholder: "e.g. Acme Ltd",
+    },
+    {
+      key: "condition_description",
+      label: "Nature of condition",
+      placeholder: "e.g. a long-term health condition, a chronic pain condition, an autoimmune condition",
+      hint: "You can be as vague or specific as you like. The letter will use your wording.",
+    },
+    {
+      key: "support_requested",
+      label: "What support or adjustments are you looking for?",
+      placeholder: "e.g. occasional flexibility to attend medical appointments, the option to work from home on difficult days",
+    },
+    {
+      key: "mention_equality_act",
+      label: "Mention the Equality Act 2010?",
+      placeholder: "",
+      hint: "Only relevant if your condition qualifies as a disability under the Act.",
+      options: [
+        { value: "Yes, mention it", label: "Yes, reference the Equality Act 2010" },
+        { value: "No, keep it informal", label: "No, keep it informal" },
+      ],
     },
   ],
 };
@@ -442,18 +551,35 @@ function LettersPageInner() {
           {selectedTemplate && (TEMPLATE_EXTRA_FIELDS[selectedTemplate] ?? []).length > 0 && (
             <div className="flex flex-col gap-3 bg-sage-50 border border-sage-100 rounded-lg p-4">
               <p className="text-xs font-bold text-sage-700 uppercase tracking-wide">Your details</p>
-              {(TEMPLATE_EXTRA_FIELDS[selectedTemplate] ?? []).map((field) => (
-                <Input
-                  key={field.key}
-                  label={field.label}
-                  placeholder={field.placeholder}
-                  hint={field.hint}
-                  value={extraFieldValues[field.key] ?? ""}
-                  onChange={(e) =>
-                    setExtraFieldValues((prev) => ({ ...prev, [field.key]: e.target.value }))
-                  }
-                />
-              ))}
+              {(TEMPLATE_EXTRA_FIELDS[selectedTemplate] ?? []).map((field) =>
+                field.options ? (
+                  <div key={field.key} className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-warmstone-800">{field.label}</label>
+                    {field.hint && <p className="text-xs text-warmstone-400">{field.hint}</p>}
+                    <select
+                      value={extraFieldValues[field.key] ?? ""}
+                      onChange={(e) => setExtraFieldValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                      className="w-full rounded-lg border border-warmstone-200 bg-warmstone-white px-3 py-2 text-sm text-warmstone-800 focus:outline-none focus:ring-2 focus:ring-honey-400 min-h-[44px]"
+                    >
+                      <option value="">Select...</option>
+                      {field.options.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <Input
+                    key={field.key}
+                    label={field.label}
+                    placeholder={field.placeholder}
+                    hint={field.hint}
+                    value={extraFieldValues[field.key] ?? ""}
+                    onChange={(e) =>
+                      setExtraFieldValues((prev) => ({ ...prev, [field.key]: e.target.value }))
+                    }
+                  />
+                )
+              )}
             </div>
           )}
 

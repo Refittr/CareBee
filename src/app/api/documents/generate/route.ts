@@ -34,6 +34,28 @@ For NHS complaint letters:
 - State what happened, what should have happened, the impact, and what resolution is sought
 - Reference the NHS complaints procedure
 
+For letters pushing back on an employer's request for a doctor's note:
+- Tone: professional, warm, and firm but not aggressive. The goal is to open a dialogue, not start a fight.
+- Structure: [DATE placeholder], salutation, body paragraphs, sign-off.
+- The letter is written by the employee (use their name from ADDITIONAL CONTEXT).
+- Address it to the manager/employer named in ADDITIONAL CONTEXT.
+- Explain how appointments have been managed (annual leave, TOIL, or unpaid) using the value from ADDITIONAL CONTEXT.
+- If work output has been confirmed as satisfactory and no valid business reason was given: include one sentence referencing the relevant legislation. Use the Equality Act 2010 for England/Wales/Scotland, or the Disability Discrimination Act 1995 for Northern Ireland. Only include legislation if both conditions are met.
+- If a reason was given by the employer, acknowledge it and address it calmly.
+- Close by requesting a meeting or conversation to discuss further.
+- UK English spelling throughout. No em dashes anywhere.
+
+For letters disclosing a health condition to an employer and requesting reasonable adjustments:
+- Tone: professional, warm, and open. The goal is to start a constructive conversation, not make demands.
+- Structure: [DATE placeholder], salutation, body paragraphs, sign-off.
+- The letter is written by the employee (use their name from ADDITIONAL CONTEXT).
+- Address it to the manager/employer named in ADDITIONAL CONTEXT.
+- Use the condition description exactly as provided. Do not add clinical detail or diagnoses the user has not supplied.
+- List the requested adjustments or support from ADDITIONAL CONTEXT.
+- Only mention the Equality Act 2010 if ADDITIONAL CONTEXT says to. If mentioned, keep it as context rather than a threat.
+- Close by inviting a follow-up meeting or conversation.
+- UK English spelling throughout. No em dashes anywhere.
+
 End every piece of text with this note on its own line:
 "Note: Please review this carefully before using. Check all dates, names, and details are correct. Fill in any [PLACEHOLDER] sections."
 
@@ -182,5 +204,7 @@ const TEMPLATE_LABELS: Record<string, string> = {
   send_tribunal_appeal: "SEND tribunal appeal letter",
   opg_cover_letter: "Cover letter to the Office of the Public Guardian",
   employer_letter: "Letter to employer explaining caring responsibilities",
+  employer_push_back_doctors_note: "Letter pushing back on employer's request for a doctor's note",
+  employer_disclose_health_condition: "Letter disclosing a health condition to employer and requesting reasonable adjustments",
   custom: "Custom letter",
 };
