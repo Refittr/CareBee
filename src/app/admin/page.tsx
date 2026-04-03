@@ -103,6 +103,9 @@ export default async function AdminDashboardPage() {
   const apiUsage = allApiUsage ?? [];
   const aiLog = allAiLog ?? [];
 
+  const todayIso = todayStart.toISOString();
+  const weekIso = weekStart.toISOString();
+
   // ---- AI usage stats ----
   const aiTotalCalls = aiLog.length;
   const aiSuccessCalls = aiLog.filter((r) => r.status === "success").length;
@@ -124,8 +127,6 @@ export default async function AdminDashboardPage() {
     .sort((a, b) => b.total - a.total);
 
   // ---- Growth stats ----
-  const todayIso = todayStart.toISOString();
-  const weekIso = weekStart.toISOString();
   const monthIso = monthStart.toISOString();
   const totalUsers = profiles.length;
   const todayUsers = profiles.filter((p) => p.created_at >= todayIso).length;
