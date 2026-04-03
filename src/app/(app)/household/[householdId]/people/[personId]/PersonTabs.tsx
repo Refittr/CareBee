@@ -37,7 +37,9 @@ export function PersonTabs({ baseUrl, dailyCareEnabled }: { baseUrl: string; dai
   ];
 
   const primaryTabs = tabs.filter((t) => MOBILE_PRIMARY_SEGMENTS.includes(t.segment));
-  const overflowTabs = tabs.filter((t) => !MOBILE_PRIMARY_SEGMENTS.includes(t.segment));
+  const overflowTabs = tabs
+    .filter((t) => !MOBILE_PRIMARY_SEGMENTS.includes(t.segment))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   // Active tab is in overflow — mark the More button as active
   const overflowActive = overflowTabs.some((t) => t.segment === segment);
