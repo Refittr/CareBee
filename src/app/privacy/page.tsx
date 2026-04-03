@@ -67,7 +67,7 @@ export default function PrivacyPage() {
 
             <div className="bg-warmstone-white border border-warmstone-200 rounded-xl p-4">
               <p className="text-sm font-bold text-warmstone-900 mb-1">You are in control</p>
-              <p className="text-sm text-warmstone-700 leading-relaxed">You can delete your care record and all associated data yourself, straight from the app. No need to email us or wait for anyone. You can also correct any information yourself at any time.</p>
+              <p className="text-sm text-warmstone-700 leading-relaxed">You can delete your care record yourself from Settings in the app. This permanently wipes everything: records, medications, documents, calendar entries, and letters. No need to email us. If you want a copy of everything we hold about you, email <a href="mailto:support@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">support@mycarebee.co.uk</a> and we will compile it for you.</p>
             </div>
 
             <div className="bg-warmstone-white border border-warmstone-200 rounded-xl p-4">
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
                   ["Does the AI keep my data?", "No. It processes and forgets."],
                   ["Can anyone else see my records?", "Only people you invite to your care record"],
                   ["Do you sell my data?", "Never"],
-                  ["Can I delete everything?", "Yes, yourself from the app"],
+                  ["Can I delete everything?", "Yes, from Settings in the app. Wipes everything."],
                   ["Are you registered with the ICO?", "Registration in progress (beta)"],
                 ].map(([q, a], i) => (
                   <tr key={i} className={i % 2 === 0 ? "bg-warmstone-50" : "bg-warmstone-white"}>
@@ -452,26 +452,20 @@ export default function PrivacyPage() {
         </p>
         <ul className="list-disc list-outside ml-5 flex flex-col gap-2 mb-4 text-sm text-warmstone-800 leading-relaxed">
           <li>
-            <span className="font-semibold text-warmstone-900">Right of access:</span> you can ask
-            for a copy of all the data we hold about you. We will respond within one month.
+            <span className="font-semibold text-warmstone-900">Right of access:</span> you can request a copy of all the data we hold about you by emailing <a href="mailto:support@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">support@mycarebee.co.uk</a>. We will compile it manually and respond within one month.
           </li>
           <li>
             <span className="font-semibold text-warmstone-900">Right to rectification:</span> if
             any data we hold about you is inaccurate, you can ask us to correct it.
           </li>
           <li>
-            <span className="font-semibold text-warmstone-900">Right to erasure:</span> you can ask
-            us to delete your data. You can also delete your own records and your account directly
-            within the app at any time.
+            <span className="font-semibold text-warmstone-900">Right to erasure:</span> you can delete your care record yourself from Settings in the app. This permanently removes everything: records, medications, documents, calendar entries, and letters. No need to contact us.
           </li>
           <li>
             <span className="font-semibold text-warmstone-900">Right to restrict processing:</span>{" "}
             you can ask us to limit how we process your data in certain circumstances.
           </li>
-          <li>
-            <span className="font-semibold text-warmstone-900">Right to data portability:</span>{" "}
-            you can request your data in a machine-readable format (JSON).
-          </li>
+
           <li>
             <span className="font-semibold text-warmstone-900">Right to object:</span> you can
             object to our processing of your data on grounds of legitimate interests.
