@@ -8,16 +8,24 @@ import type {
   CalendarRepeatPrescription,
   CalendarPerson,
   CalendarEvent,
+  CalendarWaitingList,
 } from "@/components/calendar/types";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const householdId = searchParams.get("householdId");
+
+  // Accept either householdIds (comma-separated, new) or householdId (single, legacy)
+  const householdIdsRaw = searchParams.get("householdIds") ?? searchParams.get("householdId");
   const yearParam = searchParams.get("year");
   const monthParam = searchParams.get("month");
   const personId = searchParams.get("personId");
 
-  if (!householdId || !yearParam || !monthParam) {
+  if (!householdIdsRaw || !yearParam || !monthParam) {
+    return NextResponse.json({ error: "Missing required params" }, { status: 400 });
+  }
+
+  const householdIdsArr = householdIdsRaw.split(",").map((s) => s.trim()).filter(Boolean);
+  if (householdIdsArr.length === 0) {
     return NextResponse.json({ error: "Missing required params" }, { status: 400 });
   }
 
@@ -30,30 +38,31 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
   const svc = await createServiceClient();
-  const { data: membership } = await svc
-    .from("household_members")
-    .select("role")
-    .eq("household_id", householdId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!membership) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  // Validate membership for all requested household IDs
+  const membershipChecks = await Promise.all(
+    householdIdsArr.map((id) =>
+      svc
+        .from("household_members")
+        .select("role")
+        .eq("household_id", id)
+        .eq("user_id", user.id)
+        .maybeSingle()
+    )
+  );
+  const allowedIds = householdIdsArr.filter((_, i) => membershipChecks[i].data != null);
+  if (allowedIds.length === 0) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Date range for the month
   const startOfMonth = `${year}-${String(month).padStart(2, "0")}-01`;
-  const endDate = new Date(year, month, 0); // last day of month
+  const endDate = new Date(year, month, 0);
   const endOfMonth = `${year}-${String(month).padStart(2, "0")}-${String(endDate.getDate()).padStart(2, "0")}`;
-  // For repeat prescriptions, fetch 3 days into next month so end-of-month cells can show upcoming reminders
   const rxWindowEnd = (() => {
     const d = new Date(year, month - 1, endDate.getDate() + 3);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
   const startOfNextMonth = new Date(year, month, 1).toISOString();
   const startOfMonthISO = new Date(year, month - 1, 1).toISOString();
-
-  // Base filter: household, optionally scoped to a single person
-  const personFilter = personId
-    ? (q: ReturnType<typeof svc.from>) => (q as any).eq("person_id", personId)
-    : (q: ReturnType<typeof svc.from>) => q;
 
   const [
     { data: peopleRows },
@@ -62,18 +71,19 @@ export async function GET(request: NextRequest) {
     { data: reviewRows },
     { data: rxRows },
     { data: eventRows },
+    { data: waitlistRows },
   ] = await Promise.all([
-    // People in this household (or just the one person)
+    // People in these households (or just the one person)
     personId
       ? svc.from("people").select("id, first_name, last_name").eq("id", personId)
-      : svc.from("people").select("id, first_name, last_name").eq("household_id", householdId),
+      : svc.from("people").select("id, first_name, last_name").in("household_id", allowedIds),
 
-    // Appointments in the month (not cancelled)
+    // Appointments in the month
     (() => {
       let q = svc
         .from("appointments")
         .select("id, title, appointment_date, location, professional_name, department, status, person_id")
-        .eq("household_id", householdId)
+        .in("household_id", allowedIds)
         .neq("status", "cancelled")
         .gte("appointment_date", startOfMonthISO)
         .lt("appointment_date", startOfNextMonth);
@@ -81,12 +91,12 @@ export async function GET(request: NextRequest) {
       return q;
     })(),
 
-    // Scheduled active medications whose date range overlaps the month
+    // Active scheduled medications
     (() => {
       let q = svc
         .from("medications")
         .select("id, name, dosage, purpose, schedule_type, times_per_day, start_date, end_date, person_id")
-        .eq("household_id", householdId)
+        .in("household_id", allowedIds)
         .not("schedule_type", "is", null)
         .eq("is_active", true)
         .or(`start_date.is.null,start_date.lte.${endOfMonth}`)
@@ -95,24 +105,24 @@ export async function GET(request: NextRequest) {
       return q;
     })(),
 
-    // Entitlements with review_date in the month
+    // Entitlement reviews in the month
     (() => {
       let q = svc
         .from("entitlements")
         .select("id, benefit_name, review_date, person_id")
-        .eq("household_id", householdId)
+        .in("household_id", allowedIds)
         .gte("review_date", startOfMonth)
         .lte("review_date", endOfMonth);
       if (personId) q = q.eq("person_id", personId);
       return q;
     })(),
 
-    // Repeat prescription dates in the month
+    // Repeat prescription dates
     (() => {
       let q = svc
         .from("medications")
         .select("id, name, repeat_prescription_date, person_id")
-        .eq("household_id", householdId)
+        .in("household_id", allowedIds)
         .not("repeat_prescription_date", "is", null)
         .gte("repeat_prescription_date", startOfMonth)
         .lte("repeat_prescription_date", rxWindowEnd);
@@ -120,17 +130,33 @@ export async function GET(request: NextRequest) {
       return q;
     })(),
 
-    // Manual calendar events in the month (cast to any — table added after type generation)
+    // Manual calendar events
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (svc as any)
-      .from("calendar_events")
-      .select("id, title, event_date, event_time, notes, category, created_by")
-      .eq("household_id", householdId)
-      .gte("event_date", startOfMonth)
-      .lte("event_date", endOfMonth),
+    (() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let q = (svc as any)
+        .from("calendar_events")
+        .select("id, title, event_date, event_time, notes, category, created_by")
+        .in("household_id", allowedIds)
+        .gte("event_date", startOfMonth)
+        .lte("event_date", endOfMonth);
+      if (personId) q = q.eq("person_id", personId);
+      return q;
+    })(),
+
+    // Active waiting lists (no date filter — full range shown in year view)
+    (() => {
+      let q = svc
+        .from("waiting_lists")
+        .select("id, department, referral_date, estimated_weeks, status, person_id")
+        .in("household_id", allowedIds)
+        .in("status", ["waiting", "appointment_received"]);
+      if (personId) q = q.eq("person_id", personId);
+      return q;
+    })(),
   ]);
 
-  // Fetch medication schedules for the active scheduled meds
+  // Fetch medication schedules
   const medIds = (medRows ?? []).map((m) => m.id as string);
   const { data: scheduleRows } = medIds.length > 0
     ? await svc
@@ -140,7 +166,7 @@ export async function GET(request: NextRequest) {
         .order("time")
     : { data: [] as Array<{ id: string; medication_id: string; time: string }> };
 
-  // Fetch taken log for the month
+  // Fetch taken log
   const { data: takenRows } = medIds.length > 0
     ? await svc
         .from("medication_taken_log")
@@ -224,6 +250,15 @@ export async function GET(request: NextRequest) {
     created_by: e.created_by as string,
   }));
 
+  const waiting_lists: CalendarWaitingList[] = (waitlistRows ?? []).map((w) => ({
+    id: w.id as string,
+    department: w.department as string,
+    referral_date: w.referral_date as string,
+    estimated_weeks: (w.estimated_weeks as number | null) ?? null,
+    status: w.status as string,
+    person_id: w.person_id as string,
+  }));
+
   return NextResponse.json({
     people,
     appointments,
@@ -232,5 +267,6 @@ export async function GET(request: NextRequest) {
     entitlement_reviews,
     repeat_prescriptions,
     calendar_events,
+    waiting_lists,
   });
 }

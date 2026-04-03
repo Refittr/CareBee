@@ -9,6 +9,7 @@ const STATIC_TABS = [
   { label: "Medications", segment: "medications" },
   { label: "Allergies", segment: "allergies" },
   { label: "Appointments", segment: "appointments" },
+  { label: "Calendar", segment: "calendar" },
   { label: "Test Results", segment: "test-results" },
   { label: "Documents", segment: "documents" },
   { label: "Notes", segment: "notes" },

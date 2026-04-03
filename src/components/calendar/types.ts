@@ -65,6 +65,15 @@ export interface CalendarEvent {
   created_by: string;
 }
 
+export interface CalendarWaitingList {
+  id: string;
+  department: string;
+  referral_date: string; // 'YYYY-MM-DD'
+  estimated_weeks: number | null;
+  status: string; // "waiting" | "appointment_received"
+  person_id: string;
+}
+
 export interface CalendarData {
   people: CalendarPerson[];
   appointments: CalendarAppointment[];
@@ -73,6 +82,7 @@ export interface CalendarData {
   entitlement_reviews: CalendarEntitlementReview[];
   repeat_prescriptions: CalendarRepeatPrescription[];
   calendar_events: CalendarEvent[];
+  waiting_lists: CalendarWaitingList[];
 }
 
 // Derived per-day summary used by day cells

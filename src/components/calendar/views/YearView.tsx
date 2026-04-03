@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import type { CalendarData, CalendarAppointment, CalendarMedication, CalendarEntitlementReview, CalendarRepeatPrescription } from "../types";
-import { isMedActiveOnDay } from "../useCalendarData";
+import type { CalendarData, CalendarWaitingList } from "../types";
 import type { CalendarView } from "../CalendarPageClient";
 import { PERSON_COLORS } from "../CalendarPageClient";
 
@@ -31,13 +30,16 @@ function buildCalendarDays(year: number, month: number): (number | null)[] {
   return days;
 }
 
-function useCalendarDataYear(
-  householdId: string,
-  year: number
-) {
-  const [allData, setAllData] = useState<(CalendarData | null)[]>(
-    Array(12).fill(null)
-  );
+/** Compute the expected end date of a waitlist as YYYY-MM-DD */
+function waitlistEndDate(wl: CalendarWaitingList): string {
+  if (!wl.estimated_weeks) return wl.referral_date;
+  const d = new Date(wl.referral_date + "T00:00:00");
+  d.setDate(d.getDate() + wl.estimated_weeks * 7);
+  return `${d.getFullYear()}-${padDate(d.getMonth() + 1)}-${padDate(d.getDate())}`;
+}
+
+function useCalendarDataYear(householdIds: string, year: number, personId?: string) {
+  const [allData, setAllData] = useState<(CalendarData | null)[]>(Array(12).fill(null));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,10 +49,11 @@ function useCalendarDataYear(
     const fetches = Array.from({ length: 12 }, (_, i) => {
       const month = i + 1;
       const params = new URLSearchParams({
-        householdId,
+        householdIds,
         year: String(year),
         month: String(month),
       });
+      if (personId) params.set("personId", personId);
       return fetch(`/api/calendar?${params}`)
         .then((r) => (r.ok ? (r.json() as Promise<CalendarData>) : null))
         .catch(() => null);
@@ -63,16 +66,15 @@ function useCalendarDataYear(
       }
     });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [householdId, year]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { cancelled = true; };
+  }, [householdIds, year, personId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { allData, loading };
 }
 
 interface Props {
-  householdId: string;
+  householdIds: string; // single or comma-separated
+  personId?: string;
   year: number;
   hiddenPersonIds: Set<string>;
   personColorMap: Record<string, string>;
@@ -81,18 +83,41 @@ interface Props {
 }
 
 export function YearView({
-  householdId,
+  householdIds,
+  personId,
   year,
   hiddenPersonIds,
   personColorMap,
   today,
   onNavigate,
 }: Props) {
-  const { allData, loading } = useCalendarDataYear(householdId, year);
-  const todayStr = toDateStr(
-    today.getFullYear(),
-    today.getMonth() + 1,
-    today.getDate()
+  const { allData, loading } = useCalendarDataYear(householdIds, year, personId);
+  const todayStr = toDateStr(today.getFullYear(), today.getMonth() + 1, today.getDate());
+
+  // Deduplicate waiting lists across all 12 months (each month returns the full list)
+  const allWaitingLists = useMemo(() => {
+    const seen = new Set<string>();
+    const result: CalendarWaitingList[] = [];
+    for (const data of allData) {
+      if (!data) continue;
+      for (const wl of data.waiting_lists ?? []) {
+        if (!seen.has(wl.id) && !hiddenPersonIds.has(wl.person_id)) {
+          seen.add(wl.id);
+          result.push(wl);
+        }
+      }
+    }
+    return result;
+  }, [allData, hiddenPersonIds]);
+
+  // Precompute waitlist ranges for fast lookup: { start, end, personId }
+  const waitlistRanges = useMemo(() =>
+    allWaitingLists.map((wl) => ({
+      start: wl.referral_date,
+      end: waitlistEndDate(wl),
+      personId: wl.person_id,
+    })),
+    [allWaitingLists]
   );
 
   if (loading) {
@@ -117,9 +142,7 @@ export function YearView({
           >
             {/* Month header */}
             <button
-              onClick={() =>
-                onNavigate(new Date(year, month - 1, 1), "month")
-              }
+              onClick={() => onNavigate(new Date(year, month - 1, 1), "month")}
               className="w-full px-3 pt-3 pb-2 text-left hover:bg-warmstone-50 transition-colors"
             >
               <span className="text-xs font-bold text-warmstone-700">
@@ -143,16 +166,14 @@ export function YearView({
             <div className="grid grid-cols-7 px-1 pb-2 gap-y-0.5">
               {days.map((day, cellIdx) => {
                 if (!day) {
-                  return <div key={`e-${cellIdx}`} className="h-5" />;
+                  return <div key={`e-${cellIdx}`} className="h-6" />;
                 }
 
                 const dayStr = toDateStr(year, month, day);
                 const isToday = dayStr === todayStr;
 
-                // Compute whether this day has events
+                // Appointment dot
                 let hasAppt = false;
-                let hasMed = false;
-                let hasOther = false;
                 const apptColor = (() => {
                   if (!data) return null;
                   const appt = data.appointments.find(
@@ -170,34 +191,37 @@ export function YearView({
                   return null;
                 })();
 
-                if (data) {
-                  hasMed = data.medications.some(
-                    (m) =>
-                      !hiddenPersonIds.has(m.person_id) &&
-                      isMedActiveOnDay(m.start_date, m.end_date, dayStr)
-                  );
-                  hasOther =
-                    data.entitlement_reviews.some(
-                      (r) => r.review_date === dayStr
-                    ) ||
-                    data.repeat_prescriptions.some(
-                      (rx) => rx.repeat_prescription_date === dayStr
-                    );
-                }
+                // Waitlist range check
+                const inWaitlistRange = waitlistRanges.some(
+                  (r) => dayStr >= r.start && dayStr <= r.end
+                );
+                const isWaitlistStart = waitlistRanges.some(
+                  (r) => dayStr === r.start
+                );
+                const isWaitlistEnd = waitlistRanges.some(
+                  (r) => dayStr === r.end && r.start !== r.end
+                );
 
-                const hasDot = hasAppt || hasMed || hasOther;
+                const hasDot = hasAppt || isWaitlistStart || isWaitlistEnd;
 
                 return (
                   <button
                     key={dayStr}
                     onClick={() => onNavigate(new Date(year, month - 1, day), "day")}
-                    className="flex flex-col items-center justify-start h-6 rounded hover:bg-warmstone-50 transition-colors"
+                    className={[
+                      "flex flex-col items-center justify-start h-6 rounded transition-colors",
+                      inWaitlistRange && !isToday
+                        ? "bg-blue-50 hover:bg-blue-100"
+                        : "hover:bg-warmstone-50",
+                    ].join(" ")}
                   >
                     <span
                       className={[
                         "text-[10px] font-semibold w-4 h-4 flex items-center justify-center rounded-full leading-none",
                         isToday
                           ? "bg-honey-400 text-white"
+                          : inWaitlistRange
+                          ? "text-blue-700"
                           : "text-warmstone-700",
                       ].join(" ")}
                     >
@@ -211,11 +235,11 @@ export function YearView({
                             style={{ backgroundColor: apptColor ?? "#E8A817" }}
                           />
                         )}
-                        {hasMed && (
-                          <span className="w-1 h-1 rounded-full bg-sage-400" />
+                        {isWaitlistStart && (
+                          <span className="w-1 h-1 rounded-full bg-blue-500" />
                         )}
-                        {hasOther && (
-                          <span className="w-1 h-1 rounded-full bg-info" />
+                        {isWaitlistEnd && !isWaitlistStart && (
+                          <span className="w-1 h-1 rounded-full bg-blue-300" />
                         )}
                       </div>
                     )}
@@ -223,6 +247,42 @@ export function YearView({
                 );
               })}
             </div>
+
+            {/* Waitlist legend for this month */}
+            {allWaitingLists.some((wl) => {
+              const end = waitlistEndDate(wl);
+              const monthStart = toDateStr(year, month, 1);
+              const monthEnd = toDateStr(year, month, new Date(year, month, 0).getDate());
+              return wl.referral_date <= monthEnd && end >= monthStart;
+            }) && (
+              <div className="px-2 pb-2 flex flex-col gap-0.5">
+                {allWaitingLists
+                  .filter((wl) => {
+                    const end = waitlistEndDate(wl);
+                    const monthStart = toDateStr(year, month, 1);
+                    const monthEnd = toDateStr(year, month, new Date(year, month, 0).getDate());
+                    return wl.referral_date <= monthEnd && end >= monthStart;
+                  })
+                  .map((wl) => {
+                    const colorIdx = Object.keys(personColorMap).indexOf(wl.person_id);
+                    const dotColor = colorIdx >= 0
+                      ? PERSON_COLORS[colorIdx % PERSON_COLORS.length]
+                      : "#4A7FB5";
+                    return (
+                      <div key={wl.id} className="flex items-center gap-1">
+                        <span
+                          className="w-1.5 h-1.5 rounded-full shrink-0 bg-blue-500"
+                          style={{ backgroundColor: dotColor }}
+                        />
+                        <span className="text-[9px] text-warmstone-500 truncate leading-tight">
+                          {wl.department}
+                          {wl.estimated_weeks ? ` (~${wl.estimated_weeks}w)` : ""}
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
         );
       })}

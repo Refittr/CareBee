@@ -96,9 +96,13 @@ function mergeTakenLog(
 
 interface Props {
   householdId: string;
+  /** All household IDs the user belongs to — enables multi-household person filter (carer mode) */
+  allHouseholdIds?: string[];
+  /** When set, calendar is scoped to this single person (person tab mode) */
+  personId?: string;
 }
 
-export function CalendarPageClient({ householdId }: Props) {
+export function CalendarPageClient({ householdId, allHouseholdIds, personId }: Props) {
   const router = useRouter();
   const today = useMemo(() => {
     const d = new Date();
@@ -169,26 +173,33 @@ export function CalendarPageClient({ householdId }: Props) {
     view === "week" &&
     (secondaryYear !== primaryYear || secondaryMonth !== primaryMonth);
 
+  // Build the household ID string — comma-separated when showing multiple households
+  const householdIdsStr = allHouseholdIds && allHouseholdIds.length > 0
+    ? allHouseholdIds.join(",")
+    : householdId;
+
   const {
     data: data1,
     takenLog: takenLog1,
     loading,
     error,
     toggleTaken,
-  } = useCalendarData(householdId, primaryYear, primaryMonth);
+  } = useCalendarData(householdIdsStr, primaryYear, primaryMonth, personId);
 
   // Always call this hook (Rules of Hooks); when not needed it fetches the same URL as data1
   const { data: data2, takenLog: takenLog2 } = useCalendarData(
-    householdId,
+    householdIdsStr,
     needsSecondMonth ? secondaryYear : primaryYear,
-    needsSecondMonth ? secondaryMonth : primaryMonth
+    needsSecondMonth ? secondaryMonth : primaryMonth,
+    personId
   );
 
   // Always fetch today's month for the notification bell (browser deduplicates if same as above)
   const { data: notifData } = useCalendarData(
-    householdId,
+    householdIdsStr,
     today.getFullYear(),
-    today.getMonth() + 1
+    today.getMonth() + 1,
+    personId
   );
 
   const mergedData = useMemo((): CalendarData | null => {
@@ -210,6 +221,10 @@ export function CalendarPageClient({ householdId }: Props) {
       calendar_events: mergeUnique(
         data1.calendar_events ?? [],
         data2.calendar_events ?? []
+      ),
+      waiting_lists: mergeUnique(
+        data1.waiting_lists ?? [],
+        data2.waiting_lists ?? []
       ),
     };
   }, [data1, data2, needsSecondMonth]);
@@ -367,8 +382,8 @@ export function CalendarPageClient({ householdId }: Props) {
         </div>
       </div>
 
-      {/* Person filters (carer mode) */}
-      {showPersonFilters && data1 && (
+      {/* Person filters (carer mode — hidden when scoped to a single person) */}
+      {showPersonFilters && data1 && !personId && (
         <div className="flex flex-wrap gap-2">
           {data1.people.map((person, idx) => {
             const color = PERSON_COLORS[idx % PERSON_COLORS.length];
@@ -398,7 +413,8 @@ export function CalendarPageClient({ householdId }: Props) {
       {/* View content */}
       {view === "year" ? (
         <YearView
-          householdId={householdId}
+          householdIds={householdIdsStr}
+          personId={personId}
           year={cursor.getFullYear()}
           hiddenPersonIds={hiddenPersonIds}
           personColorMap={personColorMap}

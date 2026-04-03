@@ -290,9 +290,9 @@ export function WeekView({
                       className={[
                         "w-4 h-4 rounded-full flex items-center justify-center shrink-0",
                         status === "all"
-                          ? "bg-sage-500"
+                          ? "bg-sage-400"
                           : status === "some"
-                          ? "border-2 border-sage-400"
+                          ? "border-2 border-sage-400 bg-sage-50"
                           : "bg-warmstone-200",
                       ].join(" ")}
                       title={`${med.name} - ${status === "all" ? "taken" : status === "some" ? "partial" : "not taken"}`}
@@ -303,7 +303,7 @@ export function WeekView({
                           status === "all"
                             ? "text-white"
                             : status === "some"
-                            ? "text-sage-500"
+                            ? "text-sage-400"
                             : "text-warmstone-400"
                         }
                       />

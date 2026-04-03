@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
-  Lightbulb, RefreshCw, CheckCircle, X, ChevronDown, ChevronUp, Sparkles,
+  Lightbulb, RefreshCw, CheckCircle, X, ChevronDown, ChevronUp, Sparkles, Pill,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -51,6 +51,62 @@ export default function InsightsPage() {
   const [isPremium, setIsPremium] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [personName, setPersonName] = useState("");
+
+  // Medication adherence for last 30 days
+  const [medAdherence, setMedAdherence] = useState<{
+    name: string;
+    takenDays: number;
+    expectedDays: number;
+  }[] | null>(null);
+
+  useEffect(() => {
+    async function loadAdherence() {
+      const today = new Date();
+      const periodEnd = today.toISOString().split("T")[0];
+      const start30 = new Date(today);
+      start30.setDate(start30.getDate() - 29);
+      const periodStart = start30.toISOString().split("T")[0];
+
+      const { data: meds } = await supabase
+        .from("medications")
+        .select("id, name, schedule_type, times_per_day, start_date, end_date")
+        .eq("person_id", personId)
+        .eq("is_active", true)
+        .not("schedule_type", "is", null);
+
+      if (!meds?.length) { setMedAdherence([]); return; }
+
+      const medIds = meds.map((m) => m.id as string);
+      const { data: taken } = await supabase
+        .from("medication_taken_log")
+        .select("medication_id, schedule_id, taken_date, taken")
+        .in("medication_id", medIds)
+        .eq("taken", true)
+        .gte("taken_date", periodStart)
+        .lte("taken_date", periodEnd);
+
+      const totalDays = 30;
+      const result = meds.map((med) => {
+        const medStart = med.start_date && med.start_date > periodStart ? med.start_date as string : periodStart;
+        const medEnd = med.end_date && med.end_date < periodEnd ? med.end_date as string : periodEnd;
+
+        // Count expected days in effective period
+        const s = new Date(medStart + "T00:00:00");
+        const e = new Date(medEnd + "T00:00:00");
+        const expectedDays = Math.max(0, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
+
+        // Count taken days (days with at least one taken=true entry for this med)
+        const medTaken = (taken ?? []).filter((t) => t.medication_id === med.id);
+        const takenDates = new Set(medTaken.map((t) => t.taken_date as string));
+        const takenDays = takenDates.size;
+
+        return { name: med.name as string, takenDays, expectedDays: Math.min(expectedDays, totalDays) };
+      });
+
+      setMedAdherence(result);
+    }
+    loadAdherence();
+  }, [personId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canCheckNow = !lastChecked || Date.now() - new Date(lastChecked).getTime() > ONE_HOUR_MS;
 
@@ -197,6 +253,59 @@ export default function InsightsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Medication adherence summary */}
+      {medAdherence !== null && medAdherence.length > 0 && (() => {
+        const totalTaken = medAdherence.reduce((s, m) => s + m.takenDays, 0);
+        const totalExpected = medAdherence.reduce((s, m) => s + m.expectedDays, 0);
+        const overallPct = totalExpected > 0 ? Math.round((totalTaken / totalExpected) * 100) : 0;
+        const color = overallPct >= 80 ? "sage" : overallPct >= 50 ? "honey" : "red";
+        const colorMap = {
+          sage: { bg: "bg-sage-50", border: "border-sage-100", text: "text-sage-700", bar: "bg-sage-400", dot: "bg-sage-400" },
+          honey: { bg: "bg-honey-50", border: "border-honey-200", text: "text-honey-800", bar: "bg-honey-400", dot: "bg-honey-400" },
+          red: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", bar: "bg-red-400", dot: "bg-red-400" },
+        };
+        const c = colorMap[color];
+        return (
+          <div className={`rounded-xl border p-4 ${c.bg} ${c.border}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Pill size={15} className={c.text} />
+                <span className={`text-sm font-bold ${c.text}`}>Medication adherence</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xl font-bold tabular-nums ${c.text}`}>{overallPct}%</span>
+                <span className="text-xs text-warmstone-400 font-medium">last 30 days</span>
+              </div>
+            </div>
+            {/* Overall bar */}
+            <div className="h-1.5 rounded-full bg-warmstone-200 overflow-hidden mb-3">
+              <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${overallPct}%` }} />
+            </div>
+            {/* Per-medication rows */}
+            <div className="flex flex-col gap-1.5">
+              {medAdherence.map((med) => {
+                const pct = med.expectedDays > 0 ? Math.round((med.takenDays / med.expectedDays) * 100) : 0;
+                const medColor = pct >= 80 ? "bg-sage-400" : pct >= 50 ? "bg-honey-400" : "bg-red-400";
+                return (
+                  <div key={med.name} className="flex items-center gap-2">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${medColor}`} />
+                    <span className="text-xs text-warmstone-700 flex-1 truncate">{med.name}</span>
+                    <span className="text-xs font-semibold text-warmstone-500 tabular-nums shrink-0">
+                      {med.takenDays}/{med.expectedDays}d
+                    </span>
+                    <span className={`text-xs font-bold tabular-nums shrink-0 ${
+                      pct >= 80 ? "text-sage-600" : pct >= 50 ? "text-honey-700" : "text-red-600"
+                    }`}>
+                      {pct}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Generating state */}
       {generating && (

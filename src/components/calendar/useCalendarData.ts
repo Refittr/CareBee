@@ -72,7 +72,7 @@ export function useCalendarData(
     setError(null);
 
     const params = new URLSearchParams({
-      householdId,
+      householdIds: householdId, // accepts single ID or comma-separated multiple IDs
       year: String(year),
       month: String(month),
     });

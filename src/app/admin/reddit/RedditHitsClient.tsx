@@ -239,6 +239,7 @@ export function RedditHitsClient({ initialHits, allSubreddits, categories }: Pro
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [scraping, setScraping] = useState(false);
   const [scrapeMsg, setScrapeMsg] = useState<string | null>(null);
+  const [activeBatch, setActiveBatch] = useState<number | null>(null);
 
   const stats = useMemo(() => {
     const counts: Record<string, number> = { new: 0, replied: 0, skipped: 0, saved: 0 };
@@ -260,6 +261,7 @@ export function RedditHitsClient({ initialHits, allSubreddits, categories }: Pro
 
   async function triggerScrape(batch: number) {
     setScraping(true);
+    setActiveBatch(batch);
     setScrapeMsg(`Running batch ${batch}...`);
     try {
       const res = await fetch("/api/admin/reddit/scrape", {
@@ -273,6 +275,7 @@ export function RedditHitsClient({ initialHits, allSubreddits, categories }: Pro
       setScrapeMsg(`Failed: ${e instanceof Error ? e.message : "unknown error"}`);
     } finally {
       setScraping(false);
+      setActiveBatch(null);
     }
   }
 
@@ -297,20 +300,29 @@ export function RedditHitsClient({ initialHits, allSubreddits, categories }: Pro
           >
             Subreddits
           </Link>
-          {/* Scraper trigger */}
-          <div className="flex items-center gap-1">
-            {[1, 2, 3, 4].map((b) => (
-              <button
-                key={b}
-                onClick={() => triggerScrape(b)}
-                disabled={scraping}
-                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg text-white disabled:opacity-50 transition-colors"
-                style={{ backgroundColor: "#d4a853" }}
-              >
-                <RefreshCw size={11} className={scraping ? "animate-spin" : ""} />
-                B{b}
-              </button>
-            ))}
+          {/* Scraper trigger — 11 batches (8 keywords each) */}
+          <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-11 gap-1">
+            {Array.from({ length: 11 }, (_, i) => i + 1).map((b) => {
+              const isActive = activeBatch === b;
+              return (
+                <button
+                  key={b}
+                  onClick={() => triggerScrape(b)}
+                  disabled={scraping}
+                  className="flex items-center justify-center gap-1 text-xs font-semibold px-2 py-1.5 rounded-lg disabled:opacity-40 transition-all"
+                  style={{
+                    backgroundColor: isActive ? "#b8892f" : "#d4a853",
+                    color: "#faf7f2",
+                    outline: isActive ? "2px solid #d4a853" : "none",
+                    outlineOffset: "2px",
+                    animation: isActive ? "pulse 1s cubic-bezier(0.4,0,0.6,1) infinite" : "none",
+                  }}
+                >
+                  <RefreshCw size={10} className={isActive ? "animate-spin" : ""} />
+                  B{b}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
