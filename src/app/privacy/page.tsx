@@ -37,6 +37,70 @@ export default function PrivacyPage() {
           Last updated: 23 March 2026
         </p>
 
+        {/* Plain-English summary */}
+        <div className="mb-10 flex flex-col gap-1">
+          <p className="text-lg font-bold text-warmstone-900 mb-1">Your health information stays yours. Always.</p>
+          <p className="text-sm text-warmstone-600 leading-relaxed mb-6">
+            We built CareBee to help you manage health records, medications, and appointments, not to collect your data. Here is exactly how we protect it.
+          </p>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="bg-warmstone-white border border-warmstone-200 rounded-xl p-4">
+              <p className="text-sm font-bold text-warmstone-900 mb-1">Stored in the UK</p>
+              <p className="text-sm text-warmstone-700 leading-relaxed">Your data lives on secure servers in London. It never leaves the country. Everything is encrypted in transit and at rest. Same standards used by banks.</p>
+            </div>
+
+            <div className="bg-warmstone-white border border-warmstone-200 rounded-xl p-4">
+              <p className="text-sm font-bold text-warmstone-900 mb-1">AI that forgets</p>
+              <p className="text-sm text-warmstone-700 leading-relaxed">When you scan a document, check a medication interaction, or generate a letter, the AI processes your request and sends the result back. It does not store your information, learn from it, or use it for anything else. Every request starts fresh.</p>
+            </div>
+
+            <div className="bg-warmstone-white border border-warmstone-200 rounded-xl p-4">
+              <p className="text-sm font-bold text-warmstone-900 mb-1">Only you can see it</p>
+              <p className="text-sm text-warmstone-700 leading-relaxed">Your records are protected by row-level security. The database itself makes sure you can only access your own data. If you share a care record with family members, they can see that record. Nobody else can. Not us, not advertisers, not third parties.</p>
+            </div>
+
+            <div className="bg-warmstone-white border border-warmstone-200 rounded-xl p-4">
+              <p className="text-sm font-bold text-warmstone-900 mb-1">No data sales. Ever.</p>
+              <p className="text-sm text-warmstone-700 leading-relaxed">CareBee is funded by subscriptions. We do not sell your data, share it with advertisers, or use it for marketing. We never will.</p>
+            </div>
+
+            <div className="bg-warmstone-white border border-warmstone-200 rounded-xl p-4">
+              <p className="text-sm font-bold text-warmstone-900 mb-1">You are in control</p>
+              <p className="text-sm text-warmstone-700 leading-relaxed">You can delete your care record and all associated data yourself, straight from the app. No need to email us or wait for anyone. You can also correct any information yourself at any time.</p>
+            </div>
+
+            <div className="bg-warmstone-white border border-warmstone-200 rounded-xl p-4">
+              <p className="text-sm font-bold text-warmstone-900 mb-1">Registered and regulated</p>
+              <p className="text-sm text-warmstone-700 leading-relaxed">CareBee is in the process of registering with the ICO as a data controller while the app is in beta. We comply with UK GDPR and the Data Protection Act 2018. Health data is special category data and we apply the additional safeguards that requires, including explicit consent.</p>
+            </div>
+          </div>
+
+          {/* Quick-reference table */}
+          <div className="mt-4 bg-warmstone-white border border-warmstone-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <tbody>
+                {[
+                  ["Where is my data stored?", "London, UK"],
+                  ["Is it encrypted?", "Yes, in transit and at rest"],
+                  ["Does the AI keep my data?", "No. It processes and forgets."],
+                  ["Can anyone else see my records?", "Only people you invite to your care record"],
+                  ["Do you sell my data?", "Never"],
+                  ["Can I delete everything?", "Yes, yourself from the app"],
+                  ["Are you registered with the ICO?", "Registration in progress (beta)"],
+                ].map(([q, a], i) => (
+                  <tr key={i} className={i % 2 === 0 ? "bg-warmstone-50" : "bg-warmstone-white"}>
+                    <td className="px-4 py-3 text-warmstone-700 font-medium w-1/2">{q}</td>
+                    <td className="px-4 py-3 text-warmstone-900 font-semibold">{a}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="text-xs text-warmstone-400 mt-2">The full legal detail is in the sections below.</p>
+        </div>
+
         {/* Table of contents */}
         <div className="bg-warmstone-white border border-warmstone-200 rounded-lg p-6 mb-10">
           <p className="text-sm font-bold text-warmstone-500 uppercase tracking-wide mb-3">
@@ -121,8 +185,7 @@ export default function PrivacyPage() {
           1. Who we are
         </h2>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
-          CareBee is operated by Refittr Ltd (registered address to be confirmed). We are registered
-          with the Information Commissioner&apos;s Office (ICO registration number to be confirmed).
+          CareBee is operated by Refittr Ltd (registered address to be confirmed). We are in the process of registering with the Information Commissioner&apos;s Office (ICO) as a data controller while the app is in beta.
         </p>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
           Contact for data queries:{" "}
@@ -493,27 +556,27 @@ export default function PrivacyPage() {
           12. AI processing
         </h2>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
-          When you use AI-powered features, including document scanning, benefits and entitlements
-          checking, and drug interaction checking, the relevant data is sent to Anthropic&apos;s API
-          for processing.
+          CareBee uses AI to power several features: document scanning, medication interaction checks, health insights, appointment prep briefs, and letter generation.
         </p>
-        <ul className="list-disc list-outside ml-5 flex flex-col gap-2 mb-4 text-sm text-warmstone-800 leading-relaxed">
-          <li>
-            The data is used solely to return results to you.
-          </li>
-          <li>
-            Anthropic does not retain your data for the purpose of training AI models.
-          </li>
-          <li>
-            We process only the minimum data necessary for each feature.
-          </li>
-          <li>
-            AI-generated results are always presented for your review before being saved to your
-            record.
-          </li>
-        </ul>
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
-          We will update this section if we add new AI features or change AI providers.
+          Here is how that works:
+        </p>
+        <ol className="list-decimal list-outside ml-5 flex flex-col gap-2 mb-4 text-sm text-warmstone-800 leading-relaxed">
+          <li>
+            When you use an AI feature, the relevant information (for example, the photo of a letter you scanned, or the medication names you want to check) is sent securely to the AI for processing.
+          </li>
+          <li>
+            The AI processes your request and sends the result back to CareBee.
+          </li>
+          <li>
+            <span className="font-semibold text-warmstone-900">The AI does not keep your data.</span> It does not store it, learn from it, or use it to train itself. Each request is processed independently and then forgotten.
+          </li>
+          <li>
+            The result (the scanned text, the interaction warning, the generated letter) is saved in your CareBee account so you can access it again.
+          </li>
+        </ol>
+        <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
+          We process only the minimum data necessary for each feature. We will update this section if we add new AI features or change AI providers.
         </p>
 
         {/* Section 13 */}
@@ -545,6 +608,40 @@ export default function PrivacyPage() {
         <p className="text-warmstone-800 leading-relaxed mb-4 text-sm">
           We aim to respond to all data queries within 5 working days.
         </p>
+
+        {/* Common questions */}
+        <div className="mt-16 bg-warmstone-white border border-warmstone-200 rounded-xl p-6 flex flex-col gap-5">
+          <p className="text-sm font-bold text-warmstone-500 uppercase tracking-wide">Common questions</p>
+
+          <div>
+            <p className="text-sm font-bold text-warmstone-900 mb-1">Do you sell my data?</p>
+            <p className="text-sm text-warmstone-700 leading-relaxed">No. Never. CareBee makes money through subscriptions, not data sales.</p>
+          </div>
+
+          <div>
+            <p className="text-sm font-bold text-warmstone-900 mb-1">Can my GP or employer see my CareBee records?</p>
+            <p className="text-sm text-warmstone-700 leading-relaxed">No. Your CareBee account is completely separate from NHS systems. Nobody can access it unless you choose to share information with them, for example by showing them a letter you generated.</p>
+          </div>
+
+          <div>
+            <p className="text-sm font-bold text-warmstone-900 mb-1">What happens if CareBee closes down?</p>
+            <p className="text-sm text-warmstone-700 leading-relaxed">We would give you at least 30 days notice and provide tools to export all your data before anything was deleted.</p>
+          </div>
+
+          <div>
+            <p className="text-sm font-bold text-warmstone-900 mb-1">Is CareBee registered with the ICO?</p>
+            <p className="text-sm text-warmstone-700 leading-relaxed">CareBee is in the process of registering with the Information Commissioner&apos;s Office as a data controller. The app is currently in beta and registration will be completed before full public launch.</p>
+          </div>
+
+          <div>
+            <p className="text-sm font-bold text-warmstone-900 mb-1">What if there is a data breach?</p>
+            <p className="text-sm text-warmstone-700 leading-relaxed">We have a breach notification procedure in place. If your data were ever compromised, we would notify you and the ICO within 72 hours, as required by law. We would also explain exactly what happened and what steps we are taking.</p>
+          </div>
+
+          <div className="pt-2 border-t border-warmstone-100">
+            <p className="text-sm text-warmstone-700 leading-relaxed">Still have questions? Email us at <a href="mailto:support@mycarebee.co.uk" className="text-honey-600 underline underline-offset-2 hover:text-honey-800">support@mycarebee.co.uk</a>. We are happy to explain anything in more detail. Your trust matters more to us than anything else.</p>
+          </div>
+        </div>
 
         {/* Footer */}
         <div className="mt-16 pt-8 border-t border-warmstone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-warmstone-400">
