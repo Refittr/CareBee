@@ -158,7 +158,6 @@ export default function InsightsPage() {
   useEffect(() => {
     async function init() {
       setLoading(true);
-      // Check premium
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const [{ data: profile }, { data: household }] = await Promise.all([
@@ -167,9 +166,10 @@ export default function InsightsPage() {
         ]);
         const premium = profile && household ? hasCareRecordPremiumAccess(household, profile) : false;
         setIsPremium(premium);
+        // Always load existing insights — free users can still view past results
+        await loadFromDB();
         if (premium) {
-          await loadFromDB();
-          // Auto-generate if never checked or stale (7 days)
+          // Auto-generate if never checked or stale (7 days) — premium only
           const { data: lastCheckRow } = await supabase
             .from("insight_checks")
             .select("checked_at")
@@ -197,26 +197,22 @@ export default function InsightsPage() {
 
   if (loading) return <SkeletonLoader variant="card" count={3} />;
 
-  if (!isPremium) {
-    return (
-      <>
-        <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-4 max-w-sm mx-auto">
-          <Lightbulb size={48} className="text-warmstone-300" strokeWidth={1.5} />
-          <h2 className="text-xl font-bold text-warmstone-900">Health Insights is a premium feature</h2>
-          <p className="text-sm text-warmstone-600 leading-relaxed">
-            Get personalised health insights, NICE guideline checks, and care gap detection. Upgrade this care record to unlock.
-          </p>
-          <button
-            onClick={() => setShowUpgrade(true)}
-            className="inline-flex items-center gap-2 bg-honey-400 text-warmstone-white font-bold hover:bg-honey-600 transition-colors rounded-lg px-5 py-2.5 text-sm min-h-[44px]"
-          >
-            <Sparkles size={15} /> See what&apos;s included
-          </button>
-        </div>
-        <UpgradeModal householdId={householdId} open={showUpgrade} onClose={() => setShowUpgrade(false)} />
-      </>
-    );
-  }
+  // Free-plan banner — shown inline, not as a hard gate
+  const freeBanner = !isPremium && (
+    <div className="flex items-start gap-3 bg-honey-50 border border-honey-200 rounded-xl px-4 py-3 text-sm">
+      <Sparkles size={15} className="text-honey-700 shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-honey-800">Free plan: limited AI uses</p>
+        <p className="text-honey-700 text-xs mt-0.5">You have a small number of free AI checks included. Upgrade for unlimited insights.</p>
+      </div>
+      <button
+        onClick={() => setShowUpgrade(true)}
+        className="shrink-0 text-xs font-bold text-honey-800 underline underline-offset-2 min-h-[36px] flex items-center"
+      >
+        Upgrade
+      </button>
+    </div>
+  );
 
   const urgent = insights.filter((i) => i.priority === "urgent");
   const important = insights.filter((i) => i.priority === "important");
@@ -224,6 +220,8 @@ export default function InsightsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {freeBanner}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
