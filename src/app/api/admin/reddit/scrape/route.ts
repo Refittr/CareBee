@@ -43,27 +43,33 @@ export async function POST(request: NextRequest) {
 
   const offset = (batch - 1) * BATCH_SIZE;
 
-  const { data: keywords } = await svc
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: keywordsRaw } = await (svc as any)
     .from("reddit_keywords")
     .select("phrase")
     .eq("is_active", true)
     .order("created_at", { ascending: true })
     .range(offset, offset + BATCH_SIZE - 1);
 
-  if (!keywords?.length) {
+  const keywords = (keywordsRaw ?? []) as { phrase: string }[];
+
+  if (!keywords.length) {
     return NextResponse.json({ searched: 0, new_hits: 0, keywords: 0, subreddits: 0, batch, timestamp: new Date().toISOString() });
   }
 
-  const { data: subreddits } = await svc
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: subredditsRaw } = await (svc as any)
     .from("reddit_subreddits")
     .select("name")
     .eq("is_active", true);
 
-  if (!subreddits?.length) {
+  const subreddits = (subredditsRaw ?? []) as { name: string }[];
+
+  if (!subreddits.length) {
     return NextResponse.json({ searched: 0, new_hits: 0, keywords: keywords.length, subreddits: 0, batch, timestamp: new Date().toISOString() });
   }
 
-  const subredditNames = new Set(subreddits.map((s) => (s.name as string).toLowerCase()));
+  const subredditNames = new Set(subreddits.map((s) => s.name.toLowerCase()));
 
   let searched = 0;
   let new_hits = 0;
@@ -102,7 +108,8 @@ export async function POST(request: NextRequest) {
       }
 
       if (hits.length > 0) {
-        const { error } = await svc
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (svc as any)
           .from("reddit_hits")
           .upsert(hits, { onConflict: "reddit_id", ignoreDuplicates: true });
         if (!error) new_hits += hits.length;
@@ -137,7 +144,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (commentHits.length > 0) {
-      const { error } = await svc
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (svc as any)
         .from("reddit_hits")
         .upsert(commentHits, { onConflict: "reddit_id", ignoreDuplicates: true });
       if (!error) new_hits += commentHits.length;
