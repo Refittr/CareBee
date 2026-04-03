@@ -208,25 +208,40 @@ export function MobileNav() {
             <div className="mb-4 flex flex-col gap-2">
               {/* AI usage bar */}
               {aiUsage && aiUsage.limit !== null && aiUsage.used !== null && (() => {
+                const remaining = aiUsage.limit - aiUsage.used;
+                const depleted = remaining <= 0;
+                const low = remaining === 1;
+                // green = 2+ left, amber = 1 left, grey = 0 left
+                const cardCls = depleted
+                  ? "bg-warmstone-50 border-warmstone-200"
+                  : low
+                  ? "bg-amber-50 border-amber-200"
+                  : "bg-green-50 border-green-200";
+                const textCls = depleted
+                  ? "text-warmstone-500"
+                  : low
+                  ? "text-amber-700"
+                  : "text-green-700";
+                const barCls = depleted
+                  ? "bg-warmstone-300"
+                  : low
+                  ? "bg-amber-400"
+                  : "bg-green-500";
                 const pct = aiUsage.used / aiUsage.limit;
-                const atLimit = aiUsage.used >= aiUsage.limit;
-                const nearLimit = pct >= 0.8;
                 return (
-                  <div className={`px-3 py-2.5 rounded-xl border text-xs ${
-                    atLimit ? "bg-red-50 border-red-200" : nearLimit ? "bg-amber-50 border-amber-200" : "bg-warmstone-50 border-warmstone-100"
-                  }`}>
+                  <div className={`px-3 py-2.5 rounded-xl border text-xs ${cardCls}`}>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className={`flex items-center gap-1.5 font-semibold ${atLimit ? "text-red-700" : nearLimit ? "text-amber-700" : "text-warmstone-600"}`}>
+                      <span className={`flex items-center gap-1.5 font-semibold ${textCls}`}>
                         <Zap size={12} className="shrink-0" />
                         AI uses this month
                       </span>
-                      <span className={`font-bold tabular-nums ${atLimit ? "text-red-700" : nearLimit ? "text-amber-700" : "text-warmstone-700"}`}>
+                      <span className={`font-bold tabular-nums ${textCls}`}>
                         {aiUsage.used}/{aiUsage.limit}
                       </span>
                     </div>
                     <div className="h-1 rounded-full bg-warmstone-200 overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all ${atLimit ? "bg-red-500" : nearLimit ? "bg-amber-400" : "bg-sage-400"}`}
+                        className={`h-full rounded-full transition-all ${barCls}`}
                         style={{ width: `${Math.min(100, pct * 100)}%` }}
                       />
                     </div>

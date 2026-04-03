@@ -69,18 +69,21 @@ export function PersonTabs({ baseUrl, dailyCareEnabled }: { baseUrl: string; dai
       aria-label="Person tabs"
     >
       {/* ── MOBILE: primary tabs + More ───────────────────────────────────── */}
-      <div className="flex md:hidden overflow-x-auto scrollbar-none">
-        {primaryTabs.map(({ label, segment: tabSegment }) => {
-          const href = tabSegment ? `${baseUrl}/${tabSegment}` : baseUrl;
-          const isActive = segment === tabSegment;
-          return (
-            <Link key={label} href={href} className={tabClass(isActive)}>
-              {label}
-            </Link>
-          );
-        })}
+      <div className="flex md:hidden">
+        {/* Scrollable primary tabs — More button must stay outside this div or the dropdown gets clipped */}
+        <div className="flex overflow-x-auto scrollbar-none flex-1">
+          {primaryTabs.map(({ label, segment: tabSegment }) => {
+            const href = tabSegment ? `${baseUrl}/${tabSegment}` : baseUrl;
+            const isActive = segment === tabSegment;
+            return (
+              <Link key={label} href={href} className={tabClass(isActive)}>
+                {label}
+              </Link>
+            );
+          })}
+        </div>
 
-        {/* More button */}
+        {/* More button — outside scroll container so dropdown is not clipped */}
         <div ref={moreRef} className="relative shrink-0">
           <button
             onClick={() => setMoreOpen((v) => !v)}
