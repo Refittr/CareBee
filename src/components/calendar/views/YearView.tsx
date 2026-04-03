@@ -110,12 +110,14 @@ export function YearView({
     return result;
   }, [allData, hiddenPersonIds]);
 
-  // Precompute waitlist ranges for fast lookup: { start, end, personId }
+  // Precompute waitlist ranges for fast lookup
   const waitlistRanges = useMemo(() =>
     allWaitingLists.map((wl) => ({
       start: wl.referral_date,
       end: waitlistEndDate(wl),
       personId: wl.person_id,
+      department: wl.department,
+      estimatedWeeks: wl.estimated_weeks,
     })),
     [allWaitingLists]
   );
@@ -172,35 +174,43 @@ export function YearView({
                 const dayStr = toDateStr(year, month, day);
                 const isToday = dayStr === todayStr;
 
-                // Appointment dot
-                let hasAppt = false;
-                const apptColor = (() => {
-                  if (!data) return null;
-                  const appt = data.appointments.find(
-                    (a) =>
-                      a.appointment_date.slice(0, 10) === dayStr &&
-                      !hiddenPersonIds.has(a.person_id)
-                  );
-                  if (appt) {
-                    hasAppt = true;
-                    const keys = Object.keys(personColorMap);
-                    return keys.length > 1
-                      ? (personColorMap[appt.person_id] ?? "#E8A817")
-                      : "#E8A817";
-                  }
-                  return null;
-                })();
+                // Appointment
+                const apptOnDay = data?.appointments.find(
+                  (a) =>
+                    a.appointment_date.slice(0, 10) === dayStr &&
+                    !hiddenPersonIds.has(a.person_id)
+                ) ?? null;
+                const hasAppt = !!apptOnDay;
+                const apptColor = apptOnDay
+                  ? Object.keys(personColorMap).length > 1
+                    ? (personColorMap[apptOnDay.person_id] ?? "#E8A817")
+                    : "#E8A817"
+                  : null;
 
-                // Waitlist range check
-                const inWaitlistRange = waitlistRanges.some(
-                  (r) => dayStr >= r.start && dayStr <= r.end
-                );
-                const isWaitlistStart = waitlistRanges.some(
-                  (r) => dayStr === r.start
-                );
-                const isWaitlistEnd = waitlistRanges.some(
-                  (r) => dayStr === r.end && r.start !== r.end
-                );
+                // Waitlist range checks — keep references for tooltip
+                const startingHere = waitlistRanges.filter((r) => r.start === dayStr);
+                const endingHere = waitlistRanges.filter((r) => r.end === dayStr && r.start !== dayStr);
+                const activeHere = waitlistRanges.filter((r) => dayStr > r.start && dayStr < r.end);
+                const inWaitlistRange = waitlistRanges.some((r) => dayStr >= r.start && dayStr <= r.end);
+                const isWaitlistStart = startingHere.length > 0;
+                const isWaitlistEnd = endingHere.length > 0;
+
+                // Build tooltip text
+                const tooltipParts: string[] = [];
+                if (apptOnDay) {
+                  const apptTime = new Date(apptOnDay.appointment_date).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+                  tooltipParts.push(`Appointment: ${apptOnDay.title} at ${apptTime}${apptOnDay.professional_name ? ` (${apptOnDay.professional_name})` : ""}`);
+                }
+                for (const r of startingHere) {
+                  tooltipParts.push(`Waitlist starts: ${r.department}${r.estimatedWeeks ? ` (~${r.estimatedWeeks} weeks)` : ""}`);
+                }
+                for (const r of endingHere) {
+                  tooltipParts.push(`Expected wait ends: ${r.department}`);
+                }
+                for (const r of activeHere) {
+                  tooltipParts.push(`On waitlist: ${r.department}`);
+                }
+                const tooltip = tooltipParts.join("\n") || undefined;
 
                 const hasDot = hasAppt || isWaitlistStart || isWaitlistEnd;
 
@@ -208,6 +218,7 @@ export function YearView({
                   <button
                     key={dayStr}
                     onClick={() => onNavigate(new Date(year, month - 1, day), "day")}
+                    title={tooltip}
                     className={[
                       "flex flex-col items-center justify-start h-6 rounded transition-colors",
                       inWaitlistRange && !isToday
@@ -232,14 +243,21 @@ export function YearView({
                         {hasAppt && (
                           <span
                             className="w-1 h-1 rounded-full"
+                            title={apptOnDay ? `Appointment: ${apptOnDay.title}` : "Appointment"}
                             style={{ backgroundColor: apptColor ?? "#E8A817" }}
                           />
                         )}
                         {isWaitlistStart && (
-                          <span className="w-1 h-1 rounded-full bg-blue-500" />
+                          <span
+                            className="w-1 h-1 rounded-full bg-blue-500"
+                            title={startingHere.map((r) => `Waitlist starts: ${r.department}`).join(", ")}
+                          />
                         )}
                         {isWaitlistEnd && !isWaitlistStart && (
-                          <span className="w-1 h-1 rounded-full bg-blue-300" />
+                          <span
+                            className="w-1 h-1 rounded-full bg-blue-300"
+                            title={endingHere.map((r) => `Expected wait ends: ${r.department}`).join(", ")}
+                          />
                         )}
                       </div>
                     )}

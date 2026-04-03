@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { trackApiCall } from "@/lib/analytics-server";
+import { checkAndIncrementAiUse } from "@/lib/ai-usage";
 import type { InteractionSeverity, InteractionStatus } from "@/lib/types/database";
 
 const SYSTEM_PROMPT = `You are a drug interaction checker for CareBee, a UK family health and care record app. You are given a person's complete current medication list. Check for known interactions between any pair of medications.
@@ -72,7 +73,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-
+  // Enforce AI usage limit
+  const aiCheck = await checkAndIncrementAiUse(user.id);
+  if (!aiCheck.allowed) {
+    return NextResponse.json(
+      { error: "ai_limit_reached", limit: aiCheck.limit, used: aiCheck.used },
+      { status: 429 }
+    );
+  }
 
   // Load active medications
   const { data: medications } = await svc

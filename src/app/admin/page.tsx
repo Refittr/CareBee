@@ -69,6 +69,7 @@ export default async function AdminDashboardPage() {
     { data: allMemberships },
     { data: allPeople },
     { data: allApiUsage },
+    { data: allAiLog },
     { count: totalDocuments },
     { count: activeSubscribers },
     { count: inTrial },
@@ -84,6 +85,10 @@ export default async function AdminDashboardPage() {
     svc.from("api_usage_log")
       .select("user_id, feature, status, created_at")
       .eq("status", "success"),
+    // Full AI log (all statuses) for the stats section — no date filter so totals are accurate
+    svc.from("api_usage_log")
+      .select("feature, status, created_at, tokens_used")
+      .order("created_at", { ascending: false }),
     svc.from("documents").select("*", { count: "exact", head: true }),
     svc.from("households").select("*", { count: "exact", head: true }).eq("subscription_status", "active"),
     svc.from("households").select("*", { count: "exact", head: true }).eq("subscription_status", "trial").gt("trial_ends_at", nowIso),
@@ -96,6 +101,27 @@ export default async function AdminDashboardPage() {
   const memberships = allMemberships ?? [];
   const people = allPeople ?? [];
   const apiUsage = allApiUsage ?? [];
+  const aiLog = allAiLog ?? [];
+
+  // ---- AI usage stats ----
+  const aiTotalCalls = aiLog.length;
+  const aiSuccessCalls = aiLog.filter((r) => r.status === "success").length;
+  const aiWeekCalls = aiLog.filter((r) => r.created_at >= weekIso).length;
+  const aiTodayCalls = aiLog.filter((r) => r.created_at >= todayIso).length;
+  const aiTotalTokens = aiLog.reduce((s, r) => s + ((r.tokens_used as number | null) ?? 0), 0);
+
+  // Per-feature breakdown
+  const featureMap = new Map<string, { total: number; success: number }>();
+  for (const r of aiLog) {
+    const f = (r.feature as string) ?? "unknown";
+    if (!featureMap.has(f)) featureMap.set(f, { total: 0, success: 0 });
+    const e = featureMap.get(f)!;
+    e.total++;
+    if (r.status === "success") e.success++;
+  }
+  const featureRows = Array.from(featureMap.entries())
+    .map(([feature, { total, success }]) => ({ feature, total, success, errorRate: total > 0 ? Math.round(((total - success) / total) * 100) : 0 }))
+    .sort((a, b) => b.total - a.total);
 
   // ---- Growth stats ----
   const todayIso = todayStart.toISOString();
@@ -213,6 +239,71 @@ export default async function AdminDashboardPage() {
         <StatCard icon={UserMinus} label="Churned" value={cancelledCount} iconColor="text-error" />
         <StatCard icon={TrendingUp} label="Conversion" value={conversionRate} iconColor="text-sage-500" />
         <StatCard icon={PoundSterling} label="Est. MRR" value={estimatedMrr} iconColor="text-honey-500" />
+      </div>
+
+      {/* AI usage stats */}
+      <div className="bg-warmstone-white border border-warmstone-200 rounded-lg p-5 mb-8">
+        <h2 className="text-sm font-bold text-warmstone-700 uppercase tracking-wide mb-4">AI usage</h2>
+
+        {/* Summary row */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+          {[
+            { label: "Total calls", value: aiTotalCalls },
+            { label: "Today", value: aiTodayCalls },
+            { label: "This week", value: aiWeekCalls },
+            { label: "Success rate", value: aiTotalCalls > 0 ? `${Math.round((aiSuccessCalls / aiTotalCalls) * 100)}%` : "0%" },
+            { label: "Total tokens", value: aiTotalTokens.toLocaleString() },
+          ].map((s) => (
+            <div key={s.label} className="bg-warmstone-50 border border-warmstone-100 rounded-lg p-3">
+              <p className="text-2xl font-bold text-warmstone-900">{s.value}</p>
+              <p className="text-xs text-warmstone-400 font-medium mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Per-feature table */}
+        {featureRows.length === 0 ? (
+          <p className="text-sm text-warmstone-400">No AI calls recorded yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-warmstone-100">
+                  <th className="text-left pb-2 text-xs font-semibold text-warmstone-500">Feature</th>
+                  <th className="text-right pb-2 text-xs font-semibold text-warmstone-500">Total</th>
+                  <th className="text-right pb-2 text-xs font-semibold text-warmstone-500">Success</th>
+                  <th className="text-right pb-2 text-xs font-semibold text-warmstone-500">Errors</th>
+                  <th className="pb-2 pl-4 text-xs font-semibold text-warmstone-500 hidden md:table-cell w-32">Volume</th>
+                </tr>
+              </thead>
+              <tbody>
+                {featureRows.map((row) => {
+                  const pct = aiTotalCalls > 0 ? (row.total / aiTotalCalls) * 100 : 0;
+                  const hasErrors = row.errorRate > 0;
+                  return (
+                    <tr key={row.feature} className="border-b border-warmstone-50 last:border-0">
+                      <td className="py-2 pr-4">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-sage-50 text-sage-700 border border-sage-100">
+                          {FEATURE_SHORT[row.feature] ?? row.feature}
+                        </span>
+                      </td>
+                      <td className="py-2 text-right text-xs font-bold text-warmstone-900">{row.total}</td>
+                      <td className="py-2 text-right text-xs text-sage-600">{row.success}</td>
+                      <td className={`py-2 text-right text-xs font-semibold ${hasErrors ? "text-red-500" : "text-warmstone-300"}`}>
+                        {row.total - row.success}
+                      </td>
+                      <td className="py-2 pl-4 hidden md:table-cell">
+                        <div className="h-1.5 rounded-full bg-warmstone-100 overflow-hidden w-32">
+                          <div className="h-full rounded-full bg-honey-400" style={{ width: `${pct}%` }} />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Engagement funnel */}
