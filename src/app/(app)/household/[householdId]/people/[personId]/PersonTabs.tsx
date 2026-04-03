@@ -23,7 +23,7 @@ const STATIC_TABS = [
 ];
 
 // Tabs always visible on mobile — chosen for daily use
-const MOBILE_PRIMARY_SEGMENTS = [null, "insights", "calendar", "documents"];
+const MOBILE_PRIMARY_SEGMENTS = [null, "insights", "calendar"];
 
 export function PersonTabs({ baseUrl, dailyCareEnabled }: { baseUrl: string; dailyCareEnabled?: boolean }) {
   const segment = useSelectedLayoutSegment();

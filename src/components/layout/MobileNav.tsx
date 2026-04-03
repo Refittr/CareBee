@@ -236,7 +236,7 @@ export function MobileNav() {
                         AI uses this month
                       </span>
                       <span className={`font-bold tabular-nums ${textCls}`}>
-                        {aiUsage.used}/{aiUsage.limit}
+                        {remaining}/{aiUsage.limit}
                       </span>
                     </div>
                     <div className="h-1 rounded-full bg-warmstone-200 overflow-hidden">
