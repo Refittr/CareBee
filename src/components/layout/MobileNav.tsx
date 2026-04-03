@@ -5,10 +5,30 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Home, CalendarDays, Mail, BookOpen, Menu, X,
   Settings, Shield, ChevronDown, Check, Plus, Lock, LogOut,
+  Zap, Sparkles, Clock,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import { useUserType } from "@/lib/context/UserTypeContext";
+
+type TrialWidgetState =
+  | { kind: "expiring"; daysLeft: number }
+  | { kind: "ended" }
+  | null;
+
+function computeTrialWidget(
+  plan: string | null,
+  subscriptionStatus: string | null,
+  trialEndsAt: string | null,
+): TrialWidgetState {
+  if (plan === "free") return { kind: "ended" };
+  if (subscriptionStatus === "trial" && trialEndsAt) {
+    const daysLeft = Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86400000);
+    if (daysLeft <= 7 && daysLeft > 0) return { kind: "expiring", daysLeft };
+    if (daysLeft <= 0) return { kind: "ended" };
+  }
+  return null;
+}
 
 interface HouseholdOption {
   id: string;
@@ -27,6 +47,8 @@ export function MobileNav() {
   const [households, setHouseholds] = useState<HouseholdOption[]>([]);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
+  const [trialWidget, setTrialWidget] = useState<TrialWidgetState>(null);
+  const [aiUsage, setAiUsage] = useState<{ used: number | null; limit: number | null } | null>(null);
 
   // Extract household from current path
   const householdMatch = pathname.match(/^\/household\/([^/]+)/);
@@ -50,18 +72,49 @@ export function MobileNav() {
     ? `/household/${effectiveHouseholdId}/calendar`
     : "/dashboard";
 
-  // Load admin status + household list once
+  // Load admin status + household list + trial/AI data once
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return;
-      supabase
+
+      const { data: profile } = await supabase
         .from("profiles")
-        .select("account_type")
+        .select("account_type, plan")
         .eq("id", user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data?.account_type === "admin") setIsAdmin(true);
-        });
+        .maybeSingle();
+
+      if (profile?.account_type === "admin") setIsAdmin(true);
+
+      // Trial widget — only for non-admin/tester
+      if (profile && profile.account_type !== "admin" && profile.account_type !== "tester") {
+        const plan = (profile as { plan?: string | null }).plan ?? null;
+        if (plan === "free") {
+          setTrialWidget({ kind: "ended" });
+        } else {
+          const { data: membership } = await supabase
+            .from("household_members")
+            .select("household_id")
+            .eq("user_id", user.id)
+            .eq("role", "owner")
+            .maybeSingle();
+          if (membership) {
+            const { data: hh } = await supabase
+              .from("households")
+              .select("subscription_status, trial_ends_at")
+              .eq("id", membership.household_id)
+              .maybeSingle();
+            if (hh) {
+              setTrialWidget(computeTrialWidget(
+                plan,
+                hh.subscription_status,
+                (hh as { trial_ends_at?: string | null }).trial_ends_at ?? null,
+              ));
+            }
+          }
+        }
+      }
+
+      // Household list
       supabase
         .from("household_members")
         .select("household_id")
@@ -79,6 +132,12 @@ export function MobileNav() {
             });
         });
     });
+
+    // AI usage
+    fetch("/api/ai-usage")
+      .then((r) => r.json())
+      .then((data: { used: number | null; limit: number | null }) => setAiUsage(data))
+      .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close More sheet on route change
@@ -143,6 +202,69 @@ export function MobileNav() {
         >
           {/* Drag handle */}
           <div className="w-10 h-1 bg-warmstone-200 rounded-full mx-auto mb-4" />
+
+          {/* Plan / AI status — quiet info block, only shown when relevant */}
+          {(trialWidget || (aiUsage && aiUsage.limit !== null && aiUsage.used !== null)) && (
+            <div className="mb-4 flex flex-col gap-2">
+              {/* AI usage bar */}
+              {aiUsage && aiUsage.limit !== null && aiUsage.used !== null && (() => {
+                const pct = aiUsage.used / aiUsage.limit;
+                const atLimit = aiUsage.used >= aiUsage.limit;
+                const nearLimit = pct >= 0.8;
+                return (
+                  <div className={`px-3 py-2.5 rounded-xl border text-xs ${
+                    atLimit ? "bg-red-50 border-red-200" : nearLimit ? "bg-amber-50 border-amber-200" : "bg-warmstone-50 border-warmstone-100"
+                  }`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`flex items-center gap-1.5 font-semibold ${atLimit ? "text-red-700" : nearLimit ? "text-amber-700" : "text-warmstone-600"}`}>
+                        <Zap size={12} className="shrink-0" />
+                        AI uses this month
+                      </span>
+                      <span className={`font-bold tabular-nums ${atLimit ? "text-red-700" : nearLimit ? "text-amber-700" : "text-warmstone-700"}`}>
+                        {aiUsage.used}/{aiUsage.limit}
+                      </span>
+                    </div>
+                    <div className="h-1 rounded-full bg-warmstone-200 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${atLimit ? "bg-red-500" : nearLimit ? "bg-amber-400" : "bg-sage-400"}`}
+                        style={{ width: `${Math.min(100, pct * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Trial status */}
+              {trialWidget && (
+                <Link
+                  href="/settings"
+                  onClick={() => setMoreOpen(false)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs transition-colors ${
+                    trialWidget.kind === "ended"
+                      ? "bg-red-50 border-red-200 text-red-800"
+                      : "bg-honey-50 border-honey-200 text-honey-800"
+                  }`}
+                >
+                  {trialWidget.kind === "ended"
+                    ? <Sparkles size={13} className="shrink-0" />
+                    : <Clock size={13} className="shrink-0" />
+                  }
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold leading-tight">
+                      {trialWidget.kind === "ended"
+                        ? "Trial ended"
+                        : trialWidget.daysLeft === 1
+                        ? "Trial ends tomorrow"
+                        : `${trialWidget.daysLeft} days left`}
+                    </p>
+                    <p className="opacity-75 leading-tight mt-0.5">
+                      {trialWidget.kind === "ended" ? "Subscribe to restore AI access" : "Subscribe to keep AI access"}
+                    </p>
+                  </div>
+                </Link>
+              )}
+            </div>
+          )}
 
           {/* Care record switcher */}
           {effectiveHouseholdId && households.length > 0 && labels.showCareRecordSwitcher && (
@@ -296,7 +418,13 @@ export function MobileNav() {
             {(moreOpen || moreActive) && (
               <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full" style={{ backgroundColor: "#E8A817" }} />
             )}
-            {moreOpen ? <X size={22} /> : <Menu size={22} />}
+            <span className="relative">
+              {moreOpen ? <X size={22} /> : <Menu size={22} />}
+              {/* Amber dot — only when trial ended or AI at limit */}
+              {!moreOpen && (trialWidget?.kind === "ended" || (aiUsage?.limit != null && aiUsage?.used != null && aiUsage.used >= aiUsage.limit)) && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-warmstone-white" />
+              )}
+            </span>
             <span className="text-xs font-semibold">More</span>
           </button>
         </div>

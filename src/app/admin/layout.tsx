@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, Users, Home, Activity, ArrowLeft, Shield, BarChart2, Mail, Send } from "lucide-react";
+import { LayoutDashboard, Users, Home, Activity, ArrowLeft, Shield, BarChart2, Mail, Send, MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Admin | CareBee" };
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin/analytics", label: "Analytics", icon: BarChart2, exact: false },
   { href: "/admin/outreach", label: "Outreach", icon: Send, exact: false },
   { href: "/admin/messages", label: "Messages", icon: Mail, exact: false },
+  { href: "/admin/reddit", label: "Reddit", icon: MessageCircle, exact: false },
 ];
 
 function AdminSidebar() {

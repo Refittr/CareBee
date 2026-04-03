@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Pill, FileText, RotateCcw } from "lucide-react";
+import { Pill, FileText, RotateCcw, Clock, MapPin, User } from "lucide-react";
 import { isMedActiveOnDay, getMedTakenStatus } from "../useCalendarData";
 import type {
   CalendarData,
@@ -9,41 +9,11 @@ import type {
   CalendarAppointment,
   CalendarMedication,
 } from "../types";
-import { PERSON_COLORS, addDays, toDateStr } from "../CalendarPageClient";
+import { addDays, toDateStr } from "../CalendarPageClient";
 import { DayDetailModal } from "../DayDetailModal";
 
-// ── Desktop time grid constants ───────────────────────────────────────────────
-const HOUR_HEIGHT = 64;
-const GRID_START = 7;
-const GRID_END = 21;
-const GRID_HOURS = GRID_END - GRID_START;
-const GRID_TOTAL_PX = GRID_HOURS * HOUR_HEIGHT;
-const HOURS = Array.from({ length: GRID_HOURS }, (_, i) => GRID_START + i);
-
 const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-function timeToOffset(timeStr: string): number {
-  let hour: number, minute: number;
-  if (timeStr.includes("T")) {
-    const d = new Date(timeStr);
-    hour = d.getHours();
-    minute = d.getMinutes();
-  } else {
-    [hour, minute] = timeStr.split(":").map(Number);
-  }
-  const h = Math.max(GRID_START, Math.min(GRID_END - 1, hour));
-  return (h - GRID_START + minute / 60) * HOUR_HEIGHT;
-}
-
-function formatApptTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-}
-
-function apptStartsInGrid(appt: CalendarAppointment): boolean {
-  const h = new Date(appt.appointment_date).getHours();
-  return h >= GRID_START && h < GRID_END;
-}
+const DAY_FULL  = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 function rxDaysUntil(rxDate: string, dayStr: string): number {
   const due = new Date(rxDate + "T00:00:00").getTime();
@@ -51,6 +21,20 @@ function rxDaysUntil(rxDate: string, dayStr: string): number {
   const diff = Math.round((due - day) / 86400000);
   return diff >= 0 && diff <= 3 ? diff : -1;
 }
+
+function fmtTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  upcoming:  "text-info bg-info-light",
+  completed: "text-sage-700 bg-sage-50",
+  cancelled: "text-warmstone-500 bg-warmstone-100",
+  missed:    "text-error bg-error-light",
+};
+const STATUS_LABELS: Record<string, string> = {
+  upcoming: "Upcoming", completed: "Completed", cancelled: "Cancelled", missed: "Missed",
+};
 
 interface Props {
   data: CalendarData | null;
@@ -97,7 +81,6 @@ export function WeekView({
 
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
-  // Appointments per day
   const apptsByDay = useMemo(() => {
     const map: Record<string, CalendarAppointment[]> = {};
     if (!data) return map;
@@ -113,7 +96,6 @@ export function WeekView({
     return map;
   }, [data, dayStrs, hiddenPersonIds]);
 
-  // Medications per day
   const medsByDay = useMemo(() => {
     const map: Record<string, CalendarMedication[]> = {};
     if (!data) return map;
@@ -133,354 +115,304 @@ export function WeekView({
       : "#E8A817";
   }
 
-  return (
-    <>
-      {/* ── MOBILE: compact dot grid (hidden on md+) ───────────────────── */}
-      <div className="md:hidden bg-warmstone-white border border-warmstone-100 rounded-xl overflow-hidden">
-        <div className="grid grid-cols-7">
-          {days.map((day, i) => {
-            const dayStr = dayStrs[i];
-            const isToday = dayStr === todayStr;
-            const appts = apptsByDay[dayStr] ?? [];
-            const meds = medsByDay[dayStr] ?? [];
-            const hasMeds = meds.length > 0;
-            const rxList = (data?.repeat_prescriptions ?? []).filter(
-              (rx) =>
-                rxDaysUntil(rx.repeat_prescription_date, dayStr) >= 0 &&
-                !hiddenPersonIds.has(rx.person_id) &&
-                !dismissedRx.has(`${rx.id}_${rx.repeat_prescription_date}`)
-            );
-            const reviews = (data?.entitlement_reviews ?? []).filter(
-              (r) => r.review_date === dayStr && !hiddenPersonIds.has(r.person_id)
-            );
-            const hasSomething =
-              appts.length > 0 ||
-              hasMeds ||
-              rxList.length > 0 ||
-              reviews.length > 0;
+  function personName(personId: string): string {
+    const p = data?.people.find((p) => p.id === personId);
+    return p ? `${p.first_name} ${p.last_name}` : "";
+  }
 
-            return (
-              <button
-                key={dayStr}
-                onClick={() => setSelectedDay(day)}
-                className={[
-                  "flex flex-col items-center py-3 gap-1.5 border-r border-warmstone-100 last:border-r-0 transition-colors active:bg-warmstone-50",
-                  isToday ? "bg-honey-50" : "",
-                ].join(" ")}
-              >
-                {/* Day name */}
-                <span className="text-[10px] font-semibold text-warmstone-400 uppercase tracking-wide">
-                  {DAY_SHORT[i]}
-                </span>
+  // ── Day cell content (shared between mobile and desktop) ──────────────────
 
-                {/* Date badge */}
-                <span
-                  className={[
-                    "w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold",
-                    isToday ? "bg-honey-400 text-white" : "text-warmstone-800",
-                  ].join(" ")}
-                >
-                  {day.getDate()}
-                </span>
+  function DayCell({ day, idx, compact }: { day: Date; idx: number; compact?: boolean }) {
+    const dayStr = dayStrs[idx];
+    const isToday = dayStr === todayStr;
+    const appts = apptsByDay[dayStr] ?? [];
+    const meds = medsByDay[dayStr] ?? [];
+    const tpdMeds = meds.filter((m) => m.schedule_type === "times_per_day");
+    const specificMeds = meds.filter((m) => m.schedule_type === "specific_times");
+    const allMeds = meds;
 
-                {/* Indicators */}
-                <div className="flex flex-col items-center gap-1 min-h-[20px]">
-                  {/* Appointment dots */}
-                  {appts.length > 0 && (
-                    <div className="flex gap-0.5 flex-wrap justify-center">
-                      {appts.slice(0, 3).map((appt) => (
-                        <div
-                          key={appt.id}
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: apptColor(appt) }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {/* Med pill icon */}
-                  {hasMeds && (
-                    <div className="w-4 h-4 rounded-full flex items-center justify-center bg-sage-100">
-                      <Pill size={9} className="text-sage-600" />
-                    </div>
-                  )}
-                  {/* Rx dot */}
-                  {rxList.length > 0 && (
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#FEF3C7", border: "1.5px solid #D97706" }} />
-                  )}
-                  {/* Review dot */}
-                  {reviews.length > 0 && (
-                    <div className="w-3 h-3 rounded-full bg-info-light flex items-center justify-center">
-                      <FileText size={7} className="text-info" />
-                    </div>
-                  )}
-                  {/* Empty marker */}
-                  {!hasSomething && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-warmstone-200" />
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+    const rxList = (data?.repeat_prescriptions ?? []).filter(
+      (rx) =>
+        rxDaysUntil(rx.repeat_prescription_date, dayStr) >= 0 &&
+        !hiddenPersonIds.has(rx.person_id) &&
+        !dismissedRx.has(`${rx.id}_${rx.repeat_prescription_date}`)
+    );
+    const reviews = (data?.entitlement_reviews ?? []).filter(
+      (r) => r.review_date === dayStr && !hiddenPersonIds.has(r.person_id)
+    );
 
-      {/* ── DESKTOP: full time grid (hidden on mobile) ─────────────────── */}
-      <div className="hidden md:block bg-warmstone-white border border-warmstone-100 rounded-xl overflow-hidden">
-        {/* Sticky header */}
-        <div className="sticky top-0 z-10 bg-warmstone-white border-b border-warmstone-100 grid grid-cols-[56px_repeat(7,1fr)]">
-          <div className="border-r border-warmstone-100" />
-          {days.map((day, i) => {
-            const dayStr = dayStrs[i];
-            const isToday = dayStr === todayStr;
-            return (
-              <button
-                key={dayStr}
-                onClick={() => onDayClick(day)}
-                className={[
-                  "py-2.5 text-center border-r border-warmstone-100 last:border-r-0 hover:bg-warmstone-50 transition-colors",
-                  isToday ? "bg-honey-50" : "",
-                ].join(" ")}
-              >
-                <span className="block text-[10px] font-semibold text-warmstone-500 uppercase tracking-wide">
-                  {DAY_SHORT[i]}
-                </span>
-                <span
-                  className={[
-                    "inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold mt-0.5",
-                    isToday ? "bg-honey-400 text-white" : "text-warmstone-800",
-                  ].join(" ")}
-                >
-                  {day.getDate()}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+    const isEmpty =
+      appts.length === 0 &&
+      allMeds.length === 0 &&
+      rxList.length === 0 &&
+      reviews.length === 0;
 
-        {/* All-day row */}
-        {data &&
-          dayStrs.some(
-            (ds) =>
-              data.entitlement_reviews.some(
-                (r) => r.review_date === ds && !hiddenPersonIds.has(r.person_id)
-              ) ||
-              data.repeat_prescriptions.some(
-                (rx) =>
-                  rx.repeat_prescription_date === ds &&
-                  !hiddenPersonIds.has(rx.person_id)
-              ) ||
-              (medsByDay[ds] ?? []).some((m) => m.schedule_type === "times_per_day")
-          ) && (
-            <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-warmstone-100 min-h-[32px]">
-              <div className="px-1 py-1 text-[9px] font-semibold text-warmstone-400 uppercase tracking-wide border-r border-warmstone-100 flex items-center">
-                All day
-              </div>
-              {dayStrs.map((dayStr) => {
-                const reviews = (data.entitlement_reviews ?? []).filter(
-                  (r) => r.review_date === dayStr && !hiddenPersonIds.has(r.person_id)
-                );
-                const rxs = (data.repeat_prescriptions ?? []).filter(
-                  (rx) =>
-                    rx.repeat_prescription_date === dayStr &&
-                    !hiddenPersonIds.has(rx.person_id)
-                );
-                const tpdMeds = (medsByDay[dayStr] ?? []).filter(
-                  (m) => m.schedule_type === "times_per_day"
-                );
-                return (
-                  <div
-                    key={dayStr}
-                    className="px-1 py-1 flex flex-col gap-0.5 border-r border-warmstone-100 last:border-r-0"
-                  >
-                    {reviews.map((r) => (
-                      <div
-                        key={r.id}
-                        className="flex items-center gap-1 bg-info-light rounded px-1 py-0.5"
-                      >
-                        <FileText size={9} className="text-info shrink-0" />
-                        <span className="text-[9px] text-info font-semibold truncate">
-                          {r.benefit_name}
-                        </span>
-                      </div>
-                    ))}
-                    {rxs.map((rx) => (
-                      <div
-                        key={rx.id}
-                        className="flex items-center gap-1 rounded px-1 py-0.5"
-                        style={{ backgroundColor: "#FEF3C7" }}
-                      >
-                        <RotateCcw size={9} style={{ color: "#D97706" }} className="shrink-0" />
-                        <span className="text-[9px] font-semibold truncate" style={{ color: "#D97706" }}>
-                          {rx.name}
-                        </span>
-                      </div>
-                    ))}
-                    {tpdMeds.map((m) => {
-                      const taken =
-                        getMedTakenStatus(
-                          m.id,
-                          m.schedule_type,
-                          m.schedules.length,
-                          dayStr,
-                          takenLog
-                        ) === "all";
-                      return (
-                        <div
-                          key={m.id}
-                          className={[
-                            "flex items-center gap-1 rounded px-1 py-0.5",
-                            taken ? "bg-sage-50" : "bg-warmstone-50",
-                          ].join(" ")}
-                        >
-                          <Pill
-                            size={9}
-                            className={
-                              taken
-                                ? "text-sage-500 shrink-0"
-                                : "text-warmstone-400 shrink-0"
-                            }
-                          />
-                          <span
-                            className={[
-                              "text-[9px] font-semibold truncate",
-                              taken
-                                ? "text-sage-700 line-through"
-                                : "text-warmstone-600",
-                            ].join(" ")}
-                          >
-                            {m.name}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
+    // On compact (desktop 7-col) mode, show max 3 appts then overflow
+    const MAX_APPTS = compact ? 3 : appts.length;
+    const shownAppts = appts.slice(0, MAX_APPTS);
+    const hiddenApptCount = appts.length - shownAppts.length;
+
+    return (
+      <div className={[
+        "flex flex-col h-full",
+        isToday ? "bg-honey-50/40" : "",
+      ].join(" ")}>
+
+        {/* Day header — tappable */}
+        <button
+          onClick={() => setSelectedDay(day)}
+          className={[
+            "w-full flex items-center gap-2 px-3 py-2.5 border-b transition-colors text-left hover:bg-warmstone-50 group",
+            isToday ? "border-honey-200" : "border-warmstone-100",
+          ].join(" ")}
+        >
+          <span
+            className={[
+              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-colors",
+              isToday
+                ? "bg-honey-400 text-white"
+                : "text-warmstone-700 group-hover:bg-warmstone-100",
+            ].join(" ")}
+          >
+            {day.getDate()}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className={`text-xs font-bold uppercase tracking-wide ${isToday ? "text-honey-600" : "text-warmstone-500"}`}>
+              {compact ? DAY_SHORT[idx] : DAY_FULL[idx]}
+            </p>
+            {!isEmpty && (
+              <p className="text-[10px] text-warmstone-400 leading-none mt-0.5">
+                {[
+                  appts.length > 0 ? `${appts.length} appt${appts.length > 1 ? "s" : ""}` : null,
+                  allMeds.length > 0 ? `${allMeds.length} med${allMeds.length > 1 ? "s" : ""}` : null,
+                  rxList.length > 0 ? "Rx due" : null,
+                ].filter(Boolean).join(" · ")}
+              </p>
+            )}
+          </div>
+        </button>
+
+        {/* Content */}
+        <div className="flex flex-col gap-1.5 p-2 flex-1">
+
+          {/* Empty state */}
+          {isEmpty && (
+            <p className="text-xs text-warmstone-300 text-center py-3">Nothing</p>
           )}
 
-        {/* Time grid */}
-        <div className="overflow-y-auto" style={{ maxHeight: "600px" }}>
-          <div
-            className="grid grid-cols-[56px_repeat(7,1fr)]"
-            style={{ height: GRID_TOTAL_PX }}
-          >
-            {/* Time labels */}
-            <div className="relative border-r border-warmstone-100">
-              {HOURS.map((h) => (
-                <div
-                  key={h}
-                  className="absolute w-full flex items-start justify-end pr-2"
-                  style={{ top: (h - GRID_START) * HOUR_HEIGHT - 8 }}
-                >
-                  <span className="text-[10px] text-warmstone-400 font-medium">
-                    {String(h).padStart(2, "0")}:00
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Day columns */}
-            {days.map((day, i) => {
-              const dayStr = dayStrs[i];
-              const isToday = dayStr === todayStr;
-              const appts = apptsByDay[dayStr] ?? [];
-              const specificTimeMeds = (medsByDay[dayStr] ?? []).filter(
-                (m) => m.schedule_type === "specific_times"
-              );
-
-              return (
-                <div
-                  key={dayStr}
-                  className={[
-                    "relative border-r border-warmstone-100 last:border-r-0",
-                    isToday ? "bg-honey-50/30" : "",
-                  ].join(" ")}
-                  style={{ height: GRID_TOTAL_PX }}
-                >
-                  {HOURS.map((h) => (
-                    <div
-                      key={h}
-                      className="absolute w-full border-b border-warmstone-50"
-                      style={{ top: (h - GRID_START) * HOUR_HEIGHT }}
-                    />
-                  ))}
-
-                  {appts.filter(apptStartsInGrid).map((appt) => {
-                    const top = timeToOffset(appt.appointment_date);
-                    const color = apptColor(appt);
-                    return (
-                      <div
-                        key={appt.id}
-                        className="absolute left-0.5 right-0.5 rounded overflow-hidden px-1.5 py-1 z-10"
-                        style={{
-                          top,
-                          height: HOUR_HEIGHT - 2,
-                          backgroundColor: `${color}22`,
-                          borderLeft: `3px solid ${color}`,
-                        }}
-                      >
-                        <p
-                          className="text-[10px] font-bold leading-tight truncate"
-                          style={{ color }}
-                        >
-                          {formatApptTime(appt.appointment_date)}
-                        </p>
-                        <p className="text-[10px] font-semibold text-warmstone-800 leading-tight line-clamp-2">
-                          {appt.title}
-                        </p>
-                        {appt.location && (
-                          <p className="text-[9px] text-warmstone-500 truncate">
-                            {appt.location}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {specificTimeMeds.flatMap((med) =>
-                    med.schedules.map((slot) => {
-                      const top = timeToOffset(slot.time);
-                      const taken = takenLog.some(
-                        (l) =>
-                          l.medication_id === med.id &&
-                          l.schedule_id === slot.id &&
-                          l.taken_date === dayStr &&
-                          l.taken
-                      );
-                      return (
-                        <div
-                          key={`${med.id}-${slot.id}`}
-                          className="absolute left-1 flex items-center gap-0.5 z-10"
-                          style={{ top: top + 2 }}
-                        >
-                          <Pill
-                            size={10}
-                            className={
-                              taken ? "text-sage-500" : "text-warmstone-400"
-                            }
-                          />
-                          <span className="text-[9px] text-warmstone-500 truncate max-w-[60px]">
-                            {med.name}
-                          </span>
-                        </div>
-                      );
-                    })
-                  )}
-
-                  {appts.filter((a) => !apptStartsInGrid(a)).length > 0 && (
-                    <div className="absolute bottom-1 right-1 text-[9px] text-warmstone-400">
-                      +{appts.filter((a) => !apptStartsInGrid(a)).length}
+          {/* Appointment cards */}
+          {shownAppts.map((appt) => {
+            const color = apptColor(appt);
+            return (
+              <button
+                key={appt.id}
+                onClick={() => setSelectedDay(day)}
+                className="w-full text-left rounded-lg overflow-hidden transition-all hover:shadow-sm hover:brightness-95 group/appt"
+                style={{
+                  backgroundColor: `${color}12`,
+                  borderLeft: `3px solid ${color}`,
+                }}
+              >
+                <div className="px-2 py-1.5">
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <Clock size={10} style={{ color }} className="shrink-0" />
+                    <span className="text-[10px] font-bold" style={{ color }}>
+                      {fmtTime(appt.appointment_date)}
+                    </span>
+                    <span
+                      className={`ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${
+                        STATUS_COLORS[appt.status] ?? "text-warmstone-500 bg-warmstone-100"
+                      }`}
+                    >
+                      {STATUS_LABELS[appt.status] ?? appt.status}
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold text-warmstone-900 leading-snug line-clamp-2">
+                    {appt.title}
+                  </p>
+                  {!compact && appt.location && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <MapPin size={9} className="text-warmstone-400 shrink-0" />
+                      <p className="text-[10px] text-warmstone-500 truncate">{appt.location}</p>
                     </div>
                   )}
+                  {!compact && appt.professional_name && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <User size={9} className="text-warmstone-400 shrink-0" />
+                      <p className="text-[10px] text-warmstone-500 truncate">{appt.professional_name}</p>
+                    </div>
+                  )}
+                  {showPersonFilters && (
+                    <p className="text-[10px] text-warmstone-400 mt-0.5 truncate">
+                      {personName(appt.person_id)}
+                    </p>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+              </button>
+            );
+          })}
+
+          {/* Overflow */}
+          {hiddenApptCount > 0 && (
+            <button
+              onClick={() => setSelectedDay(day)}
+              className="text-[10px] font-semibold text-warmstone-400 hover:text-warmstone-700 text-left px-1 transition-colors"
+            >
+              +{hiddenApptCount} more
+            </button>
+          )}
+
+          {/* Medications */}
+          {allMeds.length > 0 && (
+            <button
+              onClick={() => setSelectedDay(day)}
+              className="w-full text-left rounded-lg bg-sage-50 border border-sage-100 px-2 py-1.5 hover:bg-sage-100 transition-colors"
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <Pill size={11} className="text-sage-600 shrink-0" />
+                <span className="text-[10px] font-bold text-sage-800">
+                  {allMeds.length} medication{allMeds.length > 1 ? "s" : ""}
+                </span>
+              </div>
+              {/* Taken status dots */}
+              <div className="flex gap-1 flex-wrap">
+                {allMeds.slice(0, compact ? 5 : allMeds.length).map((med) => {
+                  const status = getMedTakenStatus(
+                    med.id,
+                    med.schedule_type,
+                    med.schedules.length,
+                    dayStr,
+                    takenLog
+                  );
+                  return (
+                    <div
+                      key={med.id}
+                      className={[
+                        "w-4 h-4 rounded-full flex items-center justify-center shrink-0",
+                        status === "all"
+                          ? "bg-sage-500"
+                          : status === "some"
+                          ? "border-2 border-sage-400"
+                          : "bg-warmstone-200",
+                      ].join(" ")}
+                      title={`${med.name} - ${status === "all" ? "taken" : status === "some" ? "partial" : "not taken"}`}
+                    >
+                      <Pill
+                        size={8}
+                        className={
+                          status === "all"
+                            ? "text-white"
+                            : status === "some"
+                            ? "text-sage-500"
+                            : "text-warmstone-400"
+                        }
+                      />
+                    </div>
+                  );
+                })}
+                {compact && allMeds.length > 5 && (
+                  <span className="text-[9px] text-sage-500 font-semibold self-center">
+                    +{allMeds.length - 5}
+                  </span>
+                )}
+              </div>
+            </button>
+          )}
+
+          {/* Rx reminders */}
+          {rxList.map((rx) => {
+            const days = rxDaysUntil(rx.repeat_prescription_date, dayStr);
+            const isOrdered = orderedRx.has(`${rx.id}_${rx.repeat_prescription_date}`);
+            return (
+              <button
+                key={rx.id}
+                onClick={() => setSelectedDay(day)}
+                className="w-full text-left rounded-lg px-2 py-1.5 flex items-center gap-1.5 hover:brightness-95 transition-all"
+                style={{ backgroundColor: isOrdered ? "#DCFCE7" : "#FEF3C7" }}
+              >
+                <RotateCcw
+                  size={11}
+                  style={{ color: isOrdered ? "#16A34A" : "#D97706" }}
+                  className="shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-[10px] font-bold truncate"
+                    style={{ color: isOrdered ? "#16A34A" : "#D97706" }}
+                  >
+                    {compact ? "Rx" : rx.name}
+                  </p>
+                  {!compact && (
+                    <p className="text-[9px]" style={{ color: isOrdered ? "#16A34A" : "#D97706" }}>
+                      {isOrdered ? "Ordered" : days === 0 ? "Due today" : `Due in ${days}d`}
+                    </p>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+
+          {/* Benefit reviews */}
+          {reviews.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => setSelectedDay(day)}
+              className="w-full text-left rounded-lg bg-info-light border border-info/20 px-2 py-1.5 flex items-center gap-1.5 hover:brightness-95 transition-all"
+            >
+              <FileText size={11} className="text-info shrink-0" />
+              <p className="text-[10px] font-bold text-info truncate">
+                {compact ? "Review" : r.benefit_name}
+              </p>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* ── MOBILE: vertical day list ──────────────────────────────────────── */}
+      <div className="md:hidden flex flex-col gap-2">
+        {days.map((day, i) => {
+          const dayStr = dayStrs[i];
+          const isToday = dayStr === todayStr;
+          return (
+            <div
+              key={dayStr}
+              className={[
+                "bg-warmstone-white border rounded-xl overflow-hidden",
+                isToday ? "border-honey-300" : "border-warmstone-100",
+              ].join(" ")}
+            >
+              <DayCell day={day} idx={i} compact={false} />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── DESKTOP: 7-column card grid ────────────────────────────────────── */}
+      <div className="hidden md:block bg-warmstone-white border border-warmstone-100 rounded-xl overflow-hidden">
+        <div className="grid grid-cols-7 divide-x divide-warmstone-100" style={{ minHeight: "400px" }}>
+          {days.map((day, i) => {
+            const dayStr = dayStrs[i];
+            const isToday = dayStr === todayStr;
+            return (
+              <div
+                key={dayStr}
+                className={[
+                  "flex flex-col min-h-[400px]",
+                  isToday ? "bg-honey-50/30" : "",
+                ].join(" ")}
+              >
+                <DayCell day={day} idx={i} compact={true} />
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Day detail modal — shared between mobile and desktop week view */}
+      {/* Day detail modal */}
       <DayDetailModal
         date={selectedDay}
         onClose={() => setSelectedDay(null)}
