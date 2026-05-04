@@ -85,7 +85,7 @@ function OnboardingFork() {
           (user.user_metadata?.name as string | undefined) ??
           "",
         account_type: "standard" as const,
-        plan: choice === "self_care" ? "self_care_plus" as const : "free" as const,
+        plan: choice === "self_care" ? "self_care_plus" as const : "carebee_plus" as const,
         ai_uses_count: 0,
         is_subscribed: false,
         user_type: choice,

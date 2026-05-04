@@ -22,6 +22,7 @@ import {
   CheckCircle,
   Brain,
   Heart,
+  Smartphone,
 } from "lucide-react";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
@@ -529,6 +530,79 @@ export default async function LandingPage() {
                 Scan a letter, check for benefits, invite a sibling to help. The record grows
                 with you and stays up to date automatically.
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* BUZZ by CareBee App Section */}
+      <section className="px-4 md:px-8 py-20" style={{ backgroundColor: "var(--background, #faf7f2)" }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row gap-12 items-center bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-[rgba(61,53,48,0.1)]">
+            <div className="flex-1">
+              <span 
+                className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-6 inline-block"
+                style={{ backgroundColor: "var(--warm-amber, #d4a853)", color: "white" }}
+              >
+                New Mobile App
+              </span>
+              <h2 className="font-display text-3xl md:text-5xl mb-6 leading-tight" style={{ color: "var(--primary-brown, #3d3530)", fontFamily: "'DM Serif Display', serif" }}>
+                Meet BUZZ by CareBee 🐝
+              </h2>
+              <p className="text-lg leading-relaxed mb-8" style={{ color: "var(--text-color, #6b5e54)", fontFamily: "'Nunito', sans-serif" }}>
+                A dedicated tablet and mobile experience designed specifically for neurodivergent individuals and those in assisted living to build independence and confidence.
+              </p>
+              
+              <div className="space-y-4 mb-8" style={{ fontFamily: "'Nunito', sans-serif" }}>
+                <div className="flex items-start gap-3">
+                  <CheckCircle size={24} style={{ color: "#d4a853" }} className="mt-1 shrink-0" />
+                  <p style={{ color: "#6b5e54" }}><strong style={{ color: "#3d3530" }}>Two Modes:</strong> Supporter view to set routines, and highly accessible Achiever view.</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle size={24} style={{ color: "#d4a853" }} className="mt-1 shrink-0" />
+                  <p style={{ color: "#6b5e54" }}><strong style={{ color: "#3d3530" }}>High Contrast:</strong> Visual, simplified interfaces with zero jargon.</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle size={24} style={{ color: "#d4a853" }} className="mt-1 shrink-0" />
+                  <p style={{ color: "#6b5e54" }}><strong style={{ color: "#3d3530" }}>Integrated:</strong> Syncs perfectly with your existing CareBee household.</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4" style={{ fontFamily: "'Nunito', sans-serif" }}>
+                <button 
+                  className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold transition-transform hover:scale-105"
+                  style={{ backgroundColor: "#3d3530", color: "#faf7f2" }}
+                >
+                  <Smartphone size={20} />
+                  App Store (Coming Soon)
+                </button>
+                <button 
+                  className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold transition-transform hover:scale-105"
+                  style={{ backgroundColor: "transparent", color: "#3d3530", border: "2px solid rgba(61,53,48,0.2)" }}
+                >
+                  <Smartphone size={20} />
+                  Google Play (Coming Soon)
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 flex justify-center">
+              <div className="relative w-full max-w-sm aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl border-8" style={{ borderColor: "#3d3530", backgroundColor: "#faf7f2" }}>
+                <div className="absolute inset-0 flex flex-col p-6 items-center justify-center text-center">
+                   <div className="w-16 h-16 rounded-full mb-4 flex items-center justify-center" style={{ backgroundColor: "#d4a853" }}>
+                      <span className="text-3xl">🐝</span>
+                   </div>
+                   <h3 className="font-bold text-2xl mb-8" style={{ color: "#3d3530", fontFamily: "'DM Serif Display', serif" }}>Welcome, Harvey!</h3>
+                   <div className="w-full rounded-2xl p-6 mb-4 shadow-md bg-white border border-gray-100">
+                      <span className="text-4xl block mb-3">😃</span>
+                      <p className="font-bold text-lg" style={{ color: "#3d3530", fontFamily: "'Nunito', sans-serif" }}>How are you feeling?</p>
+                   </div>
+                   <div className="w-full rounded-2xl p-6 mb-4 shadow-md" style={{ backgroundColor: "#3d3530" }}>
+                      <p className="font-bold text-xl text-white" style={{ fontFamily: "'Nunito', sans-serif" }}>Brush teeth</p>
+                      <p className="text-white/80 mt-1" style={{ fontFamily: "'Nunito', sans-serif" }}>Daily at 08:00 AM</p>
+                   </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
